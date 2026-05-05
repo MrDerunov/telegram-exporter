@@ -11,7 +11,8 @@ from pathlib import Path
 class TestAppConfig(unittest.TestCase):
 
     def setUp(self):
-        from tg_exporter.models.config import AppConfig, MarkdownSettings, ConfigValidationError
+        from tg_exporter.models.config import AppConfig, ConfigValidationError
+        from tg_exporter.models.markdown_settings import MarkdownSettings
         self.AppConfig = AppConfig
         self.MarkdownSettings = MarkdownSettings
         self.ConfigValidationError = ConfigValidationError
@@ -98,7 +99,7 @@ class TestAppConfig(unittest.TestCase):
             cfg_mod.CONFIG_FILE = orig_file
 
     def test_markdown_settings_roundtrip(self):
-        from tg_exporter.models.config import MarkdownSettings
+        from tg_exporter.models.markdown_settings import MarkdownSettings
         s = MarkdownSettings(words_per_file=30_000, date_format="YYYY-MM-DD", plain_text=False)
         s2 = MarkdownSettings.from_dict(s.to_dict())
         self.assertEqual(s2.words_per_file, 30_000)
@@ -142,7 +143,7 @@ class TestExportMessage(unittest.TestCase):
         self.assertEqual(msg2.transcription, "Привет мир")
 
     def test_with_media_immutable(self):
-        from tg_exporter.models.message import MediaType
+        from tg_exporter.models.media_type import MediaType
         msg = self._make()
         msg2 = msg.with_media("/path/file.ogg", MediaType.VOICE, "audio/ogg")
         self.assertIsNone(msg.media_path)
@@ -155,7 +156,8 @@ class TestExportMessage(unittest.TestCase):
             msg.text = "modified"  # type: ignore[misc]
 
     def test_reactions_in_to_dict(self):
-        from tg_exporter.models.message import ExportMessage, ReactionItem
+        from tg_exporter.models.message import ExportMessage
+        from tg_exporter.models.reaction import ReactionItem
         msg = ExportMessage(
             id=2, type="message", date="2024-01-01T00:00:00",
             reactions=(ReactionItem(emoji="👍", count=5),),
@@ -164,7 +166,8 @@ class TestExportMessage(unittest.TestCase):
         self.assertEqual(d["reactions"], [{"emoji": "👍", "count": 5}])
 
     def test_poll_in_to_dict(self):
-        from tg_exporter.models.message import ExportMessage, PollData, PollAnswer
+        from tg_exporter.models.message import ExportMessage
+        from tg_exporter.models.poll import PollData, PollAnswer
         poll = PollData(
             question="Что лучше?",
             answers=(PollAnswer(text="A", voters=10), PollAnswer(text="B", voters=5)),
@@ -179,14 +182,14 @@ class TestExportMessage(unittest.TestCase):
 class TestExportTask(unittest.TestCase):
 
     def test_author_filter_empty_matches_all(self):
-        from tg_exporter.models.export_task import AuthorFilter
+        from tg_exporter.models.author_filter import AuthorFilter
         af = AuthorFilter()
         self.assertTrue(af.matches(123))
         self.assertTrue(af.matches(None))
         self.assertTrue(af.is_empty())
 
     def test_author_filter_with_ids(self):
-        from tg_exporter.models.export_task import AuthorFilter
+        from tg_exporter.models.author_filter import AuthorFilter
         af = AuthorFilter.from_ids([10, 20, 30])
         self.assertTrue(af.matches(10))
         self.assertFalse(af.matches(99))
@@ -194,7 +197,8 @@ class TestExportTask(unittest.TestCase):
 
     def test_export_progress_lifecycle(self):
         import time
-        from tg_exporter.models.export_task import ExportProgress, ExportStatus
+        from tg_exporter.models.export_progress import ExportProgress
+        from tg_exporter.models.export_format import ExportStatus
         p = ExportProgress()
         self.assertEqual(p.status, ExportStatus.PENDING)
         self.assertIsNone(p.progress_ratio)
@@ -216,14 +220,16 @@ class TestExportTask(unittest.TestCase):
         self.assertIsNotNone(p.finished_at)
 
     def test_export_progress_cancel(self):
-        from tg_exporter.models.export_task import ExportProgress, ExportStatus
+        from tg_exporter.models.export_progress import ExportProgress
+        from tg_exporter.models.export_format import ExportStatus
         p = ExportProgress()
         p.start()
         p.cancel()
         self.assertEqual(p.status, ExportStatus.CANCELLED)
 
     def test_export_progress_fail(self):
-        from tg_exporter.models.export_task import ExportProgress, ExportStatus
+        from tg_exporter.models.export_progress import ExportProgress
+        from tg_exporter.models.export_format import ExportStatus
         p = ExportProgress()
         p.start()
         p.fail("network error")
@@ -231,7 +237,7 @@ class TestExportTask(unittest.TestCase):
         self.assertEqual(p.error, "network error")
 
     def test_export_progress_ratio_capped_at_1(self):
-        from tg_exporter.models.export_task import ExportProgress
+        from tg_exporter.models.export_progress import ExportProgress
         p = ExportProgress()
         p.total_messages = 10
         p.processed_messages = 15  # больше total
@@ -239,7 +245,7 @@ class TestExportTask(unittest.TestCase):
 
     def test_export_progress_eta(self):
         import time
-        from tg_exporter.models.export_task import ExportProgress
+        from tg_exporter.models.export_progress import ExportProgress
         p = ExportProgress()
         p.start()
         p.total_messages = 100
@@ -250,7 +256,8 @@ class TestExportTask(unittest.TestCase):
         self.assertGreater(eta, 0)
 
     def test_export_task_immutable(self):
-        from tg_exporter.models.export_task import ExportTask, ExportFormat
+        from tg_exporter.models.export_task import ExportTask
+        from tg_exporter.models.export_format import ExportFormat
         task = ExportTask(chat_id=1, chat_name="Test", output_path="/tmp")
         task2 = task.with_last_id(500)
         self.assertIsNone(task.last_exported_id)

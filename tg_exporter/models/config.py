@@ -9,9 +9,11 @@ from __future__ import annotations
 
 import json
 import os
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
+
+from .markdown_settings import MarkdownSettings
 
 
 CONFIG_DIR = Path(os.path.expanduser("~/.tg_exporter"))
@@ -20,40 +22,10 @@ CONFIG_FILE = CONFIG_DIR / "config.json"
 WHISPER_MODELS = ("tiny", "base", "small", "medium", "large", "large-v2", "large-v3")
 TRANSCRIPTION_PROVIDERS = ("local", "deepgram")
 TRANSCRIPTION_LANGUAGES = ("multi", "ru", "en", "de", "fr", "es", "zh", "ja")
-DATE_FORMATS = ("DD.MM.YYYY", "YYYY-MM-DD", "MM/DD/YYYY")
 
 
 class ConfigValidationError(ValueError):
     pass
-
-
-@dataclass
-class MarkdownSettings:
-    words_per_file: int = 50_000
-    date_format: str = "DD.MM.YYYY"
-    include_timestamps: bool = True
-    include_author: bool = True
-    include_replies: bool = True
-    include_reactions: bool = False
-    include_polls: bool = False
-    include_forwarded: bool = True
-    plain_text: bool = True
-
-    def validate(self) -> None:
-        if self.words_per_file < 1000:
-            raise ConfigValidationError("words_per_file must be >= 1000")
-        if self.date_format not in DATE_FORMATS:
-            raise ConfigValidationError(
-                f"date_format must be one of {DATE_FORMATS}, got {self.date_format!r}"
-            )
-
-    def to_dict(self) -> dict:
-        return asdict(self)
-
-    @classmethod
-    def from_dict(cls, data: dict) -> "MarkdownSettings":
-        known = {f for f in cls.__dataclass_fields__}
-        return cls(**{k: v for k, v in data.items() if k in known})
 
 
 @dataclass

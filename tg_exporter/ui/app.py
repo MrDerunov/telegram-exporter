@@ -28,7 +28,10 @@ from .views.export_modal import ExportModal
 from .views.help_modal import HelpModal
 
 from ..models.config import AppConfig
-from ..models.export_task import ExportTask, ExportProgress, ExportFormat, AuthorFilter
+from ..models.export_task import ExportTask
+from ..models.export_progress import ExportProgress
+from ..models.export_format import ExportFormat
+from ..models.author_filter import AuthorFilter
 from ..core.credentials import CredentialsManager
 from ..core.client import TelegramClientManager
 from ..core.auth import AuthService, AuthStep
@@ -316,7 +319,7 @@ class App(ctk.CTk):
         if not path:
             return
         import os
-        from ..exporters.base import sanitize_filename
+        from ..exporters.sanitize import sanitize_filename
         base = os.path.join(path, sanitize_filename(folder))
         os.makedirs(base, exist_ok=True)
         self._folder_queue = list(dialogs)
@@ -675,7 +678,7 @@ class App(ctk.CTk):
         if self._folder_active:
             chat_name = getattr(self._folder_queue[self._folder_index - 1], "name", "chat") or "chat"
             if self._folder_mode in ("Один .md на чат", "Один .md на папку") and self._folder_export_base:
-                from ..exporters.base import sanitize_filename
+                from ..exporters.sanitize import sanitize_filename
                 safe_name = sanitize_filename(chat_name)
                 for f in files:
                     if f.endswith(".md") and os.path.exists(f):

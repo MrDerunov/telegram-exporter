@@ -40,7 +40,7 @@ class TestProfileManager(unittest.TestCase):
         self.addCleanup(lambda: sys.modules.pop("keyring", None))
 
         # Импортируем и патчим путь к profiles.json
-        from tg_exporter.core import profiles as profiles_mod
+        from tg_exporter.core.profiles import manager as profiles_mod
         from tg_exporter.core.credentials import CredentialsManager
         from tg_exporter.core.profiles import ProfileManager
 

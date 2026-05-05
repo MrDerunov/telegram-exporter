@@ -8,7 +8,7 @@ import os
 from dataclasses import dataclass
 from typing import Optional
 
-from ...models.message import MediaType
+from ...models.media_type import MediaType
 
 
 @dataclass

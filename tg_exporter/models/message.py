@@ -7,64 +7,13 @@ ExportMessage — иммутабельное представление одно
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field, asdict
-from enum import Enum
+from dataclasses import dataclass, field
 from typing import Optional
 
-
-class MediaType(str, Enum):
-    PHOTO = "photo"
-    VIDEO = "video"
-    AUDIO = "audio"
-    VOICE = "voice"
-    VIDEO_NOTE = "video_note"
-    DOCUMENT = "document"
-    STICKER = "sticker"
-    ANIMATION = "animation"
-
-
-@dataclass(frozen=True)
-class ReactionItem:
-    emoji: str
-    count: int
-
-    def to_dict(self) -> dict:
-        return {"emoji": self.emoji, "count": self.count}
-
-
-@dataclass(frozen=True)
-class LinkItem:
-    url: str
-    text: Optional[str] = None
-
-    def to_dict(self) -> dict:
-        d: dict = {"url": self.url}
-        if self.text and self.text != self.url:
-            d["text"] = self.text
-        return d
-
-
-@dataclass(frozen=True)
-class PollAnswer:
-    text: str
-    voters: Optional[int]
-
-    def to_dict(self) -> dict:
-        return {"text": self.text, "voters": self.voters}
-
-
-@dataclass(frozen=True)
-class PollData:
-    question: str
-    answers: tuple[PollAnswer, ...]
-    total_voters: Optional[int]
-
-    def to_dict(self) -> dict:
-        return {
-            "question": self.question,
-            "answers": [a.to_dict() for a in self.answers],
-            "total_voters": self.total_voters,
-        }
+from .link import LinkItem
+from .media_type import MediaType
+from .poll import PollAnswer, PollData
+from .reaction import ReactionItem
 
 
 @dataclass(frozen=True)

@@ -15,9 +15,10 @@ import re
 import datetime
 from typing import Optional
 
-from .base import BaseExporter, sanitize_filename
+from .base import BaseExporter
+from .sanitize import sanitize_filename
 from ..models.message import ExportMessage
-from ..models.config import MarkdownSettings
+from ..models.markdown_settings import MarkdownSettings
 
 
 class MarkdownExporter(BaseExporter):
