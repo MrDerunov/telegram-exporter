@@ -26,7 +26,8 @@ from telethon.errors import (
 
 from ..client import TelegramClientManager
 from ...utils.logger import logger
-from .models import AuthResult, AuthStep
+from .auth_result import AuthResult
+from .auth_step import AuthStep
 
 
 class AuthService:

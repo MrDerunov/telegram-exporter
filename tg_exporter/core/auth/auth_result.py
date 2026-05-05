@@ -1,15 +1,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from enum import Enum, auto
 from typing import Optional
 
-
-class AuthStep(Enum):
-    CODE_SENT = auto()          # код отправлен
-    PASSWORD_REQUIRED = auto()  # нужен пароль 2FA
-    SUCCESS = auto()            # авторизован
-    ERROR = auto()
+from .auth_step import AuthStep
 
 
 @dataclass

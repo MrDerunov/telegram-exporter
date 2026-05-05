@@ -7,7 +7,8 @@ from __future__ import annotations
 from collections import deque
 from typing import Deque, Optional
 
-from .models import _MAX_ENTRY_CHARS, _MAX_MESSAGES_PER_AUTHOR, AnalyticsResult, AuthorStats
+from .author_stats import AuthorStats, _MAX_ENTRY_CHARS, _MAX_MESSAGES_PER_AUTHOR
+from .analytics_result import AnalyticsResult
 from ...models.message import ExportMessage
 
 

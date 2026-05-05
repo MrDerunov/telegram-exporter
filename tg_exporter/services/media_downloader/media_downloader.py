@@ -15,7 +15,8 @@ import tempfile
 import time
 from typing import Optional
 
-from .models import MediaDirs, AudioPrepResult
+from .media_dirs import MediaDirs
+from .audio_prep_result import AudioPrepResult
 from .errors import MediaTooLongError, MediaProcessingError, _CancelledDuringDownload
 from ...utils.cancellation import CancellationToken
 from ...utils.logger import logger

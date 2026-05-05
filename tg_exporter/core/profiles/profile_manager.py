@@ -24,7 +24,7 @@ from typing import Optional
 
 from ..credentials import CredentialsManager
 from ...utils.logger import logger
-from .models import Profile, _session_key, _normalize_phone
+from .profile import Profile, _session_key, _normalize_phone
 
 
 _PROFILES_FILE = Path(os.path.expanduser("~/.tg_exporter/profiles.json"))

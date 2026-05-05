@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import datetime
 
-from .models import AnalyticsResult
+from .analytics_result import AnalyticsResult
 
 
 def render_top_authors(result: AnalyticsResult, words_per_file: int = 50_000) -> list[str]:

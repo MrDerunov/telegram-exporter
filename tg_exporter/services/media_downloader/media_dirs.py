@@ -1,5 +1,5 @@
 """
-Модели данных для media_downloader — MediaDirs и AudioPrepResult.
+MediaDirs — пути к поддиректориям медиа внутри export_dir.
 """
 
 from __future__ import annotations
@@ -41,11 +41,3 @@ class MediaDirs:
         if media_type == MediaType.DOCUMENT:
             return self.documents
         return None
-
-
-@dataclass
-class AudioPrepResult:
-    """Результат подготовки аудио к транскрипции."""
-    audio_data: bytes
-    content_type: str
-    saved_path: Optional[str] = None  # путь куда сохранено (для video_note)
