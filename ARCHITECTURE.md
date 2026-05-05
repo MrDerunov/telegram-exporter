@@ -1,0 +1,118 @@
+# Архитектура Telegram Exporter
+
+## Обзор
+
+**Telegram Exporter** — десктопное приложение (Python + Tkinter) для экспорта чатов Telegram в JSON и Markdown, с транскрипцией голосовых, скачиванием медиа и поддержкой нескольких аккаунтов.
+
+- **Стек:** Python 3.11+, Telethon, customtkinter, keyring, faster-whisper
+- **Платформы:** macOS (ARM64/Intel), Windows, Linux
+- **Лицензия:** MIT
+
+## Слои приложения
+
+```
+┌──────────────────────────────────────────────────┐
+│                    UI Layer                       │
+│  App (контроллер) → Views → Components           │
+├──────────────────────────────────────────────────┤
+│                 Core Layer                        │
+│  Auth · Client · Credentials · Profiles          │
+├──────────────────────────────────────────────────┤
+│              Export Pipeline                      │
+│  Orchestrator → Converter → Exporters             │
+├──────────────────────────────────────────────────┤
+│                Services                           │
+│  Media Downloader · Transcription · Analytics    │
+├──────────────────────────────────────────────────┤
+│                Data Models                        │
+│  AppConfig · ExportTask · ExportMessage          │
+└──────────────────────────────────────────────────┘
+```
+
+## Структура проекта
+
+```
+tg_exporter/
+├── core/           # Аутентификация, клиент, оркестрация
+│   ├── auth.py             # AuthService — логика входа в Telegram
+│   ├── client.py           # TelegramClientManager — жизненный цикл клиента
+│   ├── credentials.py      # CredentialsManager — секреты в Keyring
+│   ├── profiles.py         # ProfileManager — несколько аккаунтов
+│   ├── converter.py        # Telethon → ExportMessage
+│   └── orchestrator.py     # ExportOrchestrator — главный цикл экспорта
+├── exporters/      # Форматы вывода
+│   ├── base.py             # BaseExporter — абстрактный экспортёр
+│   ├── json_exporter.py    # JsonExporter — потоковый JSON
+│   └── markdown_exporter.py# MarkdownExporter — разбивка по файлам
+├── models/         # Типы данных (dataclasses)
+│   ├── config.py           # AppConfig, MarkdownSettings
+│   ├── export_task.py      # ExportTask, ExportProgress, ExportFormat
+│   └── message.py          # ExportMessage, MediaType, PollData, LinkItem
+├── services/       # Бизнес-логика
+│   ├── analytics.py        # AnalyticsCollector — статистика авторов/активности
+│   ├── export_history.py   # ExportHistory — инкрементальный экспорт
+│   ├── media_downloader.py # MediaDownloader — скачивание/конвертация
+│   └── transcription/      # Транскрипция аудио
+├── ui/             # Десктопный интерфейс
+│   ├── app.py              # App — главный контроллер
+│   ├── theme.py            # Дизайн-система (цвета, шрифты, отступы)
+│   ├── components/         # Переиспользуемые виджеты
+│   └── views/              # Экраны и модальные окна
+├── utils/          # Инфраструктура
+│   ├── cancellation.py     # CancellationToken
+│   ├── logger.py           # AppLogger с редактированием секретов
+│   └── worker.py           # BackgroundWorker + EventDispatcher
+tests/              # Unit-тесты (unittest)
+scripts/            # Скрипты сборки под все платформы
+```
+
+## Ключевые архитектурные решения
+
+### 1. Иммутабельные модели
+`ExportMessage`, `ExportTask`, `PollData` — frozen dataclasses. Изменение полей — через `dataclasses.replace()`. Export-пайплайн работает только с этими моделями, не зависит от Telethon.
+
+### 2. Секреты только в Keyring
+`api_hash`, session string, Deepgram API key — хранятся исключительно в системном Keyring. Конфиг-файл `~/.tg_exporter/config.json` содержит только несекретные настройки. Миграция из старого plaintext-формата автоматическая.
+
+### 3. Фоновый поток + Event Queue
+Telegram API-вызовы выполняются в одном фоновом потоке (daemon). UI отделён — взаимодействие через thread-safe очередь `UIEvent`. UI опрашивает очередь каждые 80 мс через Tkinter `after()`.
+
+### 4. Co-operative cancellation
+Длинные операции (экспорт, скачивание медиа, транскрипция) принимают `CancellationToken`. Проверка на отмену — в каждой итерации и перед каждой IO-операцией. Без принудительного убийства потоков.
+
+### 5. Отсутствие зависимости от Telethon в моделях
+Единственная точка контакта с Telethon — `converter.py`. Все downstream-сервисы (экспортёры, аналитика) работают с чистыми Python-типами через `ExportMessage`.
+
+## Поток данных при экспорте
+
+```
+Telegram API (Telethon)
+        │
+        ▼
+  converter.py  ──→  ExportMessage (иммутабельный)
+        │
+        ▼
+  ExportOrchestrator  ──┬──→  JsonExporter      → result.json
+                        ├──→  MarkdownExporter   → chat_part_1.md, ...
+                        ├──→  MediaDownloader    → media/photo|video|audio|docs
+                        ├──→  Transcriber        → строка транскрипции
+                        ├──→  AnalyticsCollector → top_authors.md, activity.md
+                        └──→  ExportHistory      → export_history.json
+```
+
+## Компонентная документация
+
+Подробное описание ключевых компонентов:
+
+- [Core Layer](docs/architecture/core-layer.md) — аутентификация, клиент, секреты, профили
+- [Export Pipeline](docs/architecture/export-pipeline.md) — оркестратор, конвертер, экспортёры
+- [Transcription Service](docs/architecture/transcription.md) — Whisper, Deepgram, конвертация аудио
+- [UI Layer](docs/architecture/ui-layer.md) — контроллер, views, дизайн-система, событийная модель
+
+## Безопасность
+
+- `api_hash` никогда не пишется в plaintext — только Keyring
+- Session string хранится в Keyring, подгружается только при использовании
+- Логгер автоматически редактирует секреты (api_hash, phone, token) перед записью в `app.log`
+- Конфиг-файл имеет права `0o600` на Unix
+- Атомарная запись всех файлов (tmp + fsync + os.replace)
