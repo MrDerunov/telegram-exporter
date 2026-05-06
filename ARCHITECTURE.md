@@ -130,12 +130,12 @@ Telegram API (Telethon)
 
 ## Компонентная документация
 
-Подробное описание ключевых компонентов:
+Подробное описание ключевых компонентов лежит рядом с кодом, который они описывают:
 
-- [Core Layer](docs/architecture/core-layer.md) — аутентификация, клиент, секреты, профили
-- [Export Pipeline](docs/architecture/export-pipeline.md) — оркестратор, конвертер, экспортёры
-- [Transcription Service](docs/architecture/transcription.md) — Whisper, Deepgram, конвертация аудио
-- [UI Layer](docs/architecture/ui-layer.md) — контроллер, views, дизайн-система, событийная модель
+- [Core Layer](tg_exporter/core/ARCHITECTURE.md) — аутентификация, клиент, секреты, профили
+- [Export Pipeline](tg_exporter/core/EXPORT_PIPELINE.md) — оркестратор, конвертер, экспортёры
+- [Transcription Service](tg_exporter/services/transcription/ARCHITECTURE.md) — Whisper, Deepgram, конвертация аудио
+- [UI Layer](tg_exporter/ui/ARCHITECTURE.md) — контроллер, views, дизайн-система, событийная модель
 
 ## Безопасность
 
