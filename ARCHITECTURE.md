@@ -138,7 +138,7 @@ Telegram API (Telethon)
 Проект предоставляет два интерфейса на общем Core-слое:
 
 - **[Desktop UI](tg_exporter/ui/ARCHITECTURE.md)** — графический интерфейс на Tkinter/customtkinter
-- **[CLI](CLI_ARCHITECTURE.md)** — консольная утилита на Typer (ручной и автоматизированный экспорт)
+- **[CLI](.plans/cli-app.md)** — консольная утилита на Click (ручной и автоматизированный экспорт)
 
 ## Компонентная документация
 
@@ -148,7 +148,7 @@ Telegram API (Telethon)
 - [Export Pipeline](tg_exporter/core/EXPORT_PIPELINE.md) — оркестратор, конвертер, экспортёры
 - [Transcription Service](tg_exporter/services/transcription/ARCHITECTURE.md) — Whisper, Deepgram, конвертация аудио
 - [UI Layer](tg_exporter/ui/ARCHITECTURE.md) — контроллер, views, дизайн-система, событийная модель
-- [CLI Architecture](CLI_ARCHITECTURE.md) — консольная утилита, DI-контейнер, команды
+- [CLI Plan](.plans/cli-app.md) — консольная утилита, DI-контейнер, команды
 
 ## Безопасность
 
