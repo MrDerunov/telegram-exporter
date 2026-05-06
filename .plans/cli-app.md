@@ -7,11 +7,17 @@
 - Выгружает сообщения из Telegram-каналов/чатов в JSON и Markdown
 - Поддерживает инкрементальный экспорт (только новые сообщения)
 - Полностью настраивается через параметры командной строки и конфиг-файл
-- Переиспользует существующую кодовую базу десктопного приложения
+- Покрыта тестами: основная логика, команды CLI и параметры команд
+- Использует фейковый Telegram-клиент для тестирования без реального API
 
 **Чего утилита НЕ делает:**
-- Не планирует периодический запуск — это задача внешнего планировщика (cron, systemd timer, launchd). CLI — stateless утилита для одного запуска.
-- Не имеет GUI — только stdout/stderr и файловый вывод.
+- Не планирует периодический запуск — это задача внешнего планировщика (cron, systemd timer, launchd)
+- Не имеет GUI — только stdout/stderr и файловый вывод
+
+**Десктопное приложение:**
+- Десктопное приложение (Tkinter/customtkinter) больше не актуально
+- UI-слой (`tg_exporter/ui/`) и его зависимости подлежат удалению
+- Core-слой, сервисы, модели и экспортеры выделяются в самостоятельную библиотеку
 
 ## 2. CLI-фреймворк
 
@@ -27,9 +33,93 @@
 
 Click — золотая середина. Каждая команда — отдельный `.py` файл (модульная структура, не пихать всё в один файл). Читаемые декораторы, встроенный `--help`.
 
-## 3. DI-контейнер
+## 3. Telegram-клиент: абстракция и реализации
 
-В приложение внедряется Dependency Injection. Все зависимости собираются в одном месте — контейнере.
+Для тестирования без реального Telegram API вводится абстракция над клиентом.
+
+```python
+# tg_exporter/core/client_interface.py
+
+class TelegramClientInterface(ABC):
+    """Контракт для взаимодействия с Telegram API."""
+
+    async def connect(self) -> None: ...
+    async def disconnect(self) -> None: ...
+    async def is_authorized(self) -> bool: ...
+    async def send_code_request(self, phone: str) -> Any: ...
+    async def sign_in(self, phone: str, code: str) -> Any: ...
+    async def sign_in_password(self, password: str) -> Any: ...
+    async def get_dialogs(self, limit: int | None = None) -> list[Dialog]: ...
+    async def iter_messages(
+        self, peer_id: int, min_id: int = 0,
+        offset_date: datetime | None = None,
+        limit: int | None = None, ...
+    ) -> AsyncIterator[Message]: ...
+    async def download_media(self, message: Message, path: Path) -> Path | None: ...
+    def save_session(self) -> str: ...
+    def load_session(self, session_str: str) -> None: ...
+```
+
+### Реализации
+
+| Класс | Назначение |
+|-------|------------|
+| `TelethonClientAdapter` | Обёртка над реальным `Telethon.TelegramClient` — production |
+| `FakeTelegramClient` | Фейковый клиент для тестов — возвращает предзагруженные сообщения |
+
+### FakeTelegramClient
+
+```python
+# tests/fakes/fake_telegram_client.py
+
+class FakeTelegramClient(TelegramClientInterface):
+    """Фейковый клиент для unit-тестов."""
+
+    def __init__(self):
+        self._dialogs: list[Dialog] = []
+        self._messages: dict[int, list[Message]] = {}  # peer_id → messages
+        self._authorized = False
+
+    def add_dialog(self, dialog: Dialog) -> None: ...
+    def add_messages(self, peer_id: int, messages: list[Message]) -> None: ...
+    def set_authorized(self, authorized: bool) -> None: ...
+```
+
+Фейковый клиент позволяет:
+- Предзагружать диалоги и сообщения
+- Симулировать авторизацию/неавторизацию
+- Проверять что методы были вызваны с правильными параметрами
+- Тестировать экспорт на разных объёмах данных без реального API
+
+### DI-контейнер с подменой клиента
+
+```python
+# tg_exporter_cli/container.py
+
+class Container:
+    """DI-контейнер. В тестах client можно передать извне."""
+
+    def __init__(
+        self,
+        config_path: Path,
+        env_file: Path | None = None,
+        telegram_client: TelegramClientInterface | None = None,  # для тестов
+    ):
+        self.secret_provider = ChainSecretProvider([...])
+        self.config = ConfigManager(config_path)
+        self.credentials = CredentialsManager(self.secret_provider)
+
+        # Клиент можно подменить (FakeTelegramClient в тестах)
+        self.client = telegram_client or TelethonClientAdapter(
+            self.config, self.credentials
+        )
+
+        self.auth_service = AuthService(self.client)
+        self.orchestrator = ExportOrchestrator(self.client, self.config)
+        ...
+```
+
+## 4. DI-контейнер
 
 ```python
 # tg_exporter_cli/container.py
@@ -37,7 +127,12 @@ Click — золотая середина. Каждая команда — от�
 class Container:
     """Собирает и предоставляет все зависимости CLI-приложения."""
 
-    def __init__(self, config_path: Path, env_file: Path | None = None):
+    def __init__(
+        self,
+        config_path: Path,
+        env_file: Path | None = None,
+        telegram_client: TelegramClientInterface | None = None,
+    ):
         # 1. Секреты (порядок: env vars → .env file → keyring)
         self.secret_provider = ChainSecretProvider([
             EnvSecretProvider(env_file),
@@ -50,27 +145,22 @@ class Container:
         # 3. Credentials (api_hash, session — через SecretProvider)
         self.credentials = CredentialsManager(self.secret_provider)
 
-        # 4. Telegram-клиент
-        self.client_manager = TelegramClientManager(
+        # 4. Telegram-клиент (реальный или фейковый для тестов)
+        self.client = telegram_client or TelethonClientAdapter(
             self.config, self.credentials
         )
 
-        # 5. Профили
-        self.profile_manager = ProfileManager(
-            self.credentials, self.config
-        )
+        # 5. Auth
+        self.auth_service = AuthService(self.client)
 
-        # 6. Auth
-        self.auth_service = AuthService(self.client_manager)
-
-        # 7. Экспорт
+        # 6. Экспорт
         self.orchestrator = ExportOrchestrator(
-            self.client_manager, self.config
+            self.client, self.config
         )
 
     def get_chat_list_service(self):
         """Ленивая инициализация сервиса чатов."""
-        return ChatListService(self.client_manager)
+        return ChatListService(self.client)
 ```
 
 **Почему свой контейнер, а не dependency-injector:**
@@ -78,11 +168,12 @@ class Container:
 - Полный контроль над порядком инициализации
 - Явные ошибки на старте, а не в рантайме
 - Прозрачно для отладки
+- Легко подменять реализации для тестов (через параметры конструктора)
 
-## 4. Архитектура
+## 5. Архитектура
 
 ```
-tg_exporter_cli/          # Новый пакет (модульный: каждая команда — свой файл)
+tg_exporter_cli/          # CLI-приложение
 ├── __init__.py
 ├── main.py               # Точка входа (click group)
 ├── container.py           # DI-контейнер
@@ -102,17 +193,49 @@ tg_exporter_cli/          # Новый пакет (модульный: кажд�
 │   └── chain_provider.py      # Цепочка: пробует несколько провайдеров
 └── output.py             # Форматированный вывод (таблицы, прогресс)
 
-tg_exporter/              # Существующий код (переиспользуем)
-├── core/                 # AuthService, ClientManager, Orchestrator
-├── services/             # MediaDownloader, Transcription, Analytics
+tg_exporter/              # Core-библиотека (общая для CLI и тестов)
+├── core/
+│   ├── client_interface.py    # TelegramClientInterface (ABC) ← НОВОЕ
+│   ├── telethon_adapter.py    # TelethonClientAdapter          ← НОВОЕ
+│   ├── auth/                  # AuthService + модели
+│   ├── converter.py           # Telethon → ExportMessage
+│   └── orchestrator.py        # ExportOrchestrator
 ├── exporters/            # JsonExporter, MarkdownExporter
-├── models/               # AppConfig, ExportTask, ExportMessage
+├── services/             # MediaDownloader, Transcription, Analytics, ExportHistory
+├── models/               # ExportTask, ExportMessage, ...
 └── utils/                # CancellationToken, Logger
+
+tests/                    # Тесты
+├── conftest.py                 # Фикстуры (контейнер, фейковый клиент)
+├── fakes/
+│   ├── __init__.py
+│   ├── fake_telegram_client.py # FakeTelegramClient
+│   └── factories.py            # Фабрики тестовых данных (сообщения, диалоги)
+├── unit/
+│   ├── test_converter.py       # Конвертация Telethon → ExportMessage
+│   ├── test_orchestrator.py    # Логика экспорта с фейковым клиентом
+│   ├── test_export_history.py  # Инкрементальный экспорт
+│   ├── test_exporters.py       # JSON и Markdown экспортеры
+│   ├── test_secrets.py         # SecretProvider и все реализации
+│   └── test_config.py          # CliConfig, валидация
+├── integration/
+│   ├── test_export_command.py  # Команда export со всеми параметрами
+│   ├── test_chats_command.py   # Команда chats
+│   ├── test_auth_command.py    # Команда auth
+│   ├── test_config_command.py  # Команда config
+│   └── test_profile_command.py # Команда profile
+└── fixtures/
+    └── sample_messages.json    # Эталонные сообщения для тестов
+
+# Удаляется (десктопное приложение больше не нужно):
+# tg_exporter/ui/          ❌ УДАЛИТЬ
+# tg_exporter/utils/worker.py  ❌ УДАЛИТЬ (BackgroundWorker, EventDispatcher)
+# main.py                  ❌ УДАЛИТЬ (старая точка входа в GUI)
 ```
 
-## 5. Команды
+## 6. Команды
 
-### 5.1. `tg-exporter auth login`
+### 6.1. `tg-exporter auth login`
 
 Интерактивная аутентификация в Telegram.
 
@@ -133,7 +256,7 @@ Options:
 4. При 2FA — запрашивает пароль
 5. Сохраняет сессию через `SecretProvider`
 
-### 5.2. `tg-exporter auth status`
+### 6.2. `tg-exporter auth status`
 
 ```
 tg-exporter auth status [OPTIONS]
@@ -146,7 +269,7 @@ Output:
   ❌ Не авторизован. Выполните: tg-exporter auth login
 ```
 
-### 5.3. `tg-exporter auth logout`
+### 6.3. `tg-exporter auth logout`
 
 ```
 tg-exporter auth logout [OPTIONS]
@@ -154,7 +277,7 @@ Options:
   --profile TEXT    Имя профиля
 ```
 
-### 5.4. `tg-exporter export`
+### 6.4. `tg-exporter export`
 
 Экспорт одного чата/канала.
 
@@ -199,9 +322,9 @@ Profile:
 - Экспортирует сообщения за последние N дней
 - Удобно для периодического запуска через внешний cron
 
-### 5.5. `tg-exporter chats`
+### 6.5. `tg-exporter chats`
 
-Просмотр и управление списком чатов для экспорта. Удобно добавлять чаты в конфиг через консоль, смотреть по папкам Telegram, выбирать для экспорта.
+Просмотр и управление списком чатов для экспорта.
 
 ```
 tg-exporter chats list                       # Список всех чатов
@@ -225,11 +348,9 @@ tg-exporter chats remove --chat CHAT_ID      # Убрать чат из конф
 ╚══════════╩══════════════════════════════╩══════════╩════════════╝
 ```
 
-**Идея:** пользователь заходит в консоль, смотрит список чатов с группировкой по папкам, выбирает нужные и добавляет их в конфиг. После этого можно делать `tg-exporter export --chat ID` без необходимости каждый раз искать ID.
+### 6.6. `tg-exporter profile`
 
-### 5.6. `tg-exporter profile`
-
-Управление несколькими аккаунтами (переиспользует `ProfileManager`).
+Управление несколькими аккаунтами.
 
 ```
 tg-exporter profile list
@@ -238,7 +359,7 @@ tg-exporter profile remove --phone +7999...
 tg-exporter profile switch --phone +7999...
 ```
 
-### 5.7. `tg-exporter config`
+### 6.7. `tg-exporter config`
 
 Управление конфигурацией.
 
@@ -250,11 +371,87 @@ tg-exporter config set secrets_source env   # env | keyring | chain (по умо
 tg-exporter config path                     # Показать путь к конфиг-файлу
 ```
 
-## 6. Аутентификация и секреты
+## 7. Тестирование
+
+### Стратегия
+
+| Уровень | Что тестируется | Инструменты |
+|---------|-----------------|-------------|
+| Unit | Core-логика (Converter, ExportHistory, Exporters, SecretProvider, CliConfig) | pytest, FakeTelegramClient |
+| Integration | CLI-команды со всеми параметрами, сквозной сценарий экспорта | pytest, Click.testing.CliRunner, FakeTelegramClient |
+| Contract | `TelegramClientInterface` — обе реализации удовлетворяют контракту | pytest |
+
+### Принципы
+
+- **Без реального Telegram API** — все тесты используют `FakeTelegramClient`
+- **Параметризация** — одна команда тестируется со всеми комбинациями флагов через `@pytest.mark.parametrize`
+- **Snapshots** — эталонный вывод команд (JSON, таблицы) хранится в `tests/fixtures/`
+- **Фабрики** — генерация тестовых сообщений/диалогов через `tests/fakes/factories.py`
+
+### Что покрывается тестами обязательно
+
+**Core-логика:**
+- `Converter.message_to_export()` — все типы сообщений, все поля
+- `ExportHistory` — сохранение/загрузка из папки чата, инкрементальный min_id
+- `JsonExporter` / `MarkdownExporter` — формат вывода, разбивка по файлам
+- `SecretProvider` — все три провайдера, цепочка, приоритет
+- `ExportOrchestrator` — полный цикл с фейковыми сообщениями
+
+**CLI-команды:**
+- `export` — все опции: `--format`, `--date-from`, `--date-to`, `--days`, `--last`, `--topic-id`, `--download-media`, `--transcribe`, `--analytics`, `--words-per-file`
+- `chats` — `list`, `list --folder`, `list --folders`, `list --search`, `show`, `add`, `remove`, `add --folder`
+- `auth` — `login` (все шаги), `status`, `logout`
+- `config` — `show`, `set`, `path`
+- `profile` — `list`, `add`, `remove`, `switch`
+
+**Интеграционные сценарии:**
+- Сквозной: логин → просмотр чатов → экспорт → проверка файлов
+- Инкрементальный: экспорт → новые сообщения → повторный экспорт → только новые
+- Отмена: Ctrl+C во время экспорта → частичный результат валиден
+- Ошибки: неверный chat ID, отсутствие авторизации, битый конфиг
+
+### Пример теста (интеграционный)
+
+```python
+# tests/integration/test_export_command.py
+
+def test_export_last_n_messages(cli_runner, container_with_fake_client):
+    """Экспорт последних 50 сообщений с фейковым клиентом."""
+    fake_client = container_with_fake_client.client
+    fake_client.add_messages(-1001234, generate_messages(200))
+
+    result = cli_runner.invoke(
+        cli_main,
+        ["export", "--chat", "-1001234", "--last", "50", "--format", "json"]
+    )
+
+    assert result.exit_code == 0
+    assert "Экспорт завершён" in result.output
+    assert Path("exports/TestChat/result.json").exists()
+
+    data = json.loads(Path("exports/TestChat/result.json").read_text())
+    assert len(data["messages"]) == 50
+
+
+@pytest.mark.parametrize("format_flag", ["json", "markdown", "both"])
+def test_export_formats(cli_runner, container_with_fake_client, format_flag):
+    """Экспорт во всех поддерживаемых форматах."""
+    ...
+
+
+@pytest.mark.parametrize("days,expected_count", [
+    (1, 5),
+    (7, 30),
+    (30, 100),
+])
+def test_export_date_filter(cli_runner, container, days, expected_count):
+    """Фильтр по дате выдаёт правильное число сообщений."""
+    ...
+```
+
+## 8. Аутентификация и секреты
 
 ### SecretProvider — абстракция над источниками секретов
-
-Вместо жёсткой привязки к Keyring — абстрактный `SecretProvider`. Поддерживаются три источника:
 
 ```python
 class SecretProvider(ABC):
@@ -268,11 +465,11 @@ class SecretProvider(ABC):
 | Провайдер | Источник | Когда использовать |
 |-----------|----------|--------------------|
 | `EnvSecretProvider` | Переменные окружения + `.env` файл | CI/CD, Docker, автоматизация |
-| `KeyringSecretProvider` | Системный Keyring | Локальное использование, десктоп |
+| `KeyringSecretProvider` | Системный Keyring | Локальное использование |
 
 ### ChainSecretProvider
 
-Объединяет несколько провайдеров в цепочку. При чтении — первый не-`None` результат. При записи — пишет во все провайдеры.
+При чтении — первый не-`None` результат. При записи — пишет во все провайдеры.
 
 ```python
 # Порядок: сначала проверяем env, потом keyring
@@ -312,21 +509,17 @@ $ tg-exporter auth login
 
 ### Неинтерактивный режим (CI/CD)
 
-Для CI/CD и неинтерактивных сред — через `.env` файл или переменные окружения:
-
 ```bash
 export TG_EXPORTER_API_ID=12345678
 export TG_EXPORTER_API_HASH=abcdef1234567890abcdef1234567890
-export TG_EXPORTER_SESSION=1BQANOTEuMTAu...  # сессия должна быть получена заранее
+export TG_EXPORTER_SESSION=1BQANOTEuMTAu...
 
 tg-exporter export --chat -1001234
 ```
 
-Сессия должна быть уже сохранена (получена через `tg-exporter auth login` в интерактивном режиме на машине где Keyring доступен, затем экспортирована в `.env`).
+Сессия должна быть уже получена через `tg-exporter auth login` в интерактивном режиме.
 
-## 7. ExportHistory — на каждый чат свой файл
-
-История экспорта для инкрементального режима хранится в папке с данными чата, а не в глобальном файле.
+## 9. ExportHistory — на каждый чат свой файл
 
 ```
 exports/
@@ -353,29 +546,13 @@ exports/
 4. Если файла нет → полный экспорт с первого сообщения
 5. Флаг `--last N` или `--date-from`/`--date-to` → export_history не обновляется
 
-**Преимущества:**
-- Данные чата самодостаточны: можно скопировать папку на другую машину и инкрементальный экспорт продолжит работать
-- Не завязываемся на `~/.tg_exporter` который может быть удалён/перемещён
-- Логично: история экспорта — часть данных чата
-
-## 8. Вывод и прогресс
-
-### Форматирование
+## 10. Вывод и прогресс
 
 - **Таблицы:** через `rich` (опционально) или простой ASCII (fallback)
 - **Прогресс-бар:** через `rich.progress` или `tqdm`
 - **Уровни:** `--quiet` (только ошибки), `--verbose` (подробный лог)
 
-### Пример прогресса при экспорте
-
-```
-Экспорт "Коты и котики"...
-  Сообщений: [████████████████░░░░] 80% (800/1000)
-  Медиа:     [████████░░░░░░░░░░░░] 40% (40/100)
-  Статус: скачивание медиа...
-```
-
-## 9. Конфигурация CLI
+## 11. Конфигурация CLI
 
 Файл `~/.tg_exporter/cli_config.yaml`:
 
@@ -417,173 +594,157 @@ logging:
   file: ~/.tg_exporter/cli.log
 ```
 
-Конфиг содержит только публичные настройки и список чатов для быстрого доступа. Секреты — строго через SecretProvider.
+## 12. Миграция с десктопного приложения
 
-## 10. Стратегия переиспользования
+### Что остаётся и дорабатывается
 
-### Что берём из десктопного приложения (без изменений)
+| Модуль | Что изменится |
+|--------|---------------|
+| `core/client_interface.py` | **НОВОЕ** — ABC для Telegram-клиента |
+| `core/telethon_adapter.py` | **НОВОЕ** — реальная реализация (выделяется из `client.py`) |
+| `core/auth/` | Адаптировать под `TelegramClientInterface` |
+| `core/converter.py` | Без изменений |
+| `core/orchestrator.py` | Адаптировать под `TelegramClientInterface` |
+| `exporters/` | Без изменений |
+| `services/` | `ExportHistory` — доработать хранение в папке чата |
+| `models/` | Без изменений |
+| `utils/cancellation.py` | Без изменений |
+| `utils/logger.py` | Без изменений |
 
-| Модуль | Путь | Зачем |
-|--------|------|-------|
-| `AuthService` | `core/auth/` | Аутентификация в Telegram |
-| `TelegramClientManager` | `core/client.py` | Управление клиентом Telethon |
-| `CredentialsManager` | `core/credentials.py` | Хранение секретов (адаптировать под SecretProvider) |
-| `ProfileManager` | `core/profiles/` | Мульти-аккаунты |
-| `ExportOrchestrator` | `core/orchestrator.py` | Главный цикл экспорта |
-| `Converter` | `core/converter.py` | Telethon → ExportMessage |
-| `JsonExporter` | `exporters/json_exporter.py` | JSON-экспорт |
-| `MarkdownExporter` | `exporters/markdown_exporter.py` | Markdown-экспорт |
-| `MediaDownloader` | `services/media_downloader/` | Скачивание медиа |
-| `TranscriptionService` | `services/transcription/` | Транскрипция аудио |
-| `AnalyticsCollector` | `services/analytics/` | Аналитика |
-| `ExportHistory` | `services/export_history.py` | Инкрементальный экспорт (доработать: хранение в папке чата) |
-| `CancellationToken` | `utils/cancellation.py` | Отмена операций (Ctrl+C) |
-| `AppLogger` | `utils/logger.py` | Логирование с редактированием |
-| `ExportTask`, `ExportMessage` | `models/` | Модели данных |
-
-### Что НЕ берём
+### Что удаляется полностью
 
 | Модуль | Причина |
 |--------|---------|
-| `ui/` (весь) | Десктопный UI на customtkinter |
-| `BackgroundWorker` | Очередь событий для UI |
-| `EventDispatcher` | Роутинг UI-событий |
-| `AppConfig` | Модель конфига десктопного приложения (используем `CliConfig`) |
+| `tg_exporter/ui/` (весь пакет) | Десктопный UI больше не нужен |
+| `tg_exporter/utils/worker.py` | BackgroundWorker + EventDispatcher (только для GUI) |
+| `main.py` | Старая точка входа в GUI-приложение |
+| `tg_exporter/core/client.py` | Заменён на `client_interface.py` + `telethon_adapter.py` |
+| `tg_exporter/core/credentials.py` | Адаптирован под `SecretProvider`, старый API удалён |
+| `tg_exporter/core/profiles/` | Перенесён в CLI или удалён (профили управляются через `tg-exporter profile`) |
 
-### Что создаём заново
+### Что создаётся заново
 
 | Модуль | Описание |
 |--------|----------|
-| `tg_exporter_cli/main.py` | Click-группа, точка входа |
+| `tg_exporter_cli/` | CLI-приложение (весь пакет) |
 | `tg_exporter_cli/container.py` | DI-контейнер |
-| `tg_exporter_cli/config.py` | Модель CLI-конфига (YAML) |
-| `tg_exporter_cli/commands/auth.py` | Команды аутентификации |
-| `tg_exporter_cli/commands/export.py` | Команда экспорта |
-| `tg_exporter_cli/commands/chats.py` | Команда просмотра и управления чатами |
-| `tg_exporter_cli/commands/profile.py` | Управление профилями |
-| `tg_exporter_cli/commands/config_cmd.py` | Управление конфигом |
 | `tg_exporter_cli/secrets/` | SecretProvider, EnvProvider, KeyringProvider, ChainProvider |
-| `tg_exporter_cli/output.py` | Форматированный вывод (таблицы, прогресс-бары) |
-| `pyproject.toml` (обновить) | Скрипт `tg-exporter` в `[project.scripts]` |
+| `tests/` | Полный тестовый набор |
+| `tests/fakes/fake_telegram_client.py` | Фейковый клиент для тестов |
+| `tests/fakes/factories.py` | Фабрики тестовых данных |
 
-## 11. Фазы реализации
+## 13. Фазы реализации
 
-### Фаза 1: Базовая инфраструктура (MVP)
+### Фаза 1: Абстракция клиента и базовая инфраструктура
 
-- [ ] Установить `click`, `pyyaml`, `python-dotenv` в зависимости
-- [ ] Создать `tg_exporter_cli/secrets/` — SecretProvider, EnvProvider, KeyringProvider, ChainProvider
-- [ ] Создать `tg_exporter_cli/container.py` с DI-контейнером
-- [ ] Адаптировать `CredentialsManager` под `SecretProvider`
-- [ ] Создать `tg_exporter_cli/main.py` с точкой входа
+- [ ] Создать `TelegramClientInterface` (ABC)
+- [ ] Выделить `TelethonClientAdapter` из `client.py`
+- [ ] Адаптировать `AuthService` и `ExportOrchestrator` под интерфейс
+- [ ] Создать `tests/fakes/fake_telegram_client.py` и `factories.py`
+- [ ] Установить `click`, `pyyaml`, `python-dotenv`
+- [ ] Создать `tg_exporter_cli/secrets/`
+- [ ] Создать `tg_exporter_cli/container.py`
+- [ ] Создать `tg_exporter_cli/main.py`
+
+### Фаза 2: Команды и тесты (MVP)
+
 - [ ] Реализовать `auth login` / `auth status` / `auth logout`
-- [ ] Реализовать `export` с минимальными опциями (--chat, --output, --format)
-- [ ] Проверить сквозной сценарий: логин → экспорт одного чата
+- [ ] Реализовать `export` (--chat, --output, --format, --last N)
+- [ ] Написать unit-тесты: Converter, ExportHistory, Exporters, SecretProvider
+- [ ] Написать integration-тесты: `test_export_command.py`, `test_auth_command.py`
+- [ ] Проверить сквозной сценарий на фейковом клиенте
 
-### Фаза 2: Полноценный экспорт и чаты
+### Фаза 3: Полноценный экспорт и чаты
 
 - [ ] Добавить все опции экспорта (фильтры, медиа, транскрипция, аналитика)
-- [ ] Реализовать `--last N` для тестирования больших объёмов
-- [ ] Реализовать `--days N` для периодического экспорта
-- [ ] Доработать `ExportHistory` — хранение в папке чата вместо глобального файла
-- [ ] Реализовать `chats list` / `chats show` / `chats add` / `chats remove`
-- [ ] Поиск по названию, фильтрация по папкам Telegram
+- [ ] Реализовать `--days N`
+- [ ] Доработать `ExportHistory` — хранение в папке чата
+- [ ] Реализовать `chats list` / `show` / `add` / `remove`
+- [ ] Написать тесты для всех опций export, команды chats
 - [ ] Прогресс-бар в консоли
 
-### Фаза 3: Конфигурация и профили
+### Фаза 4: Конфигурация, профили и удаление десктопа
 
 - [ ] Создать модель `CliConfig` (YAML)
 - [ ] Реализовать `config show/set`
 - [ ] Реализовать `profile list/add/remove/switch`
-- [ ] Интеграция `chats add` с конфиг-файлом
+- [ ] Написать тесты: `test_config_command.py`, `test_profile_command.py`
+- [ ] Удалить `tg_exporter/ui/`, `utils/worker.py`, `main.py`, `client.py`
+- [ ] Обновить `pyproject.toml`, убрать `customtkinter` из зависимостей
 
-### Фаза 4: CI/CD и пакетирование
+### Фаза 5: CI/CD и пакетирование
 
 - [ ] Обновить `pyproject.toml` с entry point `tg-exporter`
-- [ ] Добавить `pip install` инструкцию в README
+- [ ] Добавить `pytest` в CI (запуск на каждом PR)
 - [ ] Обновить CI для сборки CLI (PyPI package, single binary?)
-- [ ] Документировать интеграцию с cron/systemd timer (внешний планировщик)
+- [ ] Документировать интеграцию с cron/systemd timer
+- [ ] Обновить README
 
-## 12. Пример использования
+## 14. Пример использования
 
 ### Разовый экспорт
 
 ```bash
-# Полный экспорт чата в Markdown
 tg-exporter export --chat -1001234567890 --format markdown
-
-# Экспорт за последние 7 дней
 tg-exporter export --chat "@tech_news" --days 7 --download-media
-
-# Экспорт с транскрипцией и аналитикой
 tg-exporter export --chat "@podcast_channel" --transcribe --analytics --format both
-
-# Тестовый экспорт: последние 100 сообщений
-tg-exporter export --chat -1001234567890 --last 100
-
-# Экспорт конкретного топика форума
+tg-exporter export --chat -1001234567890 --last 100          # тестовый режим
 tg-exporter export --chat -1001234567890 --topic-id 42 --format json
 ```
 
 ### Просмотр и выбор чатов
 
 ```bash
-# Какие чаты доступны?
 tg-exporter chats list
-
-# Только папки
 tg-exporter chats list --folders
-
-# Чаты в папке "Работа"
 tg-exporter chats list --folder "Работа"
-
-# Поиск
 tg-exporter chats list --search "кот"
-
-# Добавить в конфиг для быстрого доступа
 tg-exporter chats add --chat -1001234567890
 tg-exporter chats add --folder "Работа"
-
-# Экспорт чата из конфига (по ID)
-tg-exporter export --chat -1001234567890
 ```
 
-### Интеграция с внешним планировщиком (cron)
-
-CLI не содержит встроенного планировщика. Внешний процесс вызывает утилиту когда нужно.
+### Интеграция с внешним планировщиком
 
 ```bash
 # Ежедневный экспорт в 3:00 (crontab)
 0 3 * * * cd /home/user/exports && tg-exporter export --chat -1001234 --days 1 --format both --quiet >> /var/log/tg-export.log 2>&1
-
-# Раз в 6 часов через systemd timer
-# tg-export.service: Type=oneshot, ExecStart=tg-exporter export --chat -1001234 --days 1
-# tg-export.timer: OnCalendar=*:00/6
 ```
 
-## 13. Риски и ограничения
+## 15. Риски и ограничения
 
 | Риск | Митигация |
 |------|-----------|
 | Keyring в headless-окружении | SecretProvider с fallback на .env файл |
 | Интерактивный ввод кода при первом логине | CI/CD-friendly: только если сессия уже сохранена через `auth login` |
-| Долгий экспорт больших каналов | `--last N` для тестирования, прогресс-бар для информации |
-| Разные часовые пояса | Все даты в ISO 8601 с timezone, как в ExportMessage |
-| Конфликт с десктопным профилем | Использовать тот же Keyring и тот же `ProfileManager` — единый список аккаунтов |
+| Долгий экспорт больших каналов | `--last N` для тестирования, прогресс-бар |
+| Разные часовые пояса | Все даты в ISO 8601 с timezone |
+| Расхождение фейкового и реального клиента | `TelegramClientInterface` — контракт; обе реализации проходят один набор тестов |
 
-## 14. Зависимости
+## 16. Зависимости
 
-Новые (добавить в requirements.txt):
 ```
+# CLI и конфигурация
 click>=8.1,<9.0
 pyyaml>=6.0,<7.0
 python-dotenv>=1.0,<2.0
-rich>=13.0            # таблицы и прогресс-бары в консоли
+rich>=13.0
+
+# Telegram API
+telethon
+
+# Хранение секретов
+keyring
+
+# Транскрипция (опционально)
+faster-whisper
+imageio-ffmpeg
+
+# Тестирование
+pytest>=8.0
+pytest-asyncio       # для async-тестов с Telethon
+pytest-cov           # coverage
 ```
 
-Уже существующие (переиспользуются):
-```
-telethon, keyring, imageio-ffmpeg,
-faster-whisper, PySocks
-```
-
-Примечание: `customtkinter` остаётся в requirements.txt для обратной совместимости с десктопным приложением, но CLI-утилита его не импортирует.
+**Удаляются из `requirements.txt`:**
+- `customtkinter` — десктопный UI больше не нужен
+- `PySocks` — если не используется для прокси (проверить)
