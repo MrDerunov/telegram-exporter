@@ -29,40 +29,68 @@
 └──────────────────────────────────────────────────┘
 ```
 
+## Правило нейминга
+
+Каждый файл содержит ровно один класс/структуру. Имя файла — snake_case от имени класса:
+`AuthService` → `auth_service.py`, `ProfileManager` → `profile_manager.py`.
+Никаких обобщённых `models.py` или `service.py`.
+
 ## Структура проекта
 
 ```
 tg_exporter/
 ├── core/           # Аутентификация, клиент, оркестрация
-│   ├── auth.py             # AuthService — логика входа в Telegram
-│   ├── client.py           # TelegramClientManager — жизненный цикл клиента
-│   ├── credentials.py      # CredentialsManager — секреты в Keyring
-│   ├── profiles.py         # ProfileManager — несколько аккаунтов
+│   ├── auth/               # Пакет: AuthService + модели
+│   │   ├── auth_service.py
+│   │   ├── auth_step.py
+│   │   └── auth_result.py
+│   ├── client.py           # TelegramClientManager
+│   ├── credentials.py      # CredentialsManager
+│   ├── profiles/           # Пакет: ProfileManager + модель
+│   │   ├── profile_manager.py
+│   │   └── profile.py
 │   ├── converter.py        # Telethon → ExportMessage
-│   └── orchestrator.py     # ExportOrchestrator — главный цикл экспорта
+│   └── orchestrator.py     # ExportOrchestrator
 ├── exporters/      # Форматы вывода
-│   ├── base.py             # BaseExporter — абстрактный экспортёр
-│   ├── json_exporter.py    # JsonExporter — потоковый JSON
-│   └── markdown_exporter.py# MarkdownExporter — разбивка по файлам
-├── models/         # Типы данных (dataclasses)
-│   ├── config.py           # AppConfig, MarkdownSettings
-│   ├── export_task.py      # ExportTask, ExportProgress, ExportFormat
-│   └── message.py          # ExportMessage, MediaType, PollData, LinkItem
+│   ├── base.py             # BaseExporter
+│   ├── sanitize.py         # sanitize_filename()
+│   ├── json_exporter.py    # JsonExporter
+│   └── markdown_exporter.py# MarkdownExporter
+├── models/         # Типы данных (dataclasses, enums)
+│   ├── config.py           # AppConfig
+│   ├── markdown_settings.py# MarkdownSettings
+│   ├── export_format.py    # ExportFormat, ExportStatus
+│   ├── export_task.py      # ExportTask
+│   ├── export_progress.py  # ExportProgress
+│   ├── author_filter.py    # AuthorFilter
+│   ├── message.py          # ExportMessage
+│   ├── media_type.py       # MediaType
+│   ├── reaction.py         # ReactionItem
+│   ├── link.py             # LinkItem
+│   ├── poll.py             # PollAnswer, PollData
 ├── services/       # Бизнес-логика
-│   ├── analytics.py        # AnalyticsCollector — статистика авторов/активности
-│   ├── export_history.py   # ExportHistory — инкрементальный экспорт
-│   ├── media_downloader.py # MediaDownloader — скачивание/конвертация
+│   ├── analytics/          # Пакет: аналитика
+│   │   ├── analytics_collector.py
+│   │   ├── author_stats.py
+│   │   ├── analytics_result.py
+│   │   └── render.py
+│   ├── export_history.py   # ExportHistory
+│   ├── media_downloader/   # Пакет: скачивание + конвертация
+│   │   ├── media_downloader.py
+│   │   ├── media_dirs.py
+│   │   ├── audio_prep_result.py
+│   │   └── errors.py
 │   └── transcription/      # Транскрипция аудио
 ├── ui/             # Десктопный интерфейс
 │   ├── app.py              # App — главный контроллер
-│   ├── theme.py            # Дизайн-система (цвета, шрифты, отступы)
+│   ├── theme.py            # Дизайн-система
 │   ├── components/         # Переиспользуемые виджеты
 │   └── views/              # Экраны и модальные окна
 ├── utils/          # Инфраструктура
 │   ├── cancellation.py     # CancellationToken
-│   ├── logger.py           # AppLogger с редактированием секретов
+│   ├── logger.py           # AppLogger
 │   └── worker.py           # BackgroundWorker + EventDispatcher
-tests/              # Unit-тесты (unittest)
+tests/              # Unit-тесты (125 тестов)
 scripts/            # Скрипты сборки под все платформы
 ```
 

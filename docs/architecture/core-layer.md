@@ -41,7 +41,7 @@ Core-слой отвечает за подключение к Telegram API, ау
 
 **Ошибка:** `ClientNotConfiguredError` — если `api_id` или `api_hash` не заданы.
 
-### AuthService (`core/auth.py`)
+### AuthService (`core/auth/auth_service.py`)
 
 Оркестратор процесса аутентификации в Telegram. Полностью отделён от UI.
 
@@ -54,17 +54,15 @@ check_session()     → AuthResult(success | error)
 logout()
 ```
 
-**Состояние:** `phone_number` и `phone_code_hash` хранятся внутри сервиса, не в App и не в UI.
+**Модель AuthStep** (`core/auth/auth_step.py`): enum — `CODE_SENT`, `PASSWORD_REQUIRED`, `SUCCESS`, `ERROR`.
 
-**Модель результата:** `AuthResult` с полями `step` (enum `AuthStep`) и `error` (опциональная строка). Ошибки преобразуются в читаемый русский текст через `_friendly()`.
+**Модель AuthResult** (`core/auth/auth_result.py`): dataclass с полями `step` и `error`. Ошибки преобразуются в читаемый русский текст через `_friendly()`.
 
-### ProfileManager (`core/profiles.py`)
+### ProfileManager (`core/profiles/profile_manager.py`)
 
 CRUD над несколькими Telegram-аккаунтами.
 
-**Хранение:**
-- Метаданные (phone, display_name, api_id) → `~/.tg_exporter/profiles.json`
-- Сессии → Keyring под ключом `{api_id}:session:{phone}`
+**Модель Profile** (`core/profiles/profile.py`): dataclass с полями `phone`, `display_name`, `api_id`. В этом же файле вспомогательные функции `_session_key()` и `_normalize_phone()`.
 
 **API:**
 ```
@@ -75,6 +73,10 @@ set_active(phone) → Profile | None
 remove(phone) → bool
 load_session(profile) → str | None
 ```
+
+**Хранение:**
+- Метаданные (phone, display_name, api_id) → `~/.tg_exporter/profiles.json`
+- Сессии → Keyring под ключом `{api_id}:session:{phone}`
 
 **Thread-safety:** внутренний `threading.Lock` на чтение/запись profiles.json.
 

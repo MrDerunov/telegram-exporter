@@ -71,9 +71,15 @@ unload()                      — освобождение памяти
 - `"local"` → WhisperTranscriber с моделью из `config.local_whisper_model`
 - `"deepgram"` → DeepgramTranscriber с ключом из параметра (не из конфига, ключ хранится в Keyring)
 
-## MediaDownloader (`services/media_downloader.py`)
+## MediaDownloader (`services/media_downloader/`)
 
-Вспомогательный сервис для работы с аудио перед транскрипцией.
+Вспомогательный сервис для скачивания медиа и подготовки аудио к транскрипции.
+
+**Состав пакета:**
+- `media_downloader/media_downloader.py` — класс `MediaDownloader` и вспомогательные функции
+- `media_downloader/media_dirs.py` — модель `MediaDirs` (пути к поддиректориям)
+- `media_downloader/audio_prep_result.py` — модель `AudioPrepResult`
+- `media_downloader/errors.py` — `MediaTooLongError`, `MediaProcessingError`
 
 ### `download(msg, media_dirs, token) → str | None`
 Скачивает медиа из сообщения в нужную поддиректорию:

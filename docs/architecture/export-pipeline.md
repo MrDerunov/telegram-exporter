@@ -80,7 +80,7 @@ run(dialog, task, token, progress, send_callback)
 
 Экспортёры работают только с `ExportMessage`, без зависимости от Telethon.
 
-**Утилита:** `sanitize_filename()` — безопасное имя файла (запрещённые символы, control chars, Windows reserved names, обход через `..`).
+**Утилита:** `sanitize_filename()` (`exporters/sanitize.py`) — безопасное имя файла (запрещённые символы, control chars, Windows reserved names, обход через `..`).
 
 ### JsonExporter (`exporters/json_exporter.py`)
 
