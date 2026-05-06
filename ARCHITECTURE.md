@@ -99,8 +99,13 @@ scripts/            # Скрипты сборки под все платформ
 ### 1. Иммутабельные модели
 `ExportMessage`, `ExportTask`, `PollData` — frozen dataclasses. Изменение полей — через `dataclasses.replace()`. Export-пайплайн работает только с этими моделями, не зависит от Telethon.
 
-### 2. Секреты только в Keyring
-`api_hash`, session string, Deepgram API key — хранятся исключительно в системном Keyring. Конфиг-файл `~/.tg_exporter/config.json` содержит только несекретные настройки. Миграция из старого plaintext-формата автоматическая.
+### 2. Секреты через SecretProvider
+`api_hash`, session string, Deepgram API key — хранятся через абстракцию `SecretProvider`. Поддерживаются:
+- **Keyring** — системное хранилище (macOS Keychain, Windows Credential Manager, Linux Secret Service)
+- **.env файлы** — для CI/CD и автоматизации (`TG_EXPORTER_*`)
+- **Переменные окружения** — `TG_EXPORTER_API_HASH`, `TG_EXPORTER_SESSION`
+
+Порядок: переменная окружения > `.env` файл > Keyring. Конфиг-файл `~/.tg_exporter/config.json` содержит только несекретные настройки. Миграция из старого plaintext-формата автоматическая.
 
 ### 3. Фоновый поток + Event Queue
 Telegram API-вызовы выполняются в одном фоновом потоке (daemon). UI отделён — взаимодействие через thread-safe очередь `UIEvent`. UI опрашивает очередь каждые 80 мс через Tkinter `after()`.
@@ -125,8 +130,15 @@ Telegram API (Telethon)
                         ├──→  MediaDownloader    → media/photo|video|audio|docs
                         ├──→  Transcriber        → строка транскрипции
                         ├──→  AnalyticsCollector → top_authors.md, activity.md
-                        └──→  ExportHistory      → export_history.json
+                        └──→  ExportHistory      → {chat_export_dir}/export_history.json
 ```
+
+## Варианты приложения
+
+Проект предоставляет два интерфейса на общем Core-слое:
+
+- **[Desktop UI](tg_exporter/ui/ARCHITECTURE.md)** — графический интерфейс на Tkinter/customtkinter
+- **[CLI](CLI_ARCHITECTURE.md)** — консольная утилита на Typer (ручной и автоматизированный экспорт)
 
 ## Компонентная документация
 
@@ -136,11 +148,13 @@ Telegram API (Telethon)
 - [Export Pipeline](tg_exporter/core/EXPORT_PIPELINE.md) — оркестратор, конвертер, экспортёры
 - [Transcription Service](tg_exporter/services/transcription/ARCHITECTURE.md) — Whisper, Deepgram, конвертация аудио
 - [UI Layer](tg_exporter/ui/ARCHITECTURE.md) — контроллер, views, дизайн-система, событийная модель
+- [CLI Architecture](CLI_ARCHITECTURE.md) — консольная утилита, DI-контейнер, команды
 
 ## Безопасность
 
-- `api_hash` никогда не пишется в plaintext — только Keyring
-- Session string хранится в Keyring, подгружается только при использовании
+- `api_hash` никогда не пишется в plaintext — только через SecretProvider (Keyring или env)
+- Session string хранится через SecretProvider, подгружается только при использовании
+- При использовании `.env` — файл должен иметь права `0o600`, добавлен в `.gitignore`
 - Логгер автоматически редактирует секреты (api_hash, phone, token) перед записью в `app.log`
 - Конфиг-файл имеет права `0o600` на Unix
 - Атомарная запись всех файлов (tmp + fsync + os.replace)
