@@ -150,10 +150,15 @@ class Container:
             self.config, self.credentials
         )
 
-        # 5. Auth
+        # 5. Профили
+        self.profile_manager = ProfileManager(
+            self.credentials, self.config
+        )
+
+        # 6. Auth
         self.auth_service = AuthService(self.client)
 
-        # 6. Экспорт
+        # 7. Экспорт
         self.orchestrator = ExportOrchestrator(
             self.client, self.config
         )
@@ -324,7 +329,7 @@ Profile:
 
 ### 6.5. `tg-exporter chats`
 
-Просмотр и управление списком чатов для экспорта.
+Просмотр и управление списком чатов для экспорта. Удобно добавлять чаты в конфиг через консоль, смотреть по папкам Telegram, выбирать для экспорта.
 
 ```
 tg-exporter chats list                       # Список всех чатов
@@ -348,9 +353,11 @@ tg-exporter chats remove --chat CHAT_ID      # Убрать чат из конф
 ╚══════════╩══════════════════════════════╩══════════╩════════════╝
 ```
 
+**Идея:** пользователь заходит в консоль, смотрит список чатов с группировкой по папкам, выбирает нужные и добавляет их в конфиг. После этого можно делать `tg-exporter export --chat ID` без необходимости каждый раз искать ID.
+
 ### 6.6. `tg-exporter profile`
 
-Управление несколькими аккаунтами.
+Управление несколькими аккаунтами (переиспользует `ProfileManager`).
 
 ```
 tg-exporter profile list
@@ -469,7 +476,7 @@ class SecretProvider(ABC):
 
 ### ChainSecretProvider
 
-При чтении — первый не-`None` результат. При записи — пишет во все провайдеры.
+Объединяет несколько провайдеров в цепочку. При чтении — первый не-`None` результат. При записи — пишет во все провайдеры.
 
 ```python
 # Порядок: сначала проверяем env, потом keyring
@@ -509,17 +516,21 @@ $ tg-exporter auth login
 
 ### Неинтерактивный режим (CI/CD)
 
+Для CI/CD и неинтерактивных сред — через `.env` файл или переменные окружения:
+
 ```bash
 export TG_EXPORTER_API_ID=12345678
 export TG_EXPORTER_API_HASH=abcdef1234567890abcdef1234567890
-export TG_EXPORTER_SESSION=1BQANOTEuMTAu...
+export TG_EXPORTER_SESSION=1BQANOTEuMTAu...  # сессия должна быть получена заранее
 
 tg-exporter export --chat -1001234
 ```
 
-Сессия должна быть уже получена через `tg-exporter auth login` в интерактивном режиме.
+Сессия должна быть уже сохранена (получена через `tg-exporter auth login` в интерактивном режиме на машине где Keyring доступен, затем экспортирована в `.env`).
 
 ## 9. ExportHistory — на каждый чат свой файл
+
+История экспорта для инкрементального режима хранится в папке с данными чата, а не в глобальном файле.
 
 ```
 exports/
@@ -546,11 +557,27 @@ exports/
 4. Если файла нет → полный экспорт с первого сообщения
 5. Флаг `--last N` или `--date-from`/`--date-to` → export_history не обновляется
 
+**Преимущества:**
+- Данные чата самодостаточны: можно скопировать папку на другую машину и инкрементальный экспорт продолжит работать
+- Не завязываемся на `~/.tg_exporter` который может быть удалён/перемещён
+- Логично: история экспорта — часть данных чата
+
 ## 10. Вывод и прогресс
+
+### Форматирование
 
 - **Таблицы:** через `rich` (опционально) или простой ASCII (fallback)
 - **Прогресс-бар:** через `rich.progress` или `tqdm`
 - **Уровни:** `--quiet` (только ошибки), `--verbose` (подробный лог)
+
+### Пример прогресса при экспорте
+
+```
+Экспорт "Коты и котики"...
+  Сообщений: [████████████████░░░░] 80% (800/1000)
+  Медиа:     [████████░░░░░░░░░░░░] 40% (40/100)
+  Статус: скачивание медиа...
+```
 
 ## 11. Конфигурация CLI
 
@@ -685,29 +712,56 @@ logging:
 ### Разовый экспорт
 
 ```bash
+# Полный экспорт чата в Markdown
 tg-exporter export --chat -1001234567890 --format markdown
+
+# Экспорт за последние 7 дней
 tg-exporter export --chat "@tech_news" --days 7 --download-media
+
+# Экспорт с транскрипцией и аналитикой
 tg-exporter export --chat "@podcast_channel" --transcribe --analytics --format both
-tg-exporter export --chat -1001234567890 --last 100          # тестовый режим
+
+# Тестовый экспорт: последние 100 сообщений
+tg-exporter export --chat -1001234567890 --last 100
+
+# Экспорт конкретного топика форума
 tg-exporter export --chat -1001234567890 --topic-id 42 --format json
 ```
 
 ### Просмотр и выбор чатов
 
 ```bash
+# Какие чаты доступны?
 tg-exporter chats list
+
+# Только папки
 tg-exporter chats list --folders
+
+# Чаты в папке "Работа"
 tg-exporter chats list --folder "Работа"
+
+# Поиск
 tg-exporter chats list --search "кот"
+
+# Добавить в конфиг для быстрого доступа
 tg-exporter chats add --chat -1001234567890
 tg-exporter chats add --folder "Работа"
+
+# Экспорт чата из конфига (по ID)
+tg-exporter export --chat -1001234567890
 ```
 
-### Интеграция с внешним планировщиком
+### Интеграция с внешним планировщиком (cron)
+
+CLI не содержит встроенного планировщика. Внешний процесс вызывает утилиту когда нужно.
 
 ```bash
 # Ежедневный экспорт в 3:00 (crontab)
 0 3 * * * cd /home/user/exports && tg-exporter export --chat -1001234 --days 1 --format both --quiet >> /var/log/tg-export.log 2>&1
+
+# Раз в 6 часов через systemd timer
+# tg-export.service: Type=oneshot, ExecStart=tg-exporter export --chat -1001234 --days 1
+# tg-export.timer: OnCalendar=*:00/6
 ```
 
 ## 15. Риски и ограничения

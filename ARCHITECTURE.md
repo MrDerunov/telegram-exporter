@@ -152,6 +152,7 @@ TelegramClientInterface (TelethonAdapter или Fake)
 - **[CLI Plan](.plans/cli-app.md)** — полный план консольной утилиты, DI-контейнер, команды, тестирование
 - **[Core Layer](tg_exporter/core/ARCHITECTURE.md)** — аутентификация, клиент, секреты
 - **[Export Pipeline](tg_exporter/core/EXPORT_PIPELINE.md)** — оркестратор, конвертер, экспортёры
+- **[Transcription Service](tg_exporter/services/transcription/ARCHITECTURE.md)** — Whisper, Deepgram, конвертация аудио
 
 ## Безопасность
 
