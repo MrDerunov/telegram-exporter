@@ -10,9 +10,13 @@ from .commands.doctor import doctor_command
 
 @click.group()
 @click.version_option(version="1.0.0", prog_name="tg-exporter")
-def cli() -> None:
+@click.pass_context
+def cli(ctx: click.Context) -> None:
     """tg-exporter — экспорт чатов Telegram в JSON и Markdown."""
-    pass
+    from .hosting import CliHost
+
+    ctx.obj = CliHost().build()
+    ctx.obj.run()
 
 
 # Реальные команды

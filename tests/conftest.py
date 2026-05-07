@@ -3,7 +3,8 @@ from __future__ import annotations
 import pytest
 from pathlib import Path
 
-from tg_exporter_cli.container import Container
+from tg_exporter_cli.hosting import CliHost
+from tg_exporter.telegram.telegram_client_manager_interface import ITelegramClientManager
 from tests.fakes.fake_telegram_client import FakeTelegramClient
 from tests.fakes.fake_telegram_client_manager import FakeTelegramClientManager
 
@@ -21,12 +22,12 @@ def fake_manager(fake_client: FakeTelegramClient) -> FakeTelegramClientManager:
 
 
 @pytest.fixture
-def container_with_fake_client(fake_manager: FakeTelegramClientManager, tmp_path: Path) -> Container:
-    """Контейнер с фейковым менеджером."""
+def host_with_fake_client(fake_manager: FakeTelegramClientManager, tmp_path: Path) -> CliHost:
+    """Хост с фейковым менеджером."""
     config_path = tmp_path / "cli_config.yaml"
     env_file = tmp_path / ".env"
-    return Container(
-        config_path=config_path,
-        env_file=env_file,
-        telegram_manager=fake_manager,
+    return (
+        CliHost(config_path=config_path, env_file=env_file)
+        .build()
+        .rebind_services(lambda c: c.register_instance(ITelegramClientManager, fake_manager))
     )

@@ -6,9 +6,12 @@ import json
 import os
 from pathlib import Path
 
-from tg_exporter_cli.container import Container
+from tg_exporter_cli.hosting import CliHost
 from tg_exporter_cli.async_runner import run_async
 from tg_exporter.telegram.auth.auth_step import AuthStep
+from tg_exporter.telegram.auth.auth_service import AuthService
+from tg_exporter.telegram.telegram_client_manager_interface import ITelegramClientManager
+from tg_exporter.services.export.export_orchestrator import ExportOrchestrator
 from tests.fakes.fake_telegram_client import FakeTelegramClient
 from tests.fakes.fake_telegram_client_manager import FakeTelegramClientManager
 from tests.fakes.factories import generate_messages, make_export_message
@@ -29,14 +32,14 @@ def test_full_flow_auth_and_export(tmp_path: Path) -> None:
 
     config_path = tmp_path / "cli_config.yaml"
     env_file = tmp_path / ".env"
-    container = Container(
-        config_path=config_path,
-        env_file=env_file,
-        telegram_manager=fake_manager,
+    host = (
+        CliHost(config_path=config_path, env_file=env_file)
+        .build()
+        .rebind_services(lambda c: c.register_instance(ITelegramClientManager, fake_manager))
     )
 
     # ---- Шаг 1: проверка авторизации через сервис ----
-    auth = container.auth_service
+    auth = host.get(AuthService)
     result = run_async(auth.check_session())
     assert result.step == AuthStep.SUCCESS, f"Expected SUCCESS, got {result.step}"
 
@@ -66,7 +69,7 @@ def test_full_flow_auth_and_export(tmp_path: Path) -> None:
     })()
 
     # ---- Шаг 4: запуск экспорта ----
-    orchestrator = container.orchestrator
+    orchestrator = host.get(ExportOrchestrator)
     token = CancellationToken()
     progress = ExportProgress()
 

@@ -2,8 +2,13 @@
 import click
 from pathlib import Path
 
-from ..container import Container
+from ..hosting import get_host
 from ..async_runner import run_async
+from tg_exporter.telegram.auth.auth_service import AuthService
+from tg_exporter.telegram.telegram_client_manager_interface import ITelegramClientManager
+from tg_exporter.secrets import ChainSecretProvider
+from tg_exporter.hosting.app_config import AppConfig
+from tg_exporter_cli.cli_config import CliConfig
 
 
 @click.group("auth")
@@ -19,27 +24,32 @@ def auth_group():
 @click.option("--profile", default="default", help="Имя профиля")
 def auth_login(phone, api_id, api_hash, profile):
     """Интерактивный вход в аккаунт Telegram."""
-    container = Container()
+    host = get_host()
+    config = host.get(CliConfig)
+    app_config = host.get(AppConfig)
+    secret_provider = host.get(ChainSecretProvider)
+    auth_service = host.get(AuthService)
+    client_manager = host.get(ITelegramClientManager)
 
     # API credentials
     if api_id:
-        container.config.api_id = api_id
-        container.app_config.api_id = api_id
+        config.api_id = api_id
+        app_config.api_id = api_id
     if api_hash:
-        container.secret_provider.set("TG_EXPORTER_API_HASH", api_hash)
-    if not container.config.api_id:
-        container.config.api_id = click.prompt("API ID")
-        container.app_config.api_id = container.config.api_id
-    if not container.secret_provider.get("TG_EXPORTER_API_HASH"):
+        secret_provider.set("TG_EXPORTER_API_HASH", api_hash)
+    if not config.api_id:
+        config.api_id = click.prompt("API ID")
+        app_config.api_id = config.api_id
+    if not secret_provider.get("TG_EXPORTER_API_HASH"):
         api_hash = click.prompt("API Hash", hide_input=True)
-        container.secret_provider.set("TG_EXPORTER_API_HASH", api_hash)
+        secret_provider.set("TG_EXPORTER_API_HASH", api_hash)
 
     # Phone
     if not phone:
         phone = click.prompt("Номер телефона (+7999...)")
 
     # Send code
-    result = run_async(container.auth_service.send_code(phone))
+    result = run_async(auth_service.send_code(phone))
     if result.step.name == "ERROR":
         click.echo(f"❌ {result.error}", err=True)
         raise SystemExit(1)
@@ -48,18 +58,18 @@ def auth_login(phone, api_id, api_hash, profile):
 
     # Verify code
     code = click.prompt("Код из Telegram")
-    result = run_async(container.auth_service.verify_code(code))
+    result = run_async(auth_service.verify_code(code))
 
     if result.step.name == "PASSWORD_REQUIRED":
         password = click.prompt("Пароль 2FA", hide_input=True)
-        result = run_async(container.auth_service.verify_password(password))
+        result = run_async(auth_service.verify_password(password))
 
     if result.step.name == "ERROR":
         click.echo(f"❌ {result.error}", err=True)
         raise SystemExit(1)
 
     # Save session
-    container.client_manager.save_session()
+    client_manager.save_session()
     click.echo("✅ Авторизован успешно")
 
 
@@ -67,8 +77,9 @@ def auth_login(phone, api_id, api_hash, profile):
 @click.option("--profile", default="default", help="Имя профиля")
 def auth_status(profile):
     """Проверить статус авторизации."""
-    container = Container()
-    result = run_async(container.auth_service.check_session())
+    host = get_host()
+    auth_service = host.get(AuthService)
+    result = run_async(auth_service.check_session())
     if result.step.name == "SUCCESS":
         click.echo("✅ Авторизован")
     else:
@@ -79,8 +90,9 @@ def auth_status(profile):
 @click.option("--profile", default="default", help="Имя профиля")
 def auth_logout(profile):
     """Выйти из аккаунта."""
-    container = Container()
-    run_async(container.auth_service.logout())
+    host = get_host()
+    auth_service = host.get(AuthService)
+    run_async(auth_service.logout())
     click.echo("✅ Выполнен выход из аккаунта")
 
 
@@ -88,18 +100,21 @@ def auth_logout(profile):
 @click.option("--output", default="secrets.env", help="Путь к выходному файлу")
 def auth_export_session(output):
     """Экспортировать сессию в secrets.env для CI/CD."""
-    container = Container()
+    host = get_host()
+    client_manager = host.get(ITelegramClientManager)
+    config = host.get(CliConfig)
+    secret_provider = host.get(ChainSecretProvider)
 
     # Получаем сессию через адаптер
-    client = container.client_manager.create_client()  # type: ignore[assignment]
+    client = client_manager.create_client()  # type: ignore[assignment]
     session_str = client.save_session() if hasattr(client, "save_session") else ""
 
     if not session_str:
         click.echo("❌ Нет активной сессии. Сначала выполните auth login.", err=True)
         raise SystemExit(1)
 
-    api_id = container.config.api_id
-    api_hash = container.secret_provider.get("TG_EXPORTER_API_HASH") or ""
+    api_id = config.api_id
+    api_hash = secret_provider.get("TG_EXPORTER_API_HASH") or ""
 
     output_path = Path(output)
     content = f"TG_EXPORTER_API_ID={api_id}\nTG_EXPORTER_API_HASH={api_hash}\nTG_EXPORTER_SESSION={session_str}\n"
@@ -114,8 +129,9 @@ def auth_export_session(output):
 @click.option("--profile", default="default", help="Имя профиля")
 def auth_verify(profile):
     """Проверить валидность сессии (для CI/CD). Exit codes: 0=валидна, 1=невалидна, 2=нет сессии."""
-    container = Container()
-    result = run_async(container.auth_service.check_session())
+    host = get_host()
+    auth_service = host.get(AuthService)
+    result = run_async(auth_service.check_session())
     if result.step.name == "SUCCESS":
         click.echo("✅ Сессия валидна")
         raise SystemExit(0)

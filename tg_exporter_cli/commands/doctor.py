@@ -4,7 +4,8 @@ import shutil
 from pathlib import Path
 
 from tg_exporter_cli.cli_config import DEFAULT_CONFIG_DIR
-from ..container import Container
+from tg_exporter.telegram.auth.auth_service import AuthService
+from ..hosting import get_host
 from ..async_runner import run_async
 
 
@@ -39,8 +40,9 @@ def doctor_command():
 
     # Сессия
     try:
-        container = Container()
-        result = run_async(container.auth_service.check_session())
+        host = get_host()
+        auth_service = host.get(AuthService)
+        result = run_async(auth_service.check_session())
         if result.step.name == "SUCCESS":
             click.echo("✅ Сессия: валидна")
         else:

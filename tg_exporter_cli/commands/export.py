@@ -7,8 +7,10 @@ from pathlib import Path
 from tg_exporter.services.export.export_task import ExportTask
 from tg_exporter.services.export.export_format import ExportFormat
 from tg_exporter.services.export.export_progress import ExportProgress
+from tg_exporter.services.export.export_orchestrator import ExportOrchestrator
+from tg_exporter.telegram.telegram_client_manager_interface import ITelegramClientManager
 from tg_exporter.utils.cancellation import CancellationToken
-from ..container import Container
+from ..hosting import get_host
 from ..async_runner import run_async
 
 
@@ -35,7 +37,10 @@ def export_group() -> None:
 @click.option("--last", type=int, default=None, help="Экспортировать последние N сообщений")
 def export_run(chat: str, output: str | None, fmt: str, last: int | None) -> None:
     """Базовый экспорт одного чата."""
-    container = Container()
+    host = get_host()
+    orchestrator = host.get(ExportOrchestrator)
+    client_manager = host.get(ITelegramClientManager)
+
     export_format = _resolve_format(fmt)
     output_dir = Path(output) if output else Path.cwd() / "export" / _chat_name(chat)
 
@@ -57,7 +62,6 @@ def export_run(chat: str, output: str | None, fmt: str, last: int | None) -> Non
 
         token = CancellationToken()
         progress = ExportProgress()
-        orchestrator = container.orchestrator
 
         def _send(event_type: str, data: object) -> None:
             """Callback прогресса — выводит в консоль."""
@@ -84,7 +88,7 @@ def export_run(chat: str, output: str | None, fmt: str, last: int | None) -> Non
                 click.echo(f"\n  ℹ {data}")
 
         # Получаем диалог
-        client = container.client_manager.create_client()
+        client = client_manager.create_client()
         loop = asyncio.get_event_loop() if asyncio.get_event_loop().is_running() else asyncio.new_event_loop()
 
         async def _get_dialog():
