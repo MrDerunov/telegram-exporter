@@ -54,7 +54,7 @@ def message_to_export(message) -> ExportMessage:
             is_forum_topic = bool(forum_flag)
 
     topic_title: Optional[str] = None
-    if message.action and hasattr(message.action, "title"):
+    if getattr(message, "action", None) and hasattr(message.action, "title"):
         topic_title = _normalize(getattr(message.action, "title", "")) or None
 
     # Реакции

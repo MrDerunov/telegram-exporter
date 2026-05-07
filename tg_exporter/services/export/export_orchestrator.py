@@ -29,7 +29,7 @@ from ..media_downloader import MediaDownloader, MediaDirs, AudioPrepResult
 from ..media_downloader import MediaTooLongError, MediaProcessingError
 from ..transcription import create_transcriber, TranscriptionError
 from ...utils.cancellation import CancellationToken, CancelledError
-from ..utils.logger import logger
+from ...utils.logger import logger
 
 
 EventCallback = Callable[[str, object], None]
