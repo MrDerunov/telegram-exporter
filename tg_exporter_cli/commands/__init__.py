@@ -1,1 +1,1 @@
-"""Команды tg-exporter CLI."""
+# tg_exporter_cli commands package

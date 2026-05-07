@@ -2,8 +2,10 @@
 from __future__ import annotations
 import click
 
-from .container import Container
 from .commands.auth import auth_group
+from .commands.export import export_group
+from .commands.version import version_command
+from .commands.doctor import doctor_command
 
 
 @click.group()
@@ -13,22 +15,14 @@ def cli() -> None:
     pass
 
 
+# Реальные команды
 cli.add_command(auth_group)
+cli.add_command(export_group)
+cli.add_command(version_command)
+cli.add_command(doctor_command)
 
 
-@cli.group()
-def export() -> None:
-    """Экспорт сообщений из чатов."""
-    pass
-
-
-@export.command("run")
-@click.option("--chat", required=True, help="ID или username чата")
-def export_run(chat: str) -> None:
-    """Запустить экспорт."""
-    click.echo(f"[TODO] export --chat {chat}")
-
-
+# Заглушки (будут реализованы в Фазе 3/4)
 @cli.group()
 def chats() -> None:
     """Управление списком чатов."""
@@ -63,18 +57,6 @@ def config() -> None:
 def config_show() -> None:
     """Показать текущий конфиг."""
     click.echo("[TODO] config show")
-
-
-@cli.command("version")
-def version() -> None:
-    """Показать версию утилиты."""
-    click.echo("tg-exporter 1.0.0")
-
-
-@cli.command("doctor")
-def doctor() -> None:
-    """Диагностика окружения."""
-    click.echo("[TODO] doctor")
 
 
 if __name__ == "__main__":
