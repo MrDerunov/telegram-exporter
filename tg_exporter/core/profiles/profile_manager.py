@@ -22,7 +22,7 @@ import threading
 from pathlib import Path
 from typing import Optional
 
-from ..credentials import CredentialsManager
+from ..credentials_manager import CredentialsManager
 from ...utils.logger import logger
 from .profile import Profile, _session_key, _normalize_phone
 

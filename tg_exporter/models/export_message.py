@@ -10,10 +10,10 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Optional
 
-from .link import LinkItem
+from .link_item import LinkItem
 from .media_type import MediaType
-from .poll import PollAnswer, PollData
-from .reaction import ReactionItem
+from .poll_data import PollAnswer, PollData
+from .reaction_item import ReactionItem
 
 
 @dataclass(frozen=True)

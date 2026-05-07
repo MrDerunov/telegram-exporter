@@ -1,4 +1,4 @@
-from .base import BaseExporter
+from .base_exporter import BaseExporter
 from .json_exporter import JsonExporter
 from .markdown_exporter import MarkdownExporter
 

@@ -32,10 +32,10 @@ from ..models.export_task import ExportTask
 from ..models.export_progress import ExportProgress
 from ..models.export_format import ExportFormat
 from ..models.author_filter import AuthorFilter
-from ..core.credentials import CredentialsManager
+from ..core.credentials_manager import CredentialsManager
 from ..core.telegram_client_manager import TelegramClientManager
 from ..core.auth import AuthService, AuthStep
-from ..core.orchestrator import ExportOrchestrator
+from ..core.export_orchestrator import ExportOrchestrator
 from ..core.profiles import ProfileManager, Profile
 from ..services.export_history import ExportHistory
 from ..utils.cancellation import CancellationToken

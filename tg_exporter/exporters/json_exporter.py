@@ -11,8 +11,8 @@ import json
 import os
 from typing import Optional, IO
 
-from .base import BaseExporter
-from ..models.message import ExportMessage
+from .base_exporter import BaseExporter
+from ..models.export_message import ExportMessage
 
 
 class JsonExporter(BaseExporter):

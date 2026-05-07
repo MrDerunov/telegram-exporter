@@ -9,7 +9,7 @@ from typing import Deque, Optional
 
 from .author_stats import AuthorStats, _MAX_ENTRY_CHARS, _MAX_MESSAGES_PER_AUTHOR
 from .analytics_result import AnalyticsResult
-from ...models.message import ExportMessage
+from ...models.export_message import ExportMessage
 
 
 class AnalyticsCollector:

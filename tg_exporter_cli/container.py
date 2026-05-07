@@ -8,11 +8,11 @@ from typing import Optional
 
 from tg_exporter.core import TelegramClientInterface, TelethonClientAdapter
 from tg_exporter.core.telegram_client_manager import TelegramClientManager
-from tg_exporter.core.credentials import CredentialsManager
+from tg_exporter.core.credentials_manager import CredentialsManager
 from tg_exporter.core.auth.auth_service import AuthService
-from tg_exporter.core.orchestrator import ExportOrchestrator
+from tg_exporter.core.export_orchestrator import ExportOrchestrator
 from tg_exporter.core.profiles.profile_manager import ProfileManager
-from tg_exporter.models.config import AppConfig
+from tg_exporter.models.app_config import AppConfig
 from tg_exporter.services.export_history import ExportHistory
 
 from .secrets import ChainSecretProvider, EnvVarsSecretProvider, EnvFileSecretProvider

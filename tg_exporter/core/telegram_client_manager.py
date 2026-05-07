@@ -18,8 +18,8 @@ from typing import Optional
 from telethon.sync import TelegramClient
 from telethon.sessions import StringSession
 
-from .credentials import CredentialsManager
-from ..models.config import AppConfig
+from .credentials_manager import CredentialsManager
+from ..models.app_config import AppConfig
 
 
 class ClientNotConfiguredError(RuntimeError):
