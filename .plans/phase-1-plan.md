@@ -10,26 +10,26 @@
 ## Анализ текущей кодовой базы
 
 ### Что уже есть
-- `tg_exporter/core/client.py` — `TelegramClientManager` (жизненный цикл Telethon клиента)
-- `tg_exporter/core/credentials.py` — `CredentialsManager` (секреты только через Keyring)
-- `tg_exporter/core/auth/auth_service.py` — `AuthService` (завязан на `TelegramClientManager`)
-- `tg_exporter/core/orchestrator.py` — `ExportOrchestrator` (завязан на `TelegramClientManager`)
-- `tg_exporter/core/profiles/profile_manager.py` — `ProfileManager`
-- `tg_exporter/models/config.py` — `AppConfig`
+- `tg_exporter/telegram/telegram_client_manager.py` — `TelegramClientManager` (жизненный цикл Telethon клиента)
+- `tg_exporter/telegram/credentials_manager.py` — `CredentialsManager` (секреты только через Keyring)
+- `tg_exporter/telegram/auth/auth_service.py` — `AuthService` (завязан на `TelegramClientManager`)
+- `tg_exporter/services/export/export_orchestrator.py` — `ExportOrchestrator` (завязан на `TelegramClientManager`)
+- `tg_exporter/telegram/profiles/profile_manager.py` — `ProfileManager`
+- `tg_exporter/hosting/app_config.py` — `AppConfig`
 - `tg_exporter/utils/cancellation.py` — `CancellationToken`
 
 ### Что НЕ трогаем
 - `tg_exporter/ui/` — будет удалено в Фазе 4
 - `tg_exporter/utils/worker.py` — будет удалено в Фазе 4
 - `main.py` (корневой) — будет удалён в Фазе 4
-- `tg_exporter/core/profiles/` — переиспользуем как есть
+- `tg_exporter/telegram/profiles/` — переиспользуем как есть
 
 ## Задачи (4 подзадачи для субагентов)
 
 ### Задача A: TelegramClientInterface + TelethonClientAdapter
 **Файлы:**
-- `tg_exporter/core/client_interface.py` — ABC с async-методами
-- `tg_exporter/core/telethon_adapter.py` — обёртка над `TelegramClientManager`
+- `tg_exporter/telegram/telegram_client_interface.py` — ABC с async-методами
+- `tg_exporter/telegram/telethon_client_adapter.py` — обёртка над `TelegramClientManager`
 
 **Что делает:**
 1. Создать `TelegramClientInterface(ABC)` с методами (async, из плана §3):
@@ -42,16 +42,16 @@
    - `save_session() -> str`, `load_session(session_str)`
 2. Создать `TelethonClientAdapter` — реализует интерфейс, делегирует в `TelegramClientManager`
 3. `TelegramClientManager` НЕ менять — адаптер его оборачивает
-4. Экспортировать классы через `tg_exporter/core/__init__.py`
+4. Экспортировать классы через `tg_exporter/telegram/__init__.py`
 
 ### Задача B: SecretProvider + реализации
 **Файлы:**
-- `tg_exporter_cli/secrets/__init__.py`
-- `tg_exporter_cli/secrets/provider.py` — `SecretProvider(ABC)` с `writable: bool = False`
-- `tg_exporter_cli/secrets/env_vars_provider.py` — `EnvVarsSecretProvider` (os.environ, writable=True)
-- `tg_exporter_cli/secrets/env_file_provider.py` — `EnvFileSecretProvider` (.env, writable=False)
-- `tg_exporter_cli/secrets/chain_provider.py` — `ChainSecretProvider`
-- `tg_exporter_cli/secrets/keyring_provider.py` — `KeyringSecretProvider` (writable=True, не используется по умолчанию)
+- `tg_exporter/secrets/__init__.py`
+- `tg_exporter/secrets/secret_provider.py` — `SecretProvider(ABC)` с `writable: bool = False`
+- `tg_exporter/secrets/env_vars_secret_provider.py` — `EnvVarsSecretProvider` (os.environ, writable=True)
+- `tg_exporter/secrets/env_file_secret_provider.py` — `EnvFileSecretProvider` (.env, writable=False)
+- `tg_exporter/secrets/chain_secret_provider.py` — `ChainSecretProvider`
+- `tg_exporter/secrets/keyring_secret_provider.py` — `KeyringSecretProvider` (writable=True, не используется по умолчанию)
 
 **Что делает:**
 1. `SecretProvider(ABC)` — три метода: `get(key)`, `set(key, value)`, `delete(key)` + поле `writable`
@@ -66,7 +66,7 @@
 - `tg_exporter_cli/__init__.py`
 - `tg_exporter_cli/container.py` — `Container`
 - `tg_exporter_cli/main.py` — Click group skeleton
-- `tg_exporter_cli/config.py` — `CliConfig` (YAML)
+- `tg_exporter_cli/cli_config.py` — `CliConfig` (YAML)
 
 **Что делает:**
 1. `Container.__init__` собирает зависимости:

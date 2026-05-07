@@ -6,7 +6,7 @@ Core-слой отвечает за подключение к Telegram API, ау
 
 ## Компоненты
 
-### CredentialsManager (`core/credentials.py`)
+### CredentialsManager (`telegram/credentials_manager.py`)
 
 Единственное место, где хранятся секреты приложения.
 
@@ -26,7 +26,7 @@ Core-слой отвечает за подключение к Telegram API, ау
 
 **Миграция:** метод `migrate_from_plaintext()` переносит секреты из старого конфига в Keyring. Plaintext-файл очищается только при успешной миграции.
 
-### TelegramClientManager (`core/client.py`)
+### TelegramClientManager (`telegram/telegram_client_manager.py`)
 
 Управляет жизненным циклом `Telethon.TelegramClient`.
 
@@ -41,7 +41,7 @@ Core-слой отвечает за подключение к Telegram API, ау
 
 **Ошибка:** `ClientNotConfiguredError` — если `api_id` или `api_hash` не заданы.
 
-### AuthService (`core/auth/auth_service.py`)
+### AuthService (`telegram/auth/auth_service.py`)
 
 Оркестратор процесса аутентификации в Telegram. Полностью отделён от UI.
 
@@ -54,15 +54,15 @@ check_session()     → AuthResult(success | error)
 logout()
 ```
 
-**Модель AuthStep** (`core/auth/auth_step.py`): enum — `CODE_SENT`, `PASSWORD_REQUIRED`, `SUCCESS`, `ERROR`.
+**Модель AuthStep** (`telegram/auth/auth_step.py`): enum — `CODE_SENT`, `PASSWORD_REQUIRED`, `SUCCESS`, `ERROR`.
 
-**Модель AuthResult** (`core/auth/auth_result.py`): dataclass с полями `step` и `error`. Ошибки преобразуются в читаемый русский текст через `_friendly()`.
+**Модель AuthResult** (`telegram/auth/auth_result.py`): dataclass с полями `step` и `error`. Ошибки преобразуются в читаемый русский текст через `_friendly()`.
 
-### ProfileManager (`core/profiles/profile_manager.py`)
+### ProfileManager (`telegram/profiles/profile_manager.py`)
 
 CRUD над несколькими Telegram-аккаунтами.
 
-**Модель Profile** (`core/profiles/profile.py`): dataclass с полями `phone`, `display_name`, `api_id`. В этом же файле вспомогательные функции `_session_key()` и `_normalize_phone()`.
+**Модель Profile** (`telegram/profiles/profile.py`): dataclass с полями `phone`, `display_name`, `api_id`. В этом же файле вспомогательные функции `_session_key()` и `_normalize_phone()`.
 
 **API:**
 ```
@@ -80,7 +80,7 @@ load_session(profile) → str | None
 
 **Thread-safety:** внутренний `threading.Lock` на чтение/запись profiles.json.
 
-### Converter (`core/converter.py`)
+### Converter (`telegram/converter.py`)
 
 Единственный модуль, который знает про Telethon.
 

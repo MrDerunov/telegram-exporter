@@ -5,10 +5,10 @@ import os
 import tempfile
 import unittest
 
-from tg_exporter.models.message import ExportMessage
-from tg_exporter.models.reaction import ReactionItem
-from tg_exporter.models.poll import PollData, PollAnswer
-from tg_exporter.export.markdown_settings import MarkdownSettings
+from tg_exporter.services.export.export_message import ExportMessage
+from tg_exporter.services.export.reaction_item import ReactionItem
+from tg_exporter.services.export.poll_data import PollData, PollAnswer
+from tg_exporter.services.export.markdown_settings import MarkdownSettings
 
 
 def _msg(**kw) -> ExportMessage:
@@ -20,7 +20,7 @@ def _msg(**kw) -> ExportMessage:
 class TestJsonExporter(unittest.TestCase):
 
     def setUp(self):
-        from tg_exporter.exporters.json_exporter import JsonExporter
+        from tg_exporter.services.export.exporters.json_exporter import JsonExporter
         self.JsonExporter = JsonExporter
         self._tmpdir = tempfile.mkdtemp()
 
@@ -131,7 +131,7 @@ class TestJsonExporter(unittest.TestCase):
 class TestMarkdownExporter(unittest.TestCase):
 
     def setUp(self):
-        from tg_exporter.exporters.markdown_exporter import MarkdownExporter, _format_message
+        from tg_exporter.services.export.exporters.markdown_exporter import MarkdownExporter, _format_message
         self.MarkdownExporter = MarkdownExporter
         self._fmt = _format_message
         self._tmpdir = tempfile.mkdtemp()

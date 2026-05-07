@@ -4,7 +4,7 @@
 
 Export Pipeline объединяет все этапы экспорта: получение сообщений из Telegram, конвертацию в промежуточную модель, запись в выходные форматы, скачивание медиа, транскрипцию и аналитику.
 
-## ExportOrchestrator (`core/orchestrator.py`)
+## ExportOrchestrator (`services/export/export_orchestrator.py`)
 
 Главный координатор процесса экспорта. Выполняется целиком в фоновом потоке, без взаимодействия с UI напрямую — только через callback.
 
@@ -51,7 +51,7 @@ run(dialog, task, token, progress, send_callback)
 - По авторам: `author_filter` (sender_id)
 - Инкрементальный: `min_id` (только сообщения с ID > последнего экспортированного)
 
-## Converter (`core/converter.py`)
+## Converter (`telegram/converter.py`)
 
 Единственная точка интеграции с Telethon. Преобразует Telethon `Message` в `ExportMessage`.
 
@@ -66,11 +66,11 @@ run(dialog, task, token, progress, send_callback)
 - Пересылка: forwarded_from
 - Метаданные: views, forwards, reply_to_message_id
 
-## Экспортёры (`exporters/`)
+## Экспортёры (`services/export/exporters/`)
 
 Все экспортёры наследуются от `BaseExporter` (ABC).
 
-### BaseExporter (`exporters/base.py`)
+### BaseExporter (`services/export/exporters/base_exporter.py`)
 
 **Контракт:**
 1. `open(export_dir, chat_name, topic_title)` — инициализация
@@ -80,9 +80,9 @@ run(dialog, task, token, progress, send_callback)
 
 Экспортёры работают только с `ExportMessage`, без зависимости от Telethon.
 
-**Утилита:** `sanitize_filename()` (`exporters/sanitize.py`) — безопасное имя файла (запрещённые символы, control chars, Windows reserved names, обход через `..`).
+**Утилита:** `sanitize_filename()` (`services/export/exporters/sanitize.py`) — безопасное имя файла (запрещённые символы, control chars, Windows reserved names, обход через `..`).
 
-### JsonExporter (`exporters/json_exporter.py`)
+### JsonExporter (`services/export/exporters/json_exporter.py`)
 
 Потоковая запись в JSON без накопления в памяти.
 
@@ -103,7 +103,7 @@ run(dialog, task, token, progress, send_callback)
 - При отмене (`close()`) — дописывает закрывающие скобки, чтобы частичный экспорт остался валидным JSON
 - Опционально исключает `views` и `forwards` через параметр `include_views`
 
-### MarkdownExporter (`exporters/markdown_exporter.py`)
+### MarkdownExporter (`services/export/exporters/markdown_exporter.py`)
 
 Запись сообщений в Markdown с разбивкой по файлам.
 

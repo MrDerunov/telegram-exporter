@@ -13,7 +13,7 @@ def make_export_message(
     from_username: str | None = "test_user",
 ) -> Any:
     """Создать ExportMessage для тестов."""
-    from tg_exporter.models.message import ExportMessage
+    from tg_exporter.services.export.export_message import ExportMessage
     date_str = (date or datetime.now(timezone.utc)).isoformat()
     return ExportMessage(
         id=msg_id,

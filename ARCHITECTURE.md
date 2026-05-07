@@ -44,46 +44,63 @@
 tg_exporter_cli/      # CLI-приложение
 ├── main.py               # Точка входа (click group)
 ├── container.py           # DI-контейнер
-├── config.py             # CLI-конфиг (YAML)
-├── output.py             # Форматированный вывод
-├── commands/             # Команды (каждая в своём файле)
-│   ├── auth.py
-│   ├── export.py
-│   ├── chats.py
-│   ├── profile.py
-│   └── config_cmd.py
-└── secrets/              # SecretProvider + реализации
-    ├── provider.py
-    ├── keyring_provider.py
-    ├── env_provider.py
-    └── chain_provider.py
+├── cli_config.py          # CLI-конфиг (YAML)
+├── output.py              # Форматированный вывод
+└── commands/              # Команды (каждая в своём файле)
+    ├── auth.py
+    ├── export.py
+    ├── chats.py
+    ├── profile.py
+    └── config_cmd.py
 
 tg_exporter/          # Core-библиотека
-├── core/
-│   ├── client_interface.py    # TelegramClientInterface (ABC)
-│   ├── telethon_adapter.py    # TelethonClientAdapter (реальная реализация)
-│   ├── auth/                  # AuthService + модели
+├── telegram/              # Telegram client, auth, profiles, credentials, converter
+│   ├── telegram_client_interface.py  # TelegramClientInterface (ABC)
+│   ├── telegram_client_manager.py    # Жизненный цикл клиента
+│   ├── telethon_client_adapter.py    # TelethonClientAdapter (реальная реализация)
+│   ├── credentials_manager.py        # CredentialsManager
+│   ├── converter.py                  # Telethon → ExportMessage
+│   ├── auth/                         # AuthService + модели
 │   │   ├── auth_service.py
 │   │   ├── auth_step.py
 │   │   └── auth_result.py
-│   ├── converter.py           # Telethon → ExportMessage
-│   └── orchestrator.py        # ExportOrchestrator
-├── exporters/          # Форматы вывода
-│   ├── base.py
-│   ├── sanitize.py
-│   ├── json_exporter.py
-│   └── markdown_exporter.py
-├── models/             # Типы данных
-│   ├── config.py, export_task.py, message.py,
-│   ├── export_format.py, export_progress.py,
-│   ├── markdown_settings.py, media_type.py,
-│   ├── author_filter.py, reaction.py, link.py, poll.py
-├── services/           # Бизнес-логика
-│   ├── analytics/, media_downloader/, transcription/
-│   └── export_history.py
-└── utils/              # Инфраструктура
-│   ├── cancellation.py
-│   └── logger.py
+│   └── profiles/                     # ProfileManager
+│       ├── profile.py
+│       └── profile_manager.py
+├── services/
+│   ├── export/                       # Export Pipeline + модели + exporters
+│   │   ├── export_orchestrator.py    # ExportOrchestrator
+│   │   ├── export_message.py         # ExportMessage (иммутабельный)
+│   │   ├── export_task.py            # ExportTask
+│   │   ├── export_progress.py        # ExportProgress
+│   │   ├── export_format.py          # ExportFormat enum
+│   │   ├── markdown_settings.py      # MarkdownSettings
+│   │   ├── media_type.py             # MediaType enum
+│   │   ├── author_filter.py          # AuthorFilter
+│   │   ├── reaction_item.py          # ReactionItem
+│   │   ├── link_item.py              # LinkItem
+│   │   ├── poll_data.py              # PollData
+│   │   └── exporters/                # Форматы вывода
+│   │       ├── base_exporter.py
+│   │       ├── sanitize.py
+│   │       ├── json_exporter.py
+│   │       └── markdown_exporter.py
+│   ├── analytics/                    # Аналитика
+│   ├── media_downloader/             # Скачивание медиа
+│   ├── transcription/                # Транскрипция
+│   └── export_history.py             # История экспорта
+├── secrets/                    # SecretProvider + реализации
+│   ├── secret_provider.py             # SecretProvider (ABC)
+│   ├── keyring_secret_provider.py     # Системный Keyring
+│   ├── env_vars_secret_provider.py    # Переменные окружения
+│   ├── env_file_secret_provider.py    # .env-файлы
+│   └── chain_secret_provider.py       # Цепочка провайдеров
+├── hosting/                    # Конфигурация развёртывания
+│   └── app_config.py                 # AppConfig
+├── ui/                         # ⚠️ Устарело (будет удалено в Фазе 4)
+└── utils/                      # Инфраструктура
+    ├── cancellation.py
+    └── logger.py
 
 tests/                  # Тесты
 ├── conftest.py               # Фикстуры (DI-контейнер, фейковый клиент)
@@ -150,8 +167,8 @@ TelegramClientInterface (TelethonAdapter или Fake)
 ## Приложение
 
 - **[CLI Plan](.plans/cli-app-plan.md)** — полный план консольной утилиты, DI-контейнер, команды, тестирование
-- **[Core Layer](tg_exporter/core/ARCHITECTURE.md)** — аутентификация, клиент, секреты
-- **[Export Pipeline](tg_exporter/core/EXPORT_PIPELINE.md)** — оркестратор, конвертер, экспортёры
+- **[Core Layer](tg_exporter/telegram/ARCHITECTURE.md)** — аутентификация, клиент, секреты
+- **[Export Pipeline](tg_exporter/services/export/EXPORT_PIPELINE.md)** — оркестратор, конвертер, экспортёры
 - **[Transcription Service](tg_exporter/services/transcription/ARCHITECTURE.md)** — Whisper, Deepgram, конвертация аудио
 
 ## Безопасность

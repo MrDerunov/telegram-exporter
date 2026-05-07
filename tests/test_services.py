@@ -11,7 +11,7 @@ import time
 import unittest
 from pathlib import Path
 
-from tg_exporter.models.message import ExportMessage
+from tg_exporter.services.export.export_message import ExportMessage
 
 
 def _msg(**kw) -> ExportMessage:

@@ -12,7 +12,7 @@ from tg_exporter.telegram.credentials_manager import CredentialsManager
 from tg_exporter.telegram.auth.auth_service import AuthService
 from tg_exporter.telegram.export_orchestrator import ExportOrchestrator
 from tg_exporter.telegram.profiles.profile_manager import ProfileManager
-from tg_exporter.models.app_config import AppConfig
+from tg_exporter.hosting.app_config import AppConfig
 from tg_exporter.services.export_history import ExportHistory
 
 from tg_exporter.secrets import ChainSecretProvider, EnvVarsSecretProvider, EnvFileSecretProvider
