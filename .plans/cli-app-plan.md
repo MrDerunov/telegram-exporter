@@ -834,14 +834,19 @@ rate_limit:
 - [ ] Адаптировать `AuthService` и `ExportOrchestrator` под интерфейс
 - [ ] Создать `tests/fakes/fake_telegram_client.py` и `factories.py`
 - [ ] Установить `click`, `pyyaml`, `python-dotenv`
-- [ ] Создать `tg_exporter_cli/secrets/`
+- [ ] Создать `tg_exporter_cli/secrets/` — `SecretProvider` ABC с `writable` флагом
+- [ ] Реализовать `EnvVarsSecretProvider` (writable=true), `EnvFileSecretProvider` (writable=false)
+- [ ] Реализовать `ChainSecretProvider` — чтение по цепочке, запись только в writable
+- [ ] `KeyringSecretProvider` (writable=true) — оставить в коде, не подключать по умолчанию
 - [ ] Создать `tg_exporter_cli/container.py`
 - [ ] Создать `tg_exporter_cli/main.py`
 
 ### Фаза 2: Команды и тесты (MVP)
 
 - [ ] Реализовать `auth login` / `auth status` / `auth logout`
+- [ ] Реализовать `auth export-session` (экспорт в secrets.env) и `auth verify` (проверка сессии)
 - [ ] Реализовать `export` (--chat, --output, --format, --last N)
+- [ ] Реализовать `version` и `doctor`
 - [ ] Написать unit-тесты: Converter, ExportHistory, Exporters, SecretProvider
 - [ ] Написать integration-тесты: `test_export_command.py`, `test_auth_command.py`
 - [ ] Проверить сквозной сценарий на фейковом клиенте
@@ -849,15 +854,21 @@ rate_limit:
 ### Фаза 3: Полноценный экспорт и чаты
 
 - [ ] Добавить все опции экспорта (фильтры, медиа, транскрипция, аналитика)
-- [ ] Реализовать `--days N`
-- [ ] Доработать `ExportHistory` — хранение в папке чата
+- [ ] Реализовать `--days N`, `--resume`, `--message-types`, `--all`, `--skip-unavailable`
+- [ ] Атомарная запись файлов (tmp → fsync → rename), сохранение прогресса каждые 1000 сообщений
+- [ ] Обработка прерванного экспорта: partial JSON/Markdown валиден, флаг `interrupted` в export_history
+- [ ] Обработка ошибок: retry с экспоненциальной задержкой, нехватка места на диске, удалённый/заблокированный чат
+- [ ] Валидация конфликтующих флагов (взаимоисключающие опции)
+- [ ] Доработать `ExportHistory` — хранение в папке чата, статус `unavailable`
 - [ ] Реализовать `chats list` / `show` / `add` / `remove`
+- [ ] Хелпер `secure_permissions()` — платформозависимые права на файлы и директории
 - [ ] Написать тесты для всех опций export, команды chats
+- [ ] Написать тесты отмены: `CancellationToken` в экспорте, медиа, транскрипции
 - [ ] Прогресс-бар в консоли
 
 ### Фаза 4: Конфигурация, профили и удаление десктопа
 
-- [ ] Создать модель `CliConfig` (YAML)
+- [ ] Создать модель `CliConfig` (YAML) с полями: `version`, `api_id`, `default_profile`, `retry.*`, `rate_limit.*`
 - [ ] Реализовать `config show/set`
 - [ ] Реализовать `profile list/add/remove/switch`
 - [ ] Написать тесты: `test_config_command.py`, `test_profile_command.py`
@@ -933,11 +944,11 @@ CLI не содержит встроенного планировщика. Вн�
 
 | Риск | Митигация |
 |------|-----------|
-| Keyring в headless-окружении | SecretProvider с fallback на .env файл |
-| Интерактивный ввод кода при первом логине | CI/CD-friendly: только если сессия уже сохранена через `auth login` |
-| Долгий экспорт больших каналов | `--last N` для тестирования, прогресс-бар |
+| Keyring в headless-окружении | Keyring не используется по умолчанию; env vars + .env файл через ChainSecretProvider |
+| Интерактивный ввод кода при первом логине | CI/CD-friendly: `auth export-session` + `auth verify`; сессия сохраняется заранее |
+| Долгий экспорт больших каналов | `--last N` для тестирования, прогресс-бар, `--resume` для продолжения |
 | Разные часовые пояса | Все даты в ISO 8601 с timezone |
-| Расхождение фейкового и реального клиента | `TelegramClientInterface` — контракт; обе реализации проходят один набор тестов |
+| Расхождение фейкового и реального клиента | `TelegramClientInterface` — контракт; фейковый клиент зеркалит интерфейс |
 
 ## 17. Зависимости
 
