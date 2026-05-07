@@ -133,11 +133,11 @@ class Container:
         env_file: Path | None = None,
         telegram_client: TelegramClientInterface | None = None,
     ):
-        # 1. Секреты (порядок: env vars → .env file → keyring)
+        # 1. Секреты (порядок: env vars → .env file)
         self.secret_provider = ChainSecretProvider([
-            EnvSecretProvider(env_file),
-            KeyringSecretProvider(),
-        ])
+            EnvVarsSecretProvider(),
+            EnvFileSecretProvider(env_file),
+        ])  # keyring_provider не подключаем по умолчанию — на headless-системах недоступен
 
         # 2. Конфиг (публичные настройки, без секретов)
         self.config = ConfigManager(config_path)
@@ -194,7 +194,8 @@ tg_exporter_cli/          # CLI-приложение
 │   ├── __init__.py
 │   ├── provider.py       # SecretProvider (ABC)
 │   ├── keyring_provider.py    # Системный Keyring
-│   ├── env_provider.py        # .env-файлы + переменные окружения
+│   ├── env_vars_provider.py   # Переменные окружения (os.environ)
+│   ├── env_file_provider.py   # .env-файлы
 │   └── chain_provider.py      # Цепочка: пробует несколько провайдеров
 └── output.py             # Форматированный вывод (таблицы, прогресс)
 
@@ -223,6 +224,7 @@ tests/                    # Тесты
 │   ├── test_exporters.py       # JSON и Markdown экспортеры
 │   ├── test_secrets.py         # SecretProvider и все реализации
 │   └── test_config.py          # CliConfig, валидация
+│   ├── test_cancellation.py    # Отмена во время экспорта, медиа, транскрипции
 ├── integration/
 │   ├── test_export_command.py  # Команда export со всеми параметрами
 │   ├── test_chats_command.py   # Команда chats
@@ -282,7 +284,51 @@ Options:
   --profile TEXT    Имя профиля
 ```
 
-### 6.4. `tg-exporter export`
+### 6.4. `tg-exporter auth export-session`
+
+Экспорт сессии в файл `secrets.env` для CI/CD и headless-систем.
+
+```
+tg-exporter auth export-session [OPTIONS]
+
+Options:
+  --output PATH     Путь к файлу (по умолчанию: ./secrets.env)
+  --profile TEXT    Имя профиля
+
+Output (secrets.env):
+  TG_EXPORTER_API_ID=12345678
+  TG_EXPORTER_API_HASH=abcdef1234567890abcdef1234567890
+  TG_EXPORTER_SESSION=1BQANOTEuMTAu...
+```
+
+**Процесс:**
+1. Читает текущую сессию и api_hash через SecretProvider
+2. Формирует `secrets.env` с нужными переменными
+3. Выставляет права `0o600` на файл
+4. Выводит предупреждение: «⚠️ Файл содержит полный доступ к вашему аккаунту Telegram. Храните его в безопасном месте.»
+
+### 6.5. `tg-exporter auth verify`
+
+Проверка валидности сессии без интеракции (для CI/CD).
+
+```
+tg-exporter auth verify [OPTIONS]
+
+Options:
+  --profile TEXT    Имя профиля
+
+Exit codes:
+  0 — сессия валидна
+  1 — сессия невалидна / протухла
+  2 — нет сессии
+
+Output:
+  ✅ Сессия валидна (аккаунт @username)
+  ❌ Сессия протухла. Выполните: tg-exporter auth login
+  ❌ Сессия не найдена.
+```
+
+### 6.6. `tg-exporter export`
 
 Экспорт одного чата/канала.
 
@@ -313,10 +359,17 @@ Analytics:
 
 Markdown options:
   --words-per-file INTEGER   Слов на Markdown-файл (по умолчанию: 50000)
+  --resume              Продолжить прерванный экспорт (читает export_history.json)
+  --message-types [text|media|pinned|all]  Фильтр по типам сообщений (по умолчанию: all)
 
 Profile:
   --profile TEXT          Использовать определённый аккаунт
 ```
+
+**Режим `--resume`:**
+- Читает `export_history.json` и продолжает с последнего сохранённого сообщения
+- Полезно после прерывания Ctrl+C или сетевого сбоя
+- Не перезаписывает уже экспортированные файлы
 
 **Режим `--last N`:**
 - Экспортирует только последние N сообщений чата
@@ -327,7 +380,7 @@ Profile:
 - Экспортирует сообщения за последние N дней
 - Удобно для периодического запуска через внешний cron
 
-### 6.5. `tg-exporter chats`
+### 6.7. `tg-exporter chats`
 
 Просмотр и управление списком чатов для экспорта. Удобно добавлять чаты в конфиг через консоль, смотреть по папкам Telegram, выбирать для экспорта.
 
@@ -355,7 +408,7 @@ tg-exporter chats remove --chat CHAT_ID      # Убрать чат из конф
 
 **Идея:** пользователь заходит в консоль, смотрит список чатов с группировкой по папкам, выбирает нужные и добавляет их в конфиг. После этого можно делать `tg-exporter export --chat ID` без необходимости каждый раз искать ID.
 
-### 6.6. `tg-exporter profile`
+### 6.8. `tg-exporter profile`
 
 Управление несколькими аккаунтами (переиспользует `ProfileManager`).
 
@@ -366,7 +419,7 @@ tg-exporter profile remove --phone +7999...
 tg-exporter profile switch --phone +7999...
 ```
 
-### 6.7. `tg-exporter config`
+### 6.9. `tg-exporter config`
 
 Управление конфигурацией.
 
@@ -378,6 +431,46 @@ tg-exporter config set secrets_source env   # env | keyring | chain (по умо
 tg-exporter config path                     # Показать путь к конфиг-файлу
 ```
 
+### 6.10. `tg-exporter export --all`
+
+Массовый экспорт всех чатов из конфига одной командой.
+
+```
+tg-exporter export --all [OPTIONS]
+
+Options:
+  --format [json|markdown|both]   Формат (по умолчанию: both)
+  --download-media                Скачивать медиафайлы
+  --transcribe                    Транскрибировать голосовые
+  --skip-unavailable              Пропускать недоступные чаты (удалённые, заблокированные)
+  --profile TEXT                  Аккаунт
+```
+
+### 6.11. `tg-exporter version`
+
+```
+tg-exporter version
+# tg-exporter 1.0.0 (python 3.12, Linux x86_64)
+```
+
+### 6.12. `tg-exporter doctor`
+
+Диагностика окружения.
+
+```
+tg-exporter doctor
+
+Output:
+  ✅ Python 3.12.3
+  ✅ Конфиг: /home/user/.tg_exporter/cli_config.yaml (OK)
+  ⚠️ Keyring: недоступен (headless система)
+  ✅ Сессия: валидна (аккаунт @username)
+  ✅ ffmpeg: 7.0.2 (необходим для конвертации аудио)
+  ⚠️ Место на диске: 2.1 GB свободно в export-директории
+```
+
+Проверяет: Python, конфиг, keyring, сессию, ffmpeg, свободное место.
+
 ## 7. Тестирование
 
 ### Стратегия
@@ -386,7 +479,6 @@ tg-exporter config path                     # Показать путь к ко�
 |---------|-----------------|-------------|
 | Unit | Core-логика (Converter, ExportHistory, Exporters, SecretProvider, CliConfig) | pytest, FakeTelegramClient |
 | Integration | CLI-команды со всеми параметрами, сквозной сценарий экспорта | pytest, Click.testing.CliRunner, FakeTelegramClient |
-| Contract | `TelegramClientInterface` — обе реализации удовлетворяют контракту | pytest |
 
 ### Принципы
 
@@ -401,6 +493,7 @@ tg-exporter config path                     # Показать путь к ко�
 - `Converter.message_to_export()` — все типы сообщений, все поля
 - `ExportHistory` — сохранение/загрузка из папки чата, инкрементальный min_id
 - `JsonExporter` / `MarkdownExporter` — формат вывода, разбивка по файлам
+- `CancellationToken` — cooperative cancellation: проверка на каждой итерации, частичный результат валиден
 - `SecretProvider` — все три провайдера, цепочка, приоритет
 - `ExportOrchestrator` — полный цикл с фейковыми сообщениями
 
@@ -462,27 +555,43 @@ def test_export_date_filter(cli_runner, container, days, expected_count):
 
 ```python
 class SecretProvider(ABC):
-    """Источник секретов (api_hash, session, токены)."""
+    """Абстракция над источником секретов (api_hash, session, токены)."""
+    writable: bool = False  # Может ли провайдер сохранять секреты
 
     def get(self, key: str) -> str | None: ...
     def set(self, key: str, value: str) -> None: ...
-    def delete(self, key: str) -> bool: ...
+    def delete(self, key: str) -> None: ...
 ```
 
-| Провайдер | Источник | Когда использовать |
-|-----------|----------|--------------------|
-| `EnvSecretProvider` | Переменные окружения + `.env` файл | CI/CD, Docker, автоматизация |
-| `KeyringSecretProvider` | Системный Keyring | Локальное использование |
+| Провайдер | Источник | writable | Когда использовать |
+|-----------|----------|----------|--------------------|
+| `EnvVarsSecretProvider` | Переменные окружения (`os.environ`) | ✅ | CI/CD, Docker — секреты инжектятся через env |
+| `EnvFileSecretProvider` | `.env` файл | ❌ | Локальная разработка, файл с правами 0o600 |
+| `KeyringSecretProvider` | Системный Keyring | ✅ | Десктоп/сервер с доступным keyring-демоном (macOS, Gnome, KDE) |
+
+`keyring_provider` оставлен в кодовой базе, но по умолчанию не используется — на headless-системах keyring часто недоступен.
 
 ### ChainSecretProvider
 
-Объединяет несколько провайдеров в цепочку. При чтении — первый не-`None` результат. При записи — пишет во все провайдеры.
+Объединяет несколько провайдеров в цепочку:
+- **При чтении:** первый не-`None` результат (env_vars перезаписывает env_file)
+- **При записи:** пишет только в провайдеры с `writable=True`
 
 ```python
-# Порядок: сначала проверяем env, потом keyring
+# Порядок: env vars приоритетнее .env файла; keyring пока не используется
+# При записи пишет в env_vars и keyring, но НЕ в .env файл
 provider = ChainSecretProvider([
-    EnvSecretProvider(env_file=Path(".env")),
-    KeyringSecretProvider(),
+    EnvVarsSecretProvider(),           # writable=True
+    EnvFileSecretProvider(env_file),   # writable=False (не пишем plaintext на диск)
+    KeyringSecretProvider(),           # writable=True — оставлен, но не в цепочке по умолчанию
+])
+```
+
+**По умолчанию (без keyring):**
+```python
+provider = ChainSecretProvider([
+    EnvVarsSecretProvider(),
+    EnvFileSecretProvider(env_file),
 ])
 ```
 
@@ -496,7 +605,7 @@ TG_EXPORTER_SESSION=1BQANOTEuMTAu...
 TG_EXPORTER_DEEPGRAM_KEY=abc123...
 ```
 
-Приоритет: переменная окружения > `.env` файл > Keyring.
+Приоритет: `EnvVarsSecretProvider` > `EnvFileSecretProvider` > Keyring.
 
 ### Поток первого запуска
 
@@ -579,11 +688,56 @@ exports/
   Статус: скачивание медиа...
 ```
 
-## 11. Конфигурация CLI
+## 11. Обработка ошибок и edge cases
+
+### Сетевые сбои (п.15)
+- retry с экспоненциальной задержкой для сетевых операций (настраивается в конфиге `retry.*`)
+- Атомарная запись медиафайлов: tmp → fsync → rename
+- Периодическое сохранение прогресса в `export_history.json` каждые 1000 сообщений
+- При обрыве — `--resume` продолжает с последнего чекпоинта
+
+### Нехватка места на диске (п.16)
+- Перед экспортом — проверка `shutil.disk_usage()` в export-директории
+- В процессе — проверка после каждых 50 медиафайлов
+- При <100 MB свободно — остановка с ошибкой: «Недостаточно места на диске (осталось X MB)»
+- Прогресс сохраняется для `--resume`
+
+### Конфликты параметров (п.17-18)
+- `--date-from`/`--date-to` и `--days` — взаимоисключающие (Click `cls=MutuallyExclusiveOption`)
+- `--last N` и любые фильтры по дате — взаимоисключающие
+- `--transcribe` без `--download-media` — предупреждение (транскрипция требует скачивания)
+- Все конфликты — понятная ошибка, а не молчаливое игнорирование
+
+### Прерванный экспорт (п.19)
+- **JSON:** пишется атомарно (tmp → rename), при Ctrl+C остаётся валидный partial результат
+- **Markdown:** файлы дописываются с маркером `<!-- export in progress -->`, убирается при завершении
+- При Ctrl+C — `export_history.json` сохраняется с флагом `"interrupted": true`
+- Следующий запуск с `--resume` продолжает с последнего сообщения
+
+### Удалённый/заблокированный чат (п.20)
+- Обработка `ChatNotFound`, `ChannelPrivate` — понятная ошибка пользователю
+- В `export_history.json` сохраняется статус: `"status": "unavailable"`
+- При `export --all --skip-unavailable` — пропуск недоступных чатов с предупреждением в лог
+- При инкрементальном экспорте в недоступный чат — ошибка сразу, без попытки iter_messages
+
+### Безопасность файлов
+
+Права на чувствительные файлы:
+- **Конфиг** (`cli_config.yaml`) — `0o600` на Unix
+- **`.env` файл** — `0o600` на Unix
+- **Экспорт-директория** — `0o700` на Unix
+- **Windows:** restricted ACL через `win32security` (только текущий пользователь)
+- В коде — хелпер `secure_permissions(path)`, платформозависимый
+- При создании файла/директории — сразу выставлять права, до записи содержимого
+
+## 12. Конфигурация CLI
 
 Файл `~/.tg_exporter/cli_config.yaml`:
 
 ```yaml
+# Версия конфига (для миграций при обновлении утилиты)
+version: 1
+
 # Telegram API
 api_id: "12345678"
 # api_hash хранится через SecretProvider, не здесь
@@ -619,9 +773,28 @@ secrets_source: chain            # env | keyring | chain
 logging:
   level: INFO
   file: ~/.tg_exporter/cli.log
+
+# Устойчивость к сбоям
+retry:
+  max_attempts: 3        # Попыток при сетевой ошибке
+  delay_seconds: 2       # Начальная задержка (экспоненциальный backoff)
+  max_delay_seconds: 60  # Максимальная задержка
+
+# Rate limiting
+rate_limit:
+  media_download_delay_ms: 500   # Пауза между скачиваниями медиа
+  message_fetch_delay_ms: 100    # Пауза между запросами сообщений
 ```
 
-## 12. Миграция с десктопного приложения
+### Миграция конфига между версиями
+
+- Поле `version` в `cli_config.yaml` и `profiles.json`
+- При запуске проверяется версия конфига
+- Если версия меньше текущей — авто-миграция: `migrate_config_v1_to_v2()`, `migrate_config_v2_to_v3()`, ...
+- Перед миграцией создаётся бэкап: `cli_config.yaml.v1.bak`
+- При ошибке миграции — сообщение с путём к бэкапу
+
+## 13. Миграция с десктопного приложения
 
 ### Что остаётся и дорабатывается
 
@@ -660,7 +833,7 @@ logging:
 | `tests/fakes/fake_telegram_client.py` | Фейковый клиент для тестов |
 | `tests/fakes/factories.py` | Фабрики тестовых данных |
 
-## 13. Фазы реализации
+## 14. Фазы реализации
 
 ### Фаза 1: Абстракция клиента и базовая инфраструктура
 
@@ -707,7 +880,7 @@ logging:
 - [ ] Документировать интеграцию с cron/systemd timer
 - [ ] Обновить README
 
-## 14. Пример использования
+## 15. Пример использования
 
 ### Разовый экспорт
 
@@ -764,7 +937,7 @@ CLI не содержит встроенного планировщика. Вн�
 # tg-export.timer: OnCalendar=*:00/6
 ```
 
-## 15. Риски и ограничения
+## 16. Риски и ограничения
 
 | Риск | Митигация |
 |------|-----------|
@@ -774,7 +947,7 @@ CLI не содержит встроенного планировщика. Вн�
 | Разные часовые пояса | Все даты в ISO 8601 с timezone |
 | Расхождение фейкового и реального клиента | `TelegramClientInterface` — контракт; обе реализации проходят один набор тестов |
 
-## 16. Зависимости
+## 17. Зависимости
 
 ```
 # CLI и конфигурация
