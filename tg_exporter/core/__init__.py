@@ -1,5 +1,5 @@
 from .credentials import CredentialsManager
-from .client import TelegramClientManager, ClientNotConfiguredError
+from .telegram_client_manager import TelegramClientManager, ClientNotConfiguredError
 from .client_interface import TelegramClientInterface
 from .telethon_adapter import TelethonClientAdapter
 from .auth import AuthService, AuthResult, AuthStep

@@ -24,7 +24,7 @@ from telethon.errors import (
     SendCodeUnavailableError,
 )
 
-from ..client_interface import TelegramClientInterface
+from ..telegram_client_interface import TelegramClientInterface
 from ...utils.logger import logger
 from .auth_result import AuthResult
 from .auth_step import AuthStep

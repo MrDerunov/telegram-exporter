@@ -11,8 +11,8 @@ from pathlib import Path
 from typing import Any, AsyncIterator, Optional
 from datetime import datetime
 
-from .client_interface import TelegramClientInterface
-from .client import TelegramClientManager
+from .telegram_client_interface import TelegramClientInterface
+from .telegram_client_manager import TelegramClientManager
 
 
 class TelethonClientAdapter(TelegramClientInterface):

@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Optional
 
 from tg_exporter.core import TelegramClientInterface, TelethonClientAdapter
-from tg_exporter.core.client import TelegramClientManager
+from tg_exporter.core.telegram_client_manager import TelegramClientManager
 from tg_exporter.core.credentials import CredentialsManager
 from tg_exporter.core.auth.auth_service import AuthService
 from tg_exporter.core.orchestrator import ExportOrchestrator

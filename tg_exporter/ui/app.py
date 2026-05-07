@@ -33,7 +33,7 @@ from ..models.export_progress import ExportProgress
 from ..models.export_format import ExportFormat
 from ..models.author_filter import AuthorFilter
 from ..core.credentials import CredentialsManager
-from ..core.client import TelegramClientManager
+from ..core.telegram_client_manager import TelegramClientManager
 from ..core.auth import AuthService, AuthStep
 from ..core.orchestrator import ExportOrchestrator
 from ..core.profiles import ProfileManager, Profile
