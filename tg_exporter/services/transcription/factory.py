@@ -7,7 +7,7 @@ from __future__ import annotations
 from typing import Optional
 
 from .base import BaseTranscriber, TranscriptionError
-from ...models.app_config import AppConfig
+from ...hosting.app_config import AppConfig
 
 
 def create_transcriber(config: AppConfig, deepgram_key: Optional[str] = None) -> BaseTranscriber:

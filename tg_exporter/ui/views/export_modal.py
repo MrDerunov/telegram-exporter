@@ -373,7 +373,7 @@ class ExportModal(ctk.CTkToplevel):
             date_from = dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=_PERIOD_DAYS[period])
 
         fmt_str = self._format_var.get()
-        from ...models.export_format import ExportFormat
+        from ...services.export.export_format import ExportFormat
         fmt = {
             "JSON": ExportFormat.JSON,
             "Markdown": ExportFormat.MARKDOWN,

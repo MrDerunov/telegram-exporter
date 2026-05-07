@@ -27,15 +27,15 @@ from .views.settings_modal import SettingsModal
 from .views.export_modal import ExportModal
 from .views.help_modal import HelpModal
 
-from ..models.app_config import AppConfig
-from ..models.export_task import ExportTask
-from ..models.export_progress import ExportProgress
-from ..models.export_format import ExportFormat
-from ..export.author_filter import AuthorFilter
+from ..hosting.app_config import AppConfig
+from ..services.export.export_task import ExportTask
+from ..services.export.export_progress import ExportProgress
+from ..services.export.export_format import ExportFormat
+from ..services.export.author_filter import AuthorFilter
 from ..telegram.credentials_manager import CredentialsManager
 from ..telegram.telegram_client_manager import TelegramClientManager
 from ..telegram.auth import AuthService, AuthStep
-from ..telegram.export_orchestrator import ExportOrchestrator
+from ..services.export.export_orchestrator import ExportOrchestrator
 from ..telegram.profiles import ProfileManager, Profile
 from ..services.export_history import ExportHistory
 from ..utils.cancellation import CancellationToken
@@ -319,7 +319,7 @@ class App(ctk.CTk):
         if not path:
             return
         import os
-        from ..exporters.sanitize import sanitize_filename
+        from ..services.export.exporters.sanitize import sanitize_filename
         base = os.path.join(path, sanitize_filename(folder))
         os.makedirs(base, exist_ok=True)
         self._folder_queue = list(dialogs)
@@ -678,7 +678,7 @@ class App(ctk.CTk):
         if self._folder_active:
             chat_name = getattr(self._folder_queue[self._folder_index - 1], "name", "chat") or "chat"
             if self._folder_mode in ("Один .md на чат", "Один .md на папку") and self._folder_export_base:
-                from ..exporters.sanitize import sanitize_filename
+                from ..services.export.exporters.sanitize import sanitize_filename
                 safe_name = sanitize_filename(chat_name)
                 for f in files:
                     if f.endswith(".md") and os.path.exists(f):

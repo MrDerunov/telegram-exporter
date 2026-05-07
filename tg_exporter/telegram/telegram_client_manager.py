@@ -19,7 +19,7 @@ from telethon.sync import TelegramClient
 from telethon.sessions import StringSession
 
 from .credentials_manager import CredentialsManager
-from ..models.app_config import AppConfig
+from ..hosting.app_config import AppConfig
 
 
 class ClientNotConfiguredError(RuntimeError):

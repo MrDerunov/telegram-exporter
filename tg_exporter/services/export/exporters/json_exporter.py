@@ -12,7 +12,7 @@ import os
 from typing import Optional, IO
 
 from .base_exporter import BaseExporter
-from ..models.export_message import ExportMessage
+from ..export_message import ExportMessage
 
 
 class JsonExporter(BaseExporter):
