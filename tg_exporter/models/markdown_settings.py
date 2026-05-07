@@ -23,7 +23,7 @@ class MarkdownSettings:
     plain_text: bool = True
 
     def validate(self) -> None:
-        from .config import ConfigValidationError
+        from .app_config import ConfigValidationError
         if self.words_per_file < 1000:
             raise ConfigValidationError("words_per_file must be >= 1000")
         if self.date_format not in DATE_FORMATS:

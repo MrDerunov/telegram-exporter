@@ -7,7 +7,7 @@ from __future__ import annotations
 from typing import Optional
 
 from .base import BaseTranscriber, TranscriptionError
-from ...models.config import AppConfig
+from ...models.app_config import AppConfig
 
 
 def create_transcriber(config: AppConfig, deepgram_key: Optional[str] = None) -> BaseTranscriber:
@@ -32,10 +32,10 @@ def create_transcriber(config: AppConfig, deepgram_key: Optional[str] = None) ->
             raise TranscriptionError(
                 "Deepgram API ключ не задан. Введите его в настройках."
             )
-        from .deepgram import DeepgramTranscriber
+        from .deepgram_transcriber import DeepgramTranscriber
         return DeepgramTranscriber(api_key=key)
 
     model_id = (config.local_whisper_model or "base").strip()
 
-    from .whisper_local import WhisperTranscriber
+    from .whisper_transcriber import WhisperTranscriber
     return WhisperTranscriber(model_size=model_id)

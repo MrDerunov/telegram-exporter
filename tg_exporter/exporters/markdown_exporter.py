@@ -17,7 +17,7 @@ from typing import Optional
 
 from .base_exporter import BaseExporter
 from .sanitize import sanitize_filename
-from ..models.message import ExportMessage
+from ..models.export_message import ExportMessage
 from ..models.markdown_settings import MarkdownSettings
 
 

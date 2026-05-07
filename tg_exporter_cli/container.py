@@ -16,7 +16,7 @@ from tg_exporter.models.app_config import AppConfig
 from tg_exporter.services.export_history import ExportHistory
 
 from .secrets import ChainSecretProvider, EnvVarsSecretProvider, EnvFileSecretProvider
-from .config import CliConfig, DEFAULT_CONFIG_DIR
+from .cli_config import CliConfig, DEFAULT_CONFIG_DIR
 
 
 class Container:

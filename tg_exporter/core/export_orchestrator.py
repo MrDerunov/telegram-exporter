@@ -21,7 +21,7 @@ from ..exporters import JsonExporter, MarkdownExporter
 from ..models.export_task import ExportTask
 from ..models.export_progress import ExportProgress
 from ..models.export_format import ExportFormat
-from ..models.config import AppConfig
+from ..models.app_config import AppConfig
 from ..services.analytics import AnalyticsCollector, render_top_authors, render_activity
 from ..services.export_history import ExportHistory
 from ..services.media_downloader import MediaDownloader, MediaDirs, AudioPrepResult

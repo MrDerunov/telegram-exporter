@@ -1,6 +1,6 @@
 from .base import BaseTranscriber, TranscriptionError
-from .whisper_local import WhisperTranscriber
-from .deepgram import DeepgramTranscriber
+from .whisper_transcriber import WhisperTranscriber
+from .deepgram_transcriber import DeepgramTranscriber
 from .factory import create_transcriber
 
 __all__ = [

@@ -27,7 +27,7 @@ from .views.settings_modal import SettingsModal
 from .views.export_modal import ExportModal
 from .views.help_modal import HelpModal
 
-from ..models.config import AppConfig
+from ..models.app_config import AppConfig
 from ..models.export_task import ExportTask
 from ..models.export_progress import ExportProgress
 from ..models.export_format import ExportFormat
