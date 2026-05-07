@@ -3,6 +3,7 @@ from __future__ import annotations
 import click
 
 from .container import Container
+from .commands.auth import auth_group
 
 
 @click.group()
@@ -12,40 +13,7 @@ def cli() -> None:
     pass
 
 
-@cli.group()
-def auth() -> None:
-    """Аутентификация в Telegram."""
-    pass
-
-
-@auth.command("login")
-def auth_login() -> None:
-    """Интерактивный вход в аккаунт."""
-    click.echo("[TODO] auth login")
-
-
-@auth.command("status")
-def auth_status() -> None:
-    """Проверить статус авторизации."""
-    click.echo("[TODO] auth status")
-
-
-@auth.command("logout")
-def auth_logout() -> None:
-    """Выйти из аккаунта."""
-    click.echo("[TODO] auth logout")
-
-
-@auth.command("export-session")
-def auth_export_session() -> None:
-    """Экспортировать сессию в secrets.env."""
-    click.echo("[TODO] auth export-session")
-
-
-@auth.command("verify")
-def auth_verify() -> None:
-    """Проверить валидность сессии (для CI/CD)."""
-    click.echo("[TODO] auth verify")
+cli.add_command(auth_group)
 
 
 @cli.group()
