@@ -60,12 +60,6 @@ class TelegramClientInterface(ABC):
     def load_session(self, session_str: str) -> None: ...
 
     @abstractmethod
-    def get_client(self) -> Any:
-        """Временный compatibility bridge: доступ к сырому клиенту.
-        Будет удалён когда сервисы перепишут на использование интерфейсных методов."""
-        ...
-
-    @abstractmethod
     def destroy(self) -> None:
         """Уничтожить клиент (для logout)."""
         ...
