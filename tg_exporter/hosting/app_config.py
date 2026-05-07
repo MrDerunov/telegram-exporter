@@ -13,7 +13,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
 
-from .markdown_settings import MarkdownSettings
+from ..services.export.markdown_settings import MarkdownSettings
 
 
 CONFIG_DIR = Path(os.path.expanduser("~/.tg_exporter"))
