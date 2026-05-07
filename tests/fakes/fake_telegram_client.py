@@ -113,3 +113,10 @@ class FakeTelegramClient(TelegramClientInterface):
     def load_session(self, session_str: str) -> None:
         self.call_log.append(f"load_session(...)")
         self._session_str = session_str
+
+    def get_client(self) -> Any:
+        """Возвращает self — фейковый клиент сам себе клиент."""
+        return self
+
+    def destroy(self) -> None:
+        self._connected = False

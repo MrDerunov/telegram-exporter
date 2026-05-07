@@ -1,103 +1,146 @@
-"""
-TelethonClientAdapter — обёртка над TelegramClientManager,
-реализующая контракт TelegramClientInterface.
-
-Делегирует все вызовы в TelegramClientManager / Telethon-клиент.
-"""
-
+"""TelethonClientAdapter — реализация TelegramClientInterface через telethon."""
 from __future__ import annotations
 
+import asyncio
+import threading
 from pathlib import Path
 from typing import Any, AsyncIterator, Optional
 from datetime import datetime
 
+from telethon import TelegramClient
+from telethon.sessions import StringSession
+
 from .telegram_client_interface import TelegramClientInterface
-from .telegram_client_manager import TelegramClientManager
 
 
 class TelethonClientAdapter(TelegramClientInterface):
-    """
-    Адаптер, оборачивающий TelegramClientManager в интерфейс TelegramClientInterface.
+    """Реализует интерфейс напрямую через telethon.TelegramClient."""
 
-    Предоставляет метод get_client() для обратной совместимости —
-    возвращает «сырой» Telethon-клиент (результат ensure_connected).
-    """
+    def __init__(
+        self,
+        api_id: int,
+        api_hash: str,
+        session_str: str = "",
+    ) -> None:
+        self._api_id = api_id
+        self._api_hash = api_hash
+        self._session_str = session_str
+        self._client: Optional[TelegramClient] = None
+        self._lock = threading.Lock()
+        self._loop: Optional[asyncio.AbstractEventLoop] = None
 
-    def __init__(self, manager: TelegramClientManager) -> None:
-        self._manager = manager
+    # ---- Event loop ----
 
-    # ---- Compatibility bridge (не часть интерфейса) ----
+    def _ensure_loop(self) -> asyncio.AbstractEventLoop:
+        """Гарантирует наличие event loop в текущем потоке."""
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_closed():
+                raise RuntimeError("closed")
+            return loop
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            self._loop = loop
+            return loop
 
-    def get_client(self):
-        """
-        Возвращает готовый подключённый Telethon-клиент.
-        Используется кодом, который ещё не переведён на интерфейс.
-        """
-        return self._manager.ensure_connected()
+    def _build_client(self) -> TelegramClient:
+        """Создаёт telethon-клиент."""
+        session = StringSession(self._session_str) if self._session_str else StringSession()
+        return TelegramClient(session, self._api_id, self._api_hash)
 
-    def destroy(self) -> None:
-        """Уничтожает клиент. Не часть интерфейса, нужно для совместимости."""
-        self._manager.destroy()
-
-    # ---- TelegramClientInterface implementation ----
+    # ---- TelegramClientInterface ----
 
     async def connect(self) -> None:
-        self._manager.ensure_connected()
+        self._ensure_loop()
+        with self._lock:
+            if self._client is None:
+                self._client = self._build_client()
+        if not self._client.is_connected():
+            await self._client.connect()
 
     async def disconnect(self) -> None:
-        self._manager.disconnect()
+        with self._lock:
+            if self._client is not None:
+                try:
+                    await self._client.disconnect()
+                except Exception:
+                    pass
 
     async def is_authorized(self) -> bool:
-        c = self._manager.ensure_connected()
-        return c.is_user_authorized()
+        if self._client is None:
+            return False
+        return await self._client.is_user_authorized()
 
     async def send_code_request(self, phone: str) -> Any:
-        c = self._manager.ensure_connected()
-        return c.send_code_request(phone)
+        if self._client is None:
+            await self.connect()
+        return await self._client.send_code_request(phone)
 
     async def sign_in(self, phone: str, code: str) -> Any:
-        c = self._manager.ensure_connected()
-        return c.sign_in(phone=phone, code=code)
+        return await self._client.sign_in(phone=phone, code=code)
 
     async def sign_in_password(self, password: str) -> Any:
-        c = self._manager.ensure_connected()
-        return c.sign_in(password=password)
+        return await self._client.sign_in(password=password)
 
-    async def get_dialogs(
-        self, limit: int | None = None
-    ) -> list[Any]:
-        c = self._manager.ensure_connected()
-        return c.get_dialogs(limit=limit)
+    async def get_dialogs(self, limit: int | None = None) -> list[Any]:
+        if self._client is None:
+            await self.connect()
+        return await self._client.get_dialogs(limit=limit)
 
     async def iter_messages(
-        self,
-        peer_id: int,
-        min_id: int = 0,
+        self, peer_id: int, min_id: int = 0,
         offset_date: datetime | None = None,
         limit: int | None = None,
     ) -> AsyncIterator[Any]:
-        c = self._manager.ensure_connected()
-        entity = c.get_input_entity(peer_id)
-        for msg in c.iter_messages(
-            entity,
-            min_id=min_id,
-            offset_date=offset_date,
-            limit=limit,
+        if self._client is None:
+            await self.connect()
+        async for msg in self._client.iter_messages(
+            peer_id, min_id=min_id, offset_date=offset_date, limit=limit
         ):
             yield msg
 
-    async def download_media(
-        self, message: Any, path: Path
-    ) -> Path | None:
-        c = self._manager.ensure_connected()
-        result = c.download_media(message, str(path))
+    async def download_media(self, message: Any, path: Path) -> Path | None:
+        if self._client is None:
+            await self.connect()
+        result = await self._client.download_media(message, str(path))
         return Path(result) if result else None
 
     def save_session(self) -> str:
-        self._manager.save_session()
-        if self._manager._client is not None:
-            return self._manager._client.session.save()
-        return ""
+        """Сохраняет и возвращает текущую сессию."""
+        with self._lock:
+            if self._client is None:
+                return ""
+            try:
+                return self._client.session.save() or ""
+            except Exception:
+                return ""
 
     def load_session(self, session_str: str) -> None:
-        self._manager.use_session(session_str)
+        """Загружает сессию. Требует пересоздания клиента."""
+        with self._lock:
+            self._session_str = session_str
+            if self._client is not None:
+                try:
+                    self._client.disconnect()
+                except Exception:
+                    pass
+            self._client = None
+
+    # ---- Compatibility ----
+
+    def get_client(self) -> TelegramClient:
+        """Временный bridge к сырому telethon-клиенту."""
+        if self._client is None:
+            raise RuntimeError("Клиент не создан. Вызовите connect() сначала.")
+        return self._client
+
+    def destroy(self) -> None:
+        """Уничтожает клиент (для logout)."""
+        with self._lock:
+            if self._client is not None:
+                try:
+                    self._client.disconnect()
+                except Exception:
+                    pass
+                self._client = None
