@@ -28,5 +28,5 @@ def container_with_fake_client(fake_manager: FakeTelegramClientManager, tmp_path
     return Container(
         config_path=config_path,
         env_file=env_file,
-        telegram_client_manager=fake_manager,
+        telegram_manager=fake_manager,
     )

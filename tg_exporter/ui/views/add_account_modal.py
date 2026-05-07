@@ -144,7 +144,15 @@ class AddAccountModal(ctk.CTkToplevel):
 
     def _bg_send_code(self, phone: str) -> None:
         try:
-            self._app._client_mgr.ensure_event_loop()
+            # Гарантируем event loop в текущем потоке для telethon.sync
+            try:
+                import asyncio
+                loop = asyncio.get_event_loop()
+                if loop.is_closed():
+                    raise RuntimeError("closed")
+            except RuntimeError:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
             client = self._make_client()
             if client is None:
                 self._emit("add_account_error", "Сначала войдите в первый аккаунт — нужны API ID и Hash.")
