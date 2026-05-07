@@ -35,6 +35,10 @@ class TelethonClientAdapter(TelegramClientInterface):
         """
         return self._manager.ensure_connected()
 
+    def destroy(self) -> None:
+        """Уничтожает клиент. Не часть интерфейса, нужно для совместимости."""
+        self._manager.destroy()
+
     # ---- TelegramClientInterface implementation ----
 
     async def connect(self) -> None:
