@@ -26,10 +26,12 @@
 
 ## Задачи (4 подзадачи для субагентов)
 
-### Задача A: TelegramClientInterface + TelethonClientAdapter
+### Задача A: TelegramClientInterface + ITelegramClientManager + TelethonClientAdapter
 **Файлы:**
 - `tg_exporter/telegram/telegram_client_interface.py` — ABC с async-методами
-- `tg_exporter/telegram/telethon_client_adapter.py` — обёртка над `TelegramClientManager`
+- `tg_exporter/telegram/telegram_client_manager_interface.py` — ABC фабрики `ITelegramClientManager`
+- `tg_exporter/telegram/telegram_client_manager.py` — `TelethonClientManager` (фабрика)
+- `tg_exporter/telegram/telethon_client_adapter.py` — работает с `telethon.TelegramClient` напрямую
 
 **Что делает:**
 1. Создать `TelegramClientInterface(ABC)` с методами (async, из плана §3):
@@ -39,10 +41,11 @@
    - `get_dialogs(limit) -> list[Dialog]`
    - `iter_messages(peer_id, min_id, offset_date, limit) -> AsyncIterator[Message]`
    - `download_media(message, path) -> Path | None`
-   - `save_session() -> str`, `load_session(session_str)`
-2. Создать `TelethonClientAdapter` — реализует интерфейс, делегирует в `TelegramClientManager`
-3. `TelegramClientManager` НЕ менять — адаптер его оборачивает
-4. Экспортировать классы через `tg_exporter/telegram/__init__.py`
+   - `destroy()` (уничтожение клиента)
+2. Создать `ITelegramClientManager(ABC)` — фабрика с методами `create_client()`, `save_session()`, `destroy()`
+3. Создать `TelethonClientManager` — реализует `ITelegramClientManager`, создаёт `TelethonClientAdapter` с нужной сессией
+4. Создать `TelethonClientAdapter` — реализует `TelegramClientInterface`, работает с `telethon.TelegramClient` напрямую (без прослойки)
+5. Экспортировать классы через `tg_exporter/telegram/__init__.py`
 
 ### Задача B: SecretProvider + реализации
 **Файлы:**
@@ -71,8 +74,8 @@
 **Что делает:**
 1. `Container.__init__` собирает зависимости:
    ```
-   SecretProvider → ConfigManager → CredentialsManager
-   → TelethonClientAdapter → AuthService + ProfileManager + ExportOrchestrator
+   SecretProvider → CliConfig → AppConfig → CredentialsManager
+   → TelethonClientManager (ITelegramClientManager) → AuthService + ProfileManager + ExportOrchestrator
    ```
 2. `main.py` — Click группа `tg-exporter` с заглушками команд:
    - `auth login/status/logout/export-session/verify`
@@ -85,40 +88,45 @@
 3. Установка зависимостей: `click`, `pyyaml`, `python-dotenv`
 4. `CliConfig` — минимальная модель (version, api_id, default_profile)
 
-### Задача D: FakeTelegramClient + factories
+### Задача D: FakeTelegramClient + FakeTelegramClientManager + factories
 **Файлы:**
 - `tests/__init__.py`
 - `tests/fakes/__init__.py`
 - `tests/fakes/fake_telegram_client.py` — `FakeTelegramClient`
+- `tests/fakes/fake_telegram_client_manager.py` — `FakeTelegramClientManager`
 - `tests/fakes/factories.py` — фабрики тестовых данных
-- `tests/conftest.py` — фикстуры (контейнер с фейковым клиентом)
+- `tests/conftest.py` — фикстуры (контейнер с фейковым менеджером)
 
 **Что делает:**
 1. `FakeTelegramClient(TelegramClientInterface)` — реализует все методы ABC
    - `_dialogs: list[Dialog]`, `_messages: dict[int, list[Message]]`
    - `add_dialog()`, `add_messages()`, `set_authorized()`
    - Все методы синхронные (возвращают готовые данные, не async)
-2. `factories.py` — функции для генерации тестовых `ExportMessage`, `Dialog`, `ExportTask`
-3. `conftest.py` — минимум: фикстура `container_with_fake_client`
+2. `FakeTelegramClientManager(ITelegramClientManager)` — фейковая фабрика, создаёт `FakeTelegramClient`
+3. `factories.py` — функции для генерации тестовых `ExportMessage`, `Dialog`, `ExportTask`
+4. `conftest.py` — минимум: фикстуры `fake_client`, `fake_manager`, `container_with_fake_client`
 
 ## Порядок выполнения
 
-1. Создать ветку `phase/1-client-abstraction`
-2. Запустить задачи A, B, C, D параллельно (4 субагента)
-3. После завершения — ревью, исправления
-4. Merge ветки в main
-5. Перенести план в `.plans/done/phase-1-plan.md`
+1. ✅ Создать ветку `phase/1-client-abstraction`
+2. ✅ Запустить задачи A, B, C, D параллельно (4 субагента)
+3. ✅ После завершения — ревью, исправления
+4. ⬜ Merge ветки в main
+5. ⬜ Перенести план в `.plans/done/phase-1-plan.md`
 
 ## Критерии приёмки
 
-- [ ] `TelegramClientInterface` ABC с async-методами
-- [ ] `TelethonClientAdapter` реализует интерфейс, оборачивая `TelegramClientManager`
-- [ ] `AuthService` принимает `TelegramClientInterface`, а не `TelegramClientManager`
-- [ ] `ExportOrchestrator` принимает `TelegramClientInterface`, а не `TelegramClientManager`
-- [ ] Все 4 SecretProvider'а реализованы с флагом `writable`
-- [ ] `ChainSecretProvider` пишет только в writable
-- [ ] `Container` собирает все зависимости
-- [ ] `main.py` — Click группа с заглушками всех команд
-- [ ] `FakeTelegramClient` реализует ABC
-- [ ] Тесты проходят (unit-тесты на SecretProvider и FakeTelegramClient)
-- [ ] Существующий код (UI, worker) не сломан
+- [x] `TelegramClientInterface` ABC с async-методами (без `save_session`/`load_session`/`get_client`)
+- [x] `ITelegramClientManager` ABC фабрики с `create_client()`, `save_session()`, `destroy()`
+- [x] `TelethonClientAdapter` реализует `TelegramClientInterface`, работает с `telethon.TelegramClient` напрямую
+- [x] `TelethonClientManager` реализует `ITelegramClientManager`, создаёт `TelethonClientAdapter`
+- [x] `AuthService` принимает `ITelegramClientManager`, а не raw клиент
+- [x] `ExportOrchestrator` принимает `ITelegramClientManager`, а не raw клиент
+- [x] Все 4 SecretProvider'а реализованы с флагом `writable`
+- [x] `ChainSecretProvider` пишет только в writable
+- [x] `Container` собирает все зависимости, принимает `telegram_manager` для подмены
+- [x] `main.py` — Click группа с заглушками всех команд
+- [x] `FakeTelegramClient` реализует `TelegramClientInterface`
+- [x] `FakeTelegramClientManager` реализует `ITelegramClientManager`
+- [x] Тесты проходят (unit-тесты на SecretProvider и FakeTelegramClient)
+- [x] Существующий код (UI, worker) не сломан

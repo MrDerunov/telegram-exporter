@@ -56,16 +56,32 @@ class TelegramClientInterface(ABC):
         limit: int | None = None, ...
     ) -> AsyncIterator[Message]: ...
     async def download_media(self, message: Message, path: Path) -> Path | None: ...
-    def save_session(self) -> str: ...
-    def load_session(self, session_str: str) -> None: ...
+    def destroy(self) -> None: ...
+```
+
+### Фабрика клиентов
+
+Клиент создаётся через фабрику, а не напрямую — это позволяет подменять весь жизненный цикл (сессия, переподключение) для тестов.
+
+```python
+# tg_exporter/telegram/telegram_client_manager_interface.py
+
+class ITelegramClientManager(ABC):
+    """Контракт для фабрики клиентов Telegram."""
+
+    def create_client(self) -> TelegramClientInterface: ...
+    def save_session(self) -> None: ...
+    def destroy(self) -> None: ...
 ```
 
 ### Реализации
 
 | Класс | Назначение |
 |-------|------------|
-| `TelethonClientAdapter` | Обёртка над реальным `Telethon.TelegramClient` — production |
+| `TelethonClientManager` | Фабрика: создаёт `TelethonClientAdapter` с правильной сессией и конфигом — production |
+| `TelethonClientAdapter` | Реализует `TelegramClientInterface`, работает с `telethon.TelegramClient` напрямую — production |
 | `FakeTelegramClient` | Фейковый клиент для тестов — возвращает предзагруженные сообщения |
+| `FakeTelegramClientManager` | Фейковая фабрика для тестов — создаёт `FakeTelegramClient` |
 
 ### FakeTelegramClient
 
@@ -97,25 +113,25 @@ class FakeTelegramClient(TelegramClientInterface):
 # tg_exporter_cli/container.py
 
 class Container:
-    """DI-контейнер. В тестах client можно передать извне."""
+    """DI-контейнер. В тестах менеджер клиентов можно передать извне."""
 
     def __init__(
         self,
         config_path: Path,
         env_file: Path | None = None,
-        telegram_client: TelegramClientInterface | None = None,  # для тестов
+        telegram_manager: ITelegramClientManager | None = None,  # для тестов
     ):
         self.secret_provider = ChainSecretProvider([...])
         self.config = ConfigManager(config_path)
         self.credentials = CredentialsManager(self.secret_provider)
 
-        # Клиент можно подменить (FakeTelegramClient в тестах)
-        self.client = telegram_client or TelethonClientAdapter(
+        # Менеджер можно подменить (FakeTelegramClientManager в тестах)
+        self.client_manager = telegram_manager or TelethonClientManager(
             self.config, self.credentials
         )
 
-        self.auth_service = AuthService(self.client)
-        self.orchestrator = ExportOrchestrator(self.client, self.config)
+        self.auth_service = AuthService(self.client_manager)
+        self.orchestrator = ExportOrchestrator(self.client_manager, self.config)
         ...
 ```
 
@@ -131,7 +147,7 @@ class Container:
         self,
         config_path: Path,
         env_file: Path | None = None,
-        telegram_client: TelegramClientInterface | None = None,
+        telegram_manager: ITelegramClientManager | None = None,
     ):
         # 1. Секреты (порядок: env vars → .env file)
         self.secret_provider = ChainSecretProvider([
@@ -142,30 +158,31 @@ class Container:
         # 2. Конфиг (публичные настройки, без секретов)
         self.config = ConfigManager(config_path)
 
-        # 3. Credentials (api_hash, session — через SecretProvider)
-        self.credentials = CredentialsManager(self.secret_provider)
+        # 3. Credentials (api_hash, session — через CredentialsManager)
+        self.credentials = CredentialsManager()
 
-        # 4. Telegram-клиент (реальный или фейковый для тестов)
-        self.client = telegram_client or TelethonClientAdapter(
+        # 4. Telegram-менеджер (реальный или фейковый для тестов)
+        self.client_manager = telegram_manager or TelethonClientManager(
             self.config, self.credentials
         )
 
         # 5. Профили
-        self.profile_manager = ProfileManager(
-            self.credentials, self.config
-        )
+        self.profile_manager = ProfileManager(self.credentials)
 
         # 6. Auth
-        self.auth_service = AuthService(self.client)
+        self.auth_service = AuthService(self.client_manager)
 
-        # 7. Экспорт
-        self.orchestrator = ExportOrchestrator(
-            self.client, self.config
-        )
+        # 7. Экспорт (ленивая инициализация)
+        self._orchestrator: ExportOrchestrator | None = None
 
-    def get_chat_list_service(self):
-        """Ленивая инициализация сервиса чатов."""
-        return ChatListService(self.client)
+    @property
+    def orchestrator(self) -> ExportOrchestrator:
+        if self._orchestrator is None:
+            export_history = ExportHistory()
+            self._orchestrator = ExportOrchestrator(
+                self.client_manager, self.app_config, export_history
+            )
+        return self._orchestrator
 ```
 
 **Почему свой контейнер, а не dependency-injector:**
@@ -194,13 +211,14 @@ tg_exporter_cli/          # CLI-приложение
 
 tg_exporter/              # Core-библиотека (общая для CLI и тестов)
 ├── telegram/                  # Telegram client, auth, profiles, credentials, converter
-│   ├── telegram_client_interface.py  # TelegramClientInterface (ABC) ← НОВОЕ
-│   ├── telegram_client_manager.py    # Жизненный цикл клиента
-│   ├── telethon_client_adapter.py    # TelethonClientAdapter          ← НОВОЕ
-│   ├── credentials_manager.py        # CredentialsManager
-│   ├── converter.py                  # Telethon → ExportMessage
-│   ├── auth/                         # AuthService + модели
-│   └── profiles/                     # ProfileManager
+│   ├── telegram_client_interface.py         # TelegramClientInterface (ABC) ← НОВОЕ
+│   ├── telegram_client_manager_interface.py # ITelegramClientManager (ABC фабрики) ← НОВОЕ
+│   ├── telegram_client_manager.py           # TelethonClientManager (фабрика) ← ОБНОВЛЁН
+│   ├── telethon_client_adapter.py           # TelethonClientAdapter ← НОВОЕ
+│   ├── credentials_manager.py               # CredentialsManager
+│   ├── converter.py                         # Telethon → ExportMessage
+│   ├── auth/                                # AuthService + модели
+│   └── profiles/                            # ProfileManager
 ├── services/
 │   ├── export/                       # Export Pipeline + модели + exporters
 │   │   ├── export_orchestrator.py    # ExportOrchestrator
@@ -226,8 +244,9 @@ tests/                    # Тесты
 ├── conftest.py                 # Фикстуры (контейнер, фейковый клиент)
 ├── fakes/
 │   ├── __init__.py
-│   ├── fake_telegram_client.py # FakeTelegramClient
-│   └── factories.py            # Фабрики тестовых данных (сообщения, диалоги)
+│   ├── fake_telegram_client.py         # FakeTelegramClient
+│   ├── fake_telegram_client_manager.py # FakeTelegramClientManager ← НОВОЕ
+│   └── factories.py                    # Фабрики тестовых данных (сообщения, диалоги)
 ├── unit/
 │   ├── test_converter.py       # Конвертация Telethon → ExportMessage
 │   ├── test_orchestrator.py    # Логика экспорта с фейковым клиентом
@@ -526,9 +545,9 @@ Output:
 ```python
 # tests/integration/test_export_command.py
 
-def test_export_last_n_messages(cli_runner, container_with_fake_client):
+def test_export_last_n_messages(cli_runner, container_with_fake_client, fake_manager):
     """Экспорт последних 50 сообщений с фейковым клиентом."""
-    fake_client = container_with_fake_client.client
+    fake_client = fake_manager.create_client()
     fake_client.add_messages(-1001234, generate_messages(200))
 
     result = cli_runner.invoke(
@@ -804,13 +823,15 @@ rate_limit:
 | Модуль | Что изменится |
 |--------|---------------|
 | `telegram/telegram_client_interface.py` | **НОВОЕ** — ABC для Telegram-клиента |
-| `telegram/telethon_client_adapter.py` | **НОВОЕ** — реальная реализация (выделяется из `telegram_client_manager.py`) |
-| `telegram/auth/` | Адаптировать под `TelegramClientInterface` |
+| `telegram/telegram_client_manager_interface.py` | **НОВОЕ** — ABC фабрики ITelegramClientManager |
+| `telegram/telegram_client_manager.py` | **ОБНОВЛЁН** — TelethonClientManager (фабрика, создаёт TelethonClientAdapter) |
+| `telegram/telethon_client_adapter.py` | **НОВОЕ** — работает напрямую с `telethon.TelegramClient` |
+| `telegram/auth/` | Адаптировать под `ITelegramClientManager` |
 | `telegram/converter.py` | Без изменений |
-| `services/export/export_orchestrator.py` | Адаптировать под `TelegramClientInterface` |
+| `services/export/export_orchestrator.py` | Адаптировать под `ITelegramClientManager` |
 | `exporters/` | Без изменений |
 | `services/` | `ExportHistory` — доработать хранение в папке чата |
-| `models/` | Без изменений |
+| `tg_exporter/secrets/` | SecretProvider + реализации (все провайдеры секретов) |
 | `utils/cancellation.py` | Без изменений |
 | `utils/logger.py` | Без изменений |
 
@@ -821,8 +842,6 @@ rate_limit:
 | `tg_exporter/ui/` (весь пакет) | Десктопный UI больше не нужен |
 | `tg_exporter/utils/worker.py` | BackgroundWorker + EventDispatcher (только для GUI) |
 | `main.py` | Старая точка входа в GUI-приложение |
-| `tg_exporter/telegram/telegram_client_manager.py` | Заменён на `telegram_client_interface.py` + `telethon_client_adapter.py` |
-| `tg_exporter/telegram/credentials_manager.py` | Адаптирован под `SecretProvider`, старый API удалён |
 | `tg_exporter/telegram/profiles/` | Перенесён в CLI или удалён (профили управляются через `tg-exporter profile`) |
 
 ### Что создаётся заново
@@ -831,26 +850,33 @@ rate_limit:
 |--------|----------|
 | `tg_exporter_cli/` | CLI-приложение (весь пакет) |
 | `tg_exporter_cli/container.py` | DI-контейнер |
+| `tg_exporter/telegram/telegram_client_interface.py` | ABC TelegramClientInterface |
+| `tg_exporter/telegram/telegram_client_manager_interface.py` | ABC ITelegramClientManager (фабрика) |
+| `tg_exporter/telegram/telethon_client_adapter.py` | Реализация TelethonClientAdapter |
 | `tg_exporter/secrets/` | SecretProvider, EnvProvider, KeyringProvider, ChainProvider |
 | `tests/` | Полный тестовый набор |
 | `tests/fakes/fake_telegram_client.py` | Фейковый клиент для тестов |
+| `tests/fakes/fake_telegram_client_manager.py` | Фейковая фабрика для тестов |
 | `tests/fakes/factories.py` | Фабрики тестовых данных |
 
 ## 14. Фазы реализации
 
-### Фаза 1: Абстракция клиента и базовая инфраструктура
+### Фаза 1: Абстракция клиента и базовая инфраструктура ✅
 
-- [ ] Создать `TelegramClientInterface` (ABC)
-- [ ] Выделить `TelethonClientAdapter` из `client.py`
-- [ ] Адаптировать `AuthService` и `ExportOrchestrator` под интерфейс
-- [ ] Создать `tests/fakes/fake_telegram_client.py` и `factories.py`
-- [ ] Установить `click`, `pyyaml`, `python-dotenv`
-- [ ] Создать `tg_exporter/secrets/` — `SecretProvider` ABC с `writable` флагом
-- [ ] Реализовать `EnvVarsSecretProvider` (writable=true), `EnvFileSecretProvider` (writable=false)
-- [ ] Реализовать `ChainSecretProvider` — чтение по цепочке, запись только в writable
-- [ ] `KeyringSecretProvider` (writable=true) — оставить в коде, не подключать по умолчанию
-- [ ] Создать `tg_exporter_cli/container.py`
-- [ ] Создать `tg_exporter_cli/main.py`
+- [x] Создать `TelegramClientInterface` (ABC) — без `save_session()`/`load_session()`, только бизнес-методы
+- [x] Создать `ITelegramClientManager` (ABC фабрики) — `create_client()`, `save_session()`, `destroy()`
+- [x] Создать `TelethonClientAdapter` — работает с `telethon.TelegramClient` напрямую
+- [x] Создать `TelethonClientManager` — фабрика, создаёт `TelethonClientAdapter` с правильной сессией
+- [x] Адаптировать `AuthService` и `ExportOrchestrator` под `ITelegramClientManager`
+- [x] Создать `tests/fakes/fake_telegram_client.py`, `fake_telegram_client_manager.py` и `factories.py`
+- [x] Установить `click`, `pyyaml`, `python-dotenv`
+- [x] Создать `tg_exporter/secrets/` — `SecretProvider` ABC с `writable` флагом
+- [x] Реализовать `EnvVarsSecretProvider` (writable=true), `EnvFileSecretProvider` (writable=false)
+- [x] Реализовать `ChainSecretProvider` — чтение по цепочке, запись только в writable
+- [x] `KeyringSecretProvider` (writable=true) — оставить в коде, не подключать по умолчанию
+- [x] Создать `tg_exporter_cli/container.py`
+- [x] Создать `tg_exporter_cli/main.py`
+- [x] Создать `tg_exporter_cli/cli_config.py`
 
 ### Фаза 2: Команды и тесты (MVP)
 
