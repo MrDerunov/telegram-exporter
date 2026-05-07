@@ -15,7 +15,7 @@ from typing import Callable, Optional
 
 from telethon.utils import get_peer_id
 
-from .client import TelegramClientManager
+from .client_interface import TelegramClientInterface
 from .converter import message_to_export
 from ..exporters import JsonExporter, MarkdownExporter
 from ..models.export_task import ExportTask
@@ -45,7 +45,7 @@ class ExportOrchestrator:
 
     def __init__(
         self,
-        client_manager: TelegramClientManager,
+        client_manager: TelegramClientInterface,
         config: AppConfig,
         history: ExportHistory,
         deepgram_key: Optional[str] = None,
@@ -91,7 +91,7 @@ class ExportOrchestrator:
         send: EventCallback,
     ) -> None:
         token.raise_if_cancelled()
-        c = self._client.ensure_connected()
+        c = self._client.get_client()
 
         # --- Подготовка директории ---
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")

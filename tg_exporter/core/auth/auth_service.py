@@ -24,7 +24,7 @@ from telethon.errors import (
     SendCodeUnavailableError,
 )
 
-from ..client import TelegramClientManager
+from ..client_interface import TelegramClientInterface
 from ...utils.logger import logger
 from .auth_result import AuthResult
 from .auth_step import AuthStep
@@ -38,7 +38,7 @@ class AuthService:
     не в App и не в UI.
     """
 
-    def __init__(self, client_manager: TelegramClientManager) -> None:
+    def __init__(self, client_manager: TelegramClientInterface) -> None:
         self._client = client_manager
         self._phone_number: Optional[str] = None
         self._phone_hash: Optional[str] = None
@@ -51,7 +51,7 @@ class AuthService:
         Вызывать при старте приложения.
         """
         try:
-            c = self._client.ensure_connected()
+            c = self._client.get_client()
             if c.is_user_authorized():
                 self._client.save_session()
                 return AuthResult.ok()
@@ -73,7 +73,7 @@ class AuthService:
         if not phone:
             return AuthResult.error("Введите номер телефона.")
         try:
-            c = self._client.ensure_connected()
+            c = self._client.get_client()
             if c.is_user_authorized():
                 self._client.save_session()
                 return AuthResult.ok()
@@ -111,7 +111,7 @@ class AuthService:
         if not phone:
             return AuthResult.error("Введите номер телефона.")
         try:
-            c = self._client.ensure_connected()
+            c = self._client.get_client()
             c.sign_in(phone=phone, code=code, phone_code_hash=self._phone_hash)
             self._client.save_session()
             return AuthResult.ok()
@@ -135,7 +135,7 @@ class AuthService:
         if not password:
             return AuthResult.error("Нужен пароль 2FA.")
         try:
-            c = self._client.ensure_connected()
+            c = self._client.get_client()
             c.sign_in(password=password)
             self._client.save_session()
             return AuthResult.ok()
