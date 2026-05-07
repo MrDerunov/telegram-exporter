@@ -1,13 +1,15 @@
 from .credentials_manager import CredentialsManager
-from .telegram_client_manager import TelegramClientManager, ClientNotConfiguredError
-from .client_interface import TelegramClientInterface
+from .telegram_client_manager_interface import ITelegramClientManager
+from .telegram_client_manager import TelethonClientManager, ClientNotConfiguredError
+from .telegram_client_interface import TelegramClientInterface
 from .telethon_client_adapter import TelethonClientAdapter
 from .auth import AuthService, AuthResult, AuthStep
 from .converter import message_to_export
 
 __all__ = [
     "CredentialsManager",
-    "TelegramClientManager",
+    "ITelegramClientManager",
+    "TelethonClientManager",
     "ClientNotConfiguredError",
     "TelegramClientInterface",
     "TelethonClientAdapter",

@@ -4,7 +4,7 @@ App — главное окно и контроллер приложения.
 Владеет:
   - AppConfig (конфиг без секретов)
   - CredentialsManager (keyring)
-  - TelegramClientManager (telegram client)
+  - TelethonClientManager (фабрика telegram-клиентов)
   - AuthService (login flow)
   - BackgroundWorker (фоновый поток + очередь событий)
   - EventDispatcher (роутинг событий к UI)
@@ -15,6 +15,7 @@ App — главное окно и контроллер приложения.
 
 from __future__ import annotations
 
+import asyncio
 import datetime
 import os
 from typing import Optional
@@ -33,7 +34,7 @@ from ..services.export.export_progress import ExportProgress
 from ..services.export.export_format import ExportFormat
 from ..services.export.author_filter import AuthorFilter
 from ..telegram.credentials_manager import CredentialsManager
-from ..telegram.telegram_client_manager import TelegramClientManager
+from ..telegram.telegram_client_manager import TelethonClientManager
 from ..telegram.auth import AuthService, AuthStep
 from ..services.export.export_orchestrator import ExportOrchestrator
 from ..telegram.profiles import ProfileManager, Profile
@@ -48,6 +49,18 @@ try:
     _TELETHON_OK = True
 except ImportError:
     _TELETHON_OK = False
+
+
+def _run_async(coro):
+    """Запускает async-код в текущем потоке с временным event loop."""
+    try:
+        loop = asyncio.get_event_loop()
+        if loop.is_closed():
+            raise RuntimeError("closed")
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+    return loop.run_until_complete(coro)
 
 
 class App(ctk.CTk):
@@ -75,7 +88,7 @@ class App(ctk.CTk):
         self._migrate_legacy_config()
 
         # Phase 2: сервисы
-        self._client_mgr = TelegramClientManager(self.config, self.credentials)
+        self._client_mgr = TelethonClientManager(self.config, self.credentials)
         self._profiles = ProfileManager(self.credentials)
         self._auth = AuthService(self._client_mgr)
         self._history = ExportHistory()
@@ -363,14 +376,16 @@ class App(ctk.CTk):
     def save_active_profile_session(self, phone: Optional[str] = None, display_name: str = "") -> None:
         """Сохраняет текущую сессию клиента в профиль (вызывается после успешного логина)."""
         try:
-            client = self._client_mgr.get_client()
-            session_str = client.session.save() or ""
+            adapter = self._client_mgr.create_client()
+            _run_async(adapter.connect())
+            c = adapter.get_client()
+            session_str = c.session.save() or ""
             if not session_str:
                 return
             phone = phone or ""
             if not phone:
                 try:
-                    me = client.get_me()
+                    me = c.get_me()
                     phone = "+" + str(getattr(me, "phone", "") or "")
                     if not display_name:
                         display_name = " ".join(filter(None, [
@@ -413,13 +428,13 @@ class App(ctk.CTk):
                     self.config.save()
                     self._client_mgr.update_config(self.config)
                 self._client_mgr.use_session(session_str)
-        result = self._auth.check_session()
+        result = _run_async(self._auth.check_session())
         if result.step == AuthStep.SUCCESS:
             self._worker.put_event("login_success", None)
         # Иначе просто остаёмся на login
 
     def _bg_send_code(self, phone: str) -> None:
-        result = self._auth.send_code(phone)
+        result = _run_async(self._auth.send_code(phone))
         if result.step == AuthStep.SUCCESS:
             self._worker.put_event("login_success", None)
         elif result.step == AuthStep.CODE_SENT:
@@ -428,7 +443,7 @@ class App(ctk.CTk):
             self._worker.put_event("login_error", result.error or "Ошибка")
 
     def _bg_verify_code(self, code: str, password: str) -> None:
-        result = self._auth.verify_code(code, password)
+        result = _run_async(self._auth.verify_code(code, password))
         if result.step == AuthStep.SUCCESS:
             self._worker.put_event("login_success", None)
         elif result.step == AuthStep.PASSWORD_REQUIRED:
@@ -437,7 +452,7 @@ class App(ctk.CTk):
             self._worker.put_event("login_error", result.error or "Ошибка")
 
     def _bg_logout(self) -> None:
-        self._auth.logout()
+        _run_async(self._auth.logout())
         if self.config.api_id:
             self.credentials.delete_session(self.config.api_id)
         self._worker.put_event("logout_done", None)
@@ -445,7 +460,6 @@ class App(ctk.CTk):
     def _bg_switch_profile(self, profile: Profile) -> None:
         """Переключает активную сессию клиента на профиль (в фоне)."""
         try:
-            self._client_mgr.disconnect()
             session_str = self._profiles.load_session(profile)
             if not session_str:
                 self._worker.put_event("error", f"Сессия профиля {profile.phone} не найдена. Войдите заново.")
@@ -457,8 +471,10 @@ class App(ctk.CTk):
                 self.config.save()
                 self._client_mgr.update_config(self.config)
             self._client_mgr.use_session(session_str)
-            client = self._client_mgr.ensure_connected()
-            if not client.is_user_authorized():
+            adapter = self._client_mgr.create_client()
+            _run_async(adapter.connect())
+            c = adapter.get_client()
+            if not c.is_user_authorized():
                 self._worker.put_event("error", f"Сессия {profile.phone} устарела. Удалите профиль и войдите заново.")
                 return
             self._worker.put_event("profile_switched", profile)
@@ -468,7 +484,9 @@ class App(ctk.CTk):
 
     def _bg_load_chats(self) -> None:
         try:
-            c = self._client_mgr.ensure_connected()
+            adapter = self._client_mgr.create_client()
+            _run_async(adapter.connect())
+            c = adapter.get_client()
             dialogs = c.get_dialogs()
             self._all_dialogs = dialogs
             self._worker.put_event("chats_loaded", dialogs)

@@ -24,7 +24,7 @@ from telethon.errors import (
     SendCodeUnavailableError,
 )
 
-from ..telegram_client_interface import TelegramClientInterface
+from ..telegram_client_manager_interface import ITelegramClientManager
 from ...utils.logger import logger
 from .auth_result import AuthResult
 from .auth_step import AuthStep
@@ -38,22 +38,23 @@ class AuthService:
     не в App и не в UI.
     """
 
-    def __init__(self, client_manager: TelegramClientInterface) -> None:
-        self._client = client_manager
+    def __init__(self, manager: ITelegramClientManager) -> None:
+        self._manager = manager
         self._phone_number: Optional[str] = None
         self._phone_hash: Optional[str] = None
 
     # ---- Public API ----
 
-    def check_session(self) -> AuthResult:
+    async def check_session(self) -> AuthResult:
         """
         Проверяет текущую сессию. Если авторизован — сохраняет и возвращает SUCCESS.
         Вызывать при старте приложения.
         """
         try:
-            c = self._client.get_client()
-            if c.is_user_authorized():
-                self._client.save_session()
+            client = self._manager.create_client()
+            await client.connect()
+            if await client.is_authorized():
+                self._manager.save_session()
                 return AuthResult.ok()
             return AuthResult.error("Требуется вход")
         except (AuthKeyInvalidError, AuthKeyUnregisteredError):
@@ -64,7 +65,7 @@ class AuthService:
             logger.error("check_session failed", exc=exc)
             return AuthResult.error(_friendly(exc))
 
-    def send_code(self, phone: str) -> AuthResult:
+    async def send_code(self, phone: str) -> AuthResult:
         """
         Отправляет код подтверждения на номер телефона.
         Запоминает phone_hash для последующего verify_code().
@@ -73,11 +74,12 @@ class AuthService:
         if not phone:
             return AuthResult.error("Введите номер телефона.")
         try:
-            c = self._client.get_client()
-            if c.is_user_authorized():
-                self._client.save_session()
+            client = self._manager.create_client()
+            await client.connect()
+            if await client.is_authorized():
+                self._manager.save_session()
                 return AuthResult.ok()
-            sent = c.send_code_request(phone)
+            sent = await client.send_code_request(phone)
             self._phone_number = phone
             self._phone_hash = sent.phone_code_hash
             return AuthResult.code_sent()
@@ -97,7 +99,7 @@ class AuthService:
             logger.error("send_code failed", exc=exc)
             return AuthResult.error(_friendly(exc))
 
-    def verify_code(self, code: str, password: str = "") -> AuthResult:
+    async def verify_code(self, code: str, password: str = "") -> AuthResult:
         """
         Верифицирует код из Telegram.
         Если включена 2FA и код верен — автоматически пробует password.
@@ -111,13 +113,14 @@ class AuthService:
         if not phone:
             return AuthResult.error("Введите номер телефона.")
         try:
-            c = self._client.get_client()
-            c.sign_in(phone=phone, code=code, phone_code_hash=self._phone_hash)
-            self._client.save_session()
+            client = self._manager.create_client()
+            await client.connect()
+            await client.sign_in(phone=phone, code=code)
+            self._manager.save_session()
             return AuthResult.ok()
         except SessionPasswordNeededError:
             if (password or "").strip():
-                return self.verify_password(password)
+                return await self.verify_password(password)
             return AuthResult.password_required()
         except PhoneCodeInvalidError:
             return AuthResult.error("Неверный код. Проверьте и попробуйте снова.")
@@ -129,15 +132,16 @@ class AuthService:
             logger.error("verify_code failed", exc=exc)
             return AuthResult.error(_friendly(exc))
 
-    def verify_password(self, password: str) -> AuthResult:
+    async def verify_password(self, password: str) -> AuthResult:
         """Верифицирует пароль двухфакторной аутентификации."""
         password = (password or "").strip()
         if not password:
             return AuthResult.error("Нужен пароль 2FA.")
         try:
-            c = self._client.get_client()
-            c.sign_in(password=password)
-            self._client.save_session()
+            client = self._manager.create_client()
+            await client.connect()
+            await client.sign_in_password(password)
+            self._manager.save_session()
             return AuthResult.ok()
         except PasswordHashInvalidError:
             return AuthResult.error("Неверный пароль двухфакторной аутентификации.")
@@ -147,16 +151,16 @@ class AuthService:
             logger.error("verify_password failed", exc=exc)
             return AuthResult.error(_friendly(exc))
 
-    def logout(self) -> None:
-
+    async def logout(self) -> None:
         """Выходит из аккаунта и уничтожает клиент."""
         try:
-            c = self._client.get_client()
-            c.log_out()
+            client = self._manager.create_client()
+            await client.connect()
+            await client.get_client().log_out()
         except Exception:
             pass
         finally:
-            self._client.destroy()
+            self._manager.destroy()
             self._phone_number = None
             self._phone_hash = None
 

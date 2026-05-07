@@ -1,13 +1,13 @@
 """Container — DI-контейнер CLI-приложения.
 Собирает все зависимости в одном месте.
-Через параметр telegram_client можно подменить клиент для тестов.
+Через параметр telegram_client можно подменить менеджер для тестов.
 """
 from __future__ import annotations
 from pathlib import Path
 from typing import Optional
 
-from tg_exporter.telegram import TelegramClientInterface, TelethonClientAdapter
-from tg_exporter.telegram.telegram_client_manager import TelegramClientManager
+from tg_exporter.telegram.telegram_client_manager_interface import ITelegramClientManager
+from tg_exporter.telegram.telegram_client_manager import TelethonClientManager
 from tg_exporter.telegram.credentials_manager import CredentialsManager
 from tg_exporter.telegram.auth.auth_service import AuthService
 from tg_exporter.services.export.export_orchestrator import ExportOrchestrator
@@ -26,7 +26,7 @@ class Container:
         self,
         config_path: Path | None = None,
         env_file: Path | None = None,
-        telegram_client: TelegramClientInterface | None = None,
+        telegram_manager: ITelegramClientManager | None = None,
     ):
         config_path = config_path or DEFAULT_CONFIG_DIR / "cli_config.yaml"
         env_file = env_file or Path(".env")
@@ -50,19 +50,16 @@ class Container:
         self.credentials = CredentialsManager()
 
         # 5. Профили
-        self.profile_manager = ProfileManager(
-            self.credentials, self.app_config
-        )
+        self.profile_manager = ProfileManager(self.credentials)
 
         # 6. Telegram-клиент (реальный или фейковый для тестов)
-        if telegram_client is not None:
-            self.client = telegram_client
+        if telegram_manager is not None:
+            self.client_manager = telegram_manager
         else:
-            self.client_manager = TelegramClientManager(self.app_config, self.credentials)
-            self.client = TelethonClientAdapter(self.client_manager)
+            self.client_manager = TelethonClientManager(self.app_config, self.credentials)
 
         # 7. Auth
-        self.auth_service = AuthService(self.client)
+        self.auth_service = AuthService(self.client_manager)
 
         # 8. Экспорт (ленивая инициализация)
         self._orchestrator: ExportOrchestrator | None = None
@@ -72,6 +69,6 @@ class Container:
         if self._orchestrator is None:
             export_history = ExportHistory()
             self._orchestrator = ExportOrchestrator(
-                self.client, self.app_config, export_history
+                self.client_manager, self.app_config, export_history
             )
         return self._orchestrator

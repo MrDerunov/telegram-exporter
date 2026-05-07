@@ -9,13 +9,14 @@ ExportOrchestrator — выполняет одну задачу экспорта
 
 from __future__ import annotations
 
+import asyncio
 import datetime
 import os
 from typing import Callable, Optional
 
 from telethon.utils import get_peer_id
 
-from ...telegram.telegram_client_interface import TelegramClientInterface
+from ...telegram.telegram_client_manager_interface import ITelegramClientManager
 from ...telegram.converter import message_to_export
 from .exporters import JsonExporter, MarkdownExporter
 from .export_task import ExportTask
@@ -39,18 +40,18 @@ class ExportOrchestrator:
     Запускает экспорт для одного чата/топика.
 
     Использование:
-        orch = ExportOrchestrator(client_manager, config)
+        orch = ExportOrchestrator(manager, config)
         orch.run(task, token, progress, send_event)
     """
 
     def __init__(
         self,
-        client_manager: TelegramClientInterface,
+        manager: ITelegramClientManager,
         config: AppConfig,
         history: ExportHistory,
         deepgram_key: Optional[str] = None,
     ) -> None:
-        self._client = client_manager
+        self._manager = manager
         self._config = config
         self._history = history
         self._deepgram_key = deepgram_key
@@ -91,7 +92,19 @@ class ExportOrchestrator:
         send: EventCallback,
     ) -> None:
         token.raise_if_cancelled()
-        c = self._client.get_client()
+        client = self._manager.create_client()
+
+        # Подключение клиента
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_closed():
+                raise RuntimeError("closed")
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+        loop.run_until_complete(client.connect())
+
+        c = client.get_client()
 
         # --- Подготовка директории ---
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
