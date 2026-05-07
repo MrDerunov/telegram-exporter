@@ -6,16 +6,16 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Optional
 
-from tg_exporter.core import TelegramClientInterface, TelethonClientAdapter
-from tg_exporter.core.telegram_client_manager import TelegramClientManager
-from tg_exporter.core.credentials_manager import CredentialsManager
-from tg_exporter.core.auth.auth_service import AuthService
-from tg_exporter.core.export_orchestrator import ExportOrchestrator
-from tg_exporter.core.profiles.profile_manager import ProfileManager
+from tg_exporter.telegram import TelegramClientInterface, TelethonClientAdapter
+from tg_exporter.telegram.telegram_client_manager import TelegramClientManager
+from tg_exporter.telegram.credentials_manager import CredentialsManager
+from tg_exporter.telegram.auth.auth_service import AuthService
+from tg_exporter.telegram.export_orchestrator import ExportOrchestrator
+from tg_exporter.telegram.profiles.profile_manager import ProfileManager
 from tg_exporter.models.app_config import AppConfig
 from tg_exporter.services.export_history import ExportHistory
 
-from .secrets import ChainSecretProvider, EnvVarsSecretProvider, EnvFileSecretProvider
+from tg_exporter.secrets import ChainSecretProvider, EnvVarsSecretProvider, EnvFileSecretProvider
 from .cli_config import CliConfig, DEFAULT_CONFIG_DIR
 
 

@@ -12,10 +12,10 @@ from typing import Optional, TYPE_CHECKING
 from telethon.utils import get_display_name, get_peer_id
 
 from ..models.export_message import ExportMessage
-from ..models.link_item import LinkItem
-from ..models.reaction_item import ReactionItem
-from ..models.poll_data import PollAnswer, PollData
-from ..models.media_type import MediaType
+from ..export.link_item import LinkItem
+from ..export.reaction_item import ReactionItem
+from ..export.poll_data import PollAnswer, PollData
+from ..export.media_type import MediaType
 
 
 def message_to_export(message) -> ExportMessage:

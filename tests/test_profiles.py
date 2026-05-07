@@ -40,9 +40,9 @@ class TestProfileManager(unittest.TestCase):
         self.addCleanup(lambda: sys.modules.pop("keyring", None))
 
         # Импортируем и патчим путь к profiles.json
-        from tg_exporter.core.profiles import profile_manager as profiles_mod
-        from tg_exporter.core.credentials import CredentialsManager
-        from tg_exporter.core.profiles import ProfileManager
+        from tg_exporter.telegram.profiles import profile_manager as profiles_mod
+        from tg_exporter.telegram.credentials import CredentialsManager
+        from tg_exporter.telegram.profiles import ProfileManager
 
         self._profiles_mod = profiles_mod
         self._orig_path = profiles_mod._PROFILES_FILE
@@ -143,7 +143,7 @@ class TestProfileManager(unittest.TestCase):
         )
         self.pm.set_active("+72222222222")
 
-        from tg_exporter.core.profiles import ProfileManager
+        from tg_exporter.telegram.profiles import ProfileManager
         pm2 = ProfileManager(self._creds)
         self.assertEqual(pm2.active_phone(), "+72222222222")
         self.assertEqual(len(pm2.list()), 2)

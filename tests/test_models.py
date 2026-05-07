@@ -12,7 +12,7 @@ class TestAppConfig(unittest.TestCase):
 
     def setUp(self):
         from tg_exporter.models.config import AppConfig, ConfigValidationError
-        from tg_exporter.models.markdown_settings import MarkdownSettings
+        from tg_exporter.export.markdown_settings import MarkdownSettings
         self.AppConfig = AppConfig
         self.MarkdownSettings = MarkdownSettings
         self.ConfigValidationError = ConfigValidationError
@@ -99,7 +99,7 @@ class TestAppConfig(unittest.TestCase):
             cfg_mod.CONFIG_FILE = orig_file
 
     def test_markdown_settings_roundtrip(self):
-        from tg_exporter.models.markdown_settings import MarkdownSettings
+        from tg_exporter.export.markdown_settings import MarkdownSettings
         s = MarkdownSettings(words_per_file=30_000, date_format="YYYY-MM-DD", plain_text=False)
         s2 = MarkdownSettings.from_dict(s.to_dict())
         self.assertEqual(s2.words_per_file, 30_000)
@@ -143,7 +143,7 @@ class TestExportMessage(unittest.TestCase):
         self.assertEqual(msg2.transcription, "Привет мир")
 
     def test_with_media_immutable(self):
-        from tg_exporter.models.media_type import MediaType
+        from tg_exporter.export.media_type import MediaType
         msg = self._make()
         msg2 = msg.with_media("/path/file.ogg", MediaType.VOICE, "audio/ogg")
         self.assertIsNone(msg.media_path)
@@ -182,14 +182,14 @@ class TestExportMessage(unittest.TestCase):
 class TestExportTask(unittest.TestCase):
 
     def test_author_filter_empty_matches_all(self):
-        from tg_exporter.models.author_filter import AuthorFilter
+        from tg_exporter.export.author_filter import AuthorFilter
         af = AuthorFilter()
         self.assertTrue(af.matches(123))
         self.assertTrue(af.matches(None))
         self.assertTrue(af.is_empty())
 
     def test_author_filter_with_ids(self):
-        from tg_exporter.models.author_filter import AuthorFilter
+        from tg_exporter.export.author_filter import AuthorFilter
         af = AuthorFilter.from_ids([10, 20, 30])
         self.assertTrue(af.matches(10))
         self.assertFalse(af.matches(99))

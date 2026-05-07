@@ -15,8 +15,8 @@ from typing import Callable, Optional
 
 from telethon.utils import get_peer_id
 
-from .telegram_client_interface import TelegramClientInterface
-from .converter import message_to_export
+from ..telegram.telegram_client_interface import TelegramClientInterface
+from ..telegram.converter import message_to_export
 from ..exporters import JsonExporter, MarkdownExporter
 from ..models.export_task import ExportTask
 from ..models.export_progress import ExportProgress

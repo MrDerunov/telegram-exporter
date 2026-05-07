@@ -1,6 +1,6 @@
 from typing import Optional
 
-from tg_exporter_cli.secrets.secret_provider import SecretProvider
+from tg_exporter.secrets.secret_provider import SecretProvider
 
 
 class ChainSecretProvider(SecretProvider):

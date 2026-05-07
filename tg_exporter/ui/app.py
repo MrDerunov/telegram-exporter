@@ -31,12 +31,12 @@ from ..models.app_config import AppConfig
 from ..models.export_task import ExportTask
 from ..models.export_progress import ExportProgress
 from ..models.export_format import ExportFormat
-from ..models.author_filter import AuthorFilter
-from ..core.credentials_manager import CredentialsManager
-from ..core.telegram_client_manager import TelegramClientManager
-from ..core.auth import AuthService, AuthStep
-from ..core.export_orchestrator import ExportOrchestrator
-from ..core.profiles import ProfileManager, Profile
+from ..export.author_filter import AuthorFilter
+from ..telegram.credentials_manager import CredentialsManager
+from ..telegram.telegram_client_manager import TelegramClientManager
+from ..telegram.auth import AuthService, AuthStep
+from ..telegram.export_orchestrator import ExportOrchestrator
+from ..telegram.profiles import ProfileManager, Profile
 from ..services.export_history import ExportHistory
 from ..utils.cancellation import CancellationToken
 from ..utils.worker import BackgroundWorker, EventDispatcher

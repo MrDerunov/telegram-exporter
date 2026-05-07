@@ -1,7 +1,7 @@
 import logging
 from typing import Optional
 
-from tg_exporter_cli.secrets.secret_provider import SecretProvider
+from tg_exporter.secrets.secret_provider import SecretProvider
 
 logger = logging.getLogger(__name__)
 

@@ -6,7 +6,7 @@ from pathlib import Path
 from datetime import datetime
 from typing import Any, AsyncIterator, Optional
 
-from tg_exporter.core.client_interface import TelegramClientInterface
+from tg_exporter.telegram.client_interface import TelegramClientInterface
 
 
 class FakeTelegramClient(TelegramClientInterface):

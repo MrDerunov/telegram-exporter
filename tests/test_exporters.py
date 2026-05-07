@@ -8,7 +8,7 @@ import unittest
 from tg_exporter.models.message import ExportMessage
 from tg_exporter.models.reaction import ReactionItem
 from tg_exporter.models.poll import PollData, PollAnswer
-from tg_exporter.models.markdown_settings import MarkdownSettings
+from tg_exporter.export.markdown_settings import MarkdownSettings
 
 
 def _msg(**kw) -> ExportMessage:
