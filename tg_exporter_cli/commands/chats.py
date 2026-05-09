@@ -20,7 +20,10 @@ def chats_group():
 @click.option("--folder", default=None, help="Показать чаты только в этой папке")
 @click.option("--folders", "folders_only", is_flag=True, help="Показать только список папок")
 @click.option("--search", default=None, help="Поиск по названию чата")
-def chats_list(folder: str | None, folders_only: bool, search: str | None):
+def chats_list(
+        folder: str | None,
+        folders_only: bool,
+        search: str | None):
     """Список чатов из Telegram."""
     host = get_host()
     client_manager = host.get(ITelegramClientManager)

@@ -26,7 +26,11 @@ def auth_group():
 @click.option("--api-id", help="Telegram API ID")
 @click.option("--api-hash", help="Telegram API Hash")
 @click.option("--profile", default="default", help="Имя профиля")
-def auth_login(phone, api_id, api_hash, profile):
+def auth_login(
+        phone,
+        api_id,
+        api_hash,
+        profile):
     """Интерактивный вход в аккаунт Telegram."""
     host = get_host()
     config = host.get(CliConfig)
