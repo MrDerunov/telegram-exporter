@@ -142,25 +142,70 @@ def map_to_app_config(cli_config: CliConfig) -> AppConfig:
 
 ---
 
-## Шаг 6. Префикс секретов
+## Шаг 6. Константы секретов и CLI-константы
+
+### 6a. Константы ключей SecretProvider
+
+**Новый файл: `tg_exporter/secrets/secret_keys.py`**
+
+Все ключи, используемые с `SecretProvider`, определяются как константы в одном месте:
+
+```python
+# tg_exporter/secrets/secret_keys.py
+"""Константы ключей для SecretProvider. Единый источник имён."""
+
+# Префикс для переменных окружения и .env файлов
+_ENV_PREFIX = "TG_EXPORTER_"
+
+# Ключи секретов (без префикса — EnvVarsSecretProvider добавляет _ENV_PREFIX)
+API_HASH = "API_HASH"
+API_ID = "API_ID"
+SESSION = "SESSION"
+DEEPGRAM_API_KEY = "DEEPGRAM_API_KEY"
+
+# Полные имена переменных окружения (с префиксом)
+API_HASH_ENV = f"{_ENV_PREFIX}API_HASH"
+API_ID_ENV = f"{_ENV_PREFIX}API_ID"
+SESSION_ENV = f"{_ENV_PREFIX}SESSION"
+DEEPGRAM_API_KEY_ENV = f"{_ENV_PREFIX}DEEPGRAM_API_KEY"
+```
+
+Использование в коде:
+```python
+from tg_exporter.secrets.secret_keys import API_HASH, SESSION, DEEPGRAM_API_KEY
+secret_provider.get(API_HASH)
+secret_provider.set(SESSION, session_str)
+```
+
+### 6b. CLI-константы
+
+**Новый файл: `tg_exporter_cli/cli_constants.py`**
+
+Константы, используемые только в консольном приложении:
+
+```python
+# tg_exporter_cli/cli_constants.py
+"""Константы CLI-приложения."""
+from pathlib import Path
+
+# Директория и файлы конфигурации
+CONFIG_DIR = Path.home() / ".tg_exporter"
+CONFIG_FILENAME = "cli_config.yaml"
+DEFAULT_ENV_FILENAME = ".env"
+DEFAULT_SECRETS_ENV_FILENAME = "secrets.env"
+```
+
+Существующие константы из `cli_config.py` (`DEFAULT_CONFIG_DIR`, `DEFAULT_CONFIG_FILENAME`, `DEFAULT_ENV_FILENAME`, `DEFAULT_SECRETS_ENV_FILENAME`) переносятся в этот файл.
+
+### 6c. Префикс секретов — согласование
 
 **Файл: `tg_exporter/secrets/env_vars_secret_provider.py`**
 
-- Префикс `TG_EXPORTER_` уже есть — оставить как есть
-- Убедиться что ключи в коде передаются БЕЗ префикса (провайдер сам добавляет): `secret_provider.get("API_HASH")` → читает `TG_EXPORTER_API_HASH`
-
-**Имена ключей (без префикса, провайдер добавляет `TG_EXPORTER_`):**
-
-| Ключ в коде | Переменная в env |
-|-------------|-----------------|
-| `API_HASH` | `TG_EXPORTER_API_HASH` |
-| `API_ID` | `TG_EXPORTER_API_ID` |
-| `SESSION` | `TG_EXPORTER_SESSION` |
-| `DEEPGRAM_API_KEY` | `TG_EXPORTER_DEEPGRAM_API_KEY` |
+- Использует `_ENV_PREFIX` из `secret_keys.py` (вместо жёстко заданного `"TG_EXPORTER_"`)
 
 **Файл: `tg_exporter/secrets/env_file_secret_provider.py`**
 
-- `.env` файл читается как есть (ключи уже с префиксом `TG_EXPORTER_` в файле)
+- `.env` файл читается как есть (ключи уже с префиксом в файле)
 - Провайдер ищет ключ как есть (без добавления префикса, т.к. в `.env` ключи пишутся пользователем вручную)
 
 ---
@@ -258,11 +303,13 @@ def map_to_app_config(cli_config: CliConfig) -> AppConfig:
 | 3 | config_mapper | `config_mapper.py` (новый) |
 | 4 | AppConfig: frozen + `api_hash` | `app_config.py` |
 | 5 | cli_config_repository: исключить секреты из YAML | `cli_config_repository.py` |
-| 6 | Согласование ключей секретов (префикс `TG_EXPORTER_`) | `env_vars_secret_provider.py`, `env_file_secret_provider.py` |
-| 7 | TelethonClientManager: SP вместо CredentialsManager | `telegram_client_manager.py` |
-| 8 | ProfileManager: SP вместо CredentialsManager | `profile_manager.py` |
-| 9 | ExportOrchestrator: убрать `deepgram_key` | `export_orchestrator.py` |
-| 10 | Фабрика транскриберов: упростить сигнатуру | `factory.py` |
-| 11 | CLI-команды: адаптировать под readonly config | `auth.py`, `export.py` |
-| 12 | Тесты: адаптировать conftest, fakes | `conftest.py`, `fake_telegram_client_manager.py` |
-| 13 | Cleanup: убрать CredentialsManager из импортов | `cli_host.py` и др. |
+| 6 | Константы секретов (`secret_keys.py`) | `secret_keys.py` (новый) |
+| 7 | CLI-константы (`cli_constants.py`) | `cli_constants.py` (новый), `cli_config.py` |
+| 8 | Согласование префикса в `EnvVarsSecretProvider` | `env_vars_secret_provider.py` |
+| 9 | TelethonClientManager: SP вместо CredentialsManager | `telegram_client_manager.py` |
+| 10 | ProfileManager: SP вместо CredentialsManager | `profile_manager.py` |
+| 11 | ExportOrchestrator: убрать `deepgram_key` | `export_orchestrator.py` |
+| 12 | Фабрика транскриберов: упростить сигнатуру | `factory.py` |
+| 13 | CLI-команды: адаптировать под readonly config | `auth.py`, `export.py` |
+| 14 | Тесты: адаптировать conftest, fakes | `conftest.py`, `fake_telegram_client_manager.py` |
+| 15 | Cleanup: убрать CredentialsManager из импортов | `cli_host.py` и др. |
