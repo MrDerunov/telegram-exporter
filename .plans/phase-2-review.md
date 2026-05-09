@@ -11,32 +11,32 @@
 **1. `auth verify` — только 2 exit code вместо заявленных 3**
 - План: exit codes 0 (валидна), 1 (невалидна), 2 (нет сессии)
 - Факт: только 0 и 1. `AuthStep` enum не имеет состояния "NO_SESSION", поэтому различие между "нет сессии" и "невалидна" не реализовано
-- Файл: `tg_exporter_cli/commands/auth.py:98-107`
+- Файл: `tg_exporter_cli/commands/auth.py:128-140`
 
 **2. `test_converter.py` — `_extract_links` тесты падают из-за неправильных class name entity**
 - `_extract_links()` проверяет `type(ent).__name__` на `"MessageEntityTextUrl"` и `"MessageEntityUrl"`
-- Тесты создают объекты с именами классов `"TE"` и `"UE"` — не совпадает → возвращается пустой список
-- Файлы: `tg_exporter/telegram/converter.py:186-208`, `tests/unit/test_converter.py`
+- Тесты создают объекты с именами классов `"TE"` (строка 195) и `"UE"` (строка 219) — не совпадает → возвращается пустой список
+- Файлы: `tg_exporter/telegram/converter.py:166-196`, `tests/unit/test_converter.py:193-233`
 
 **3. `test_converter.py` — `test_from_name_and_username` падает**
 - Тест создаёт fake-sender через `type("FakeSender", ...)()`, но реальный `telethon.utils.get_display_name()` не распознаёт этот объект и возвращает пустую строку → `from_name = None`
-- Файлы: `tests/unit/test_converter.py:272-276`, `tg_exporter/telegram/converter.py:33-36`
+- Файлы: `tests/unit/test_converter.py:290-294`, `tg_exporter/telegram/converter.py:31-33`
 
 **4. `test_secrets.py` — все тесты KeyringSecretProvider падают (×7)**
 - Мок `patch("tg_exporter.secrets.keyring_secret_provider.keyring")` не работает: `keyring` импортируется локально внутри методов (`import keyring`), а не на уровне модуля
 - Нужно либо мокать на уровне вызова (например `patch("keyring.get_password")`), либо переписать импорты в провайдере на модульные
-- Файлы: `tg_exporter/secrets/keyring_secret_provider.py`, `tests/unit/test_secrets.py`
+- Файлы: `tg_exporter/secrets/keyring_secret_provider.py`, `tests/unit/test_secrets.py:241-296`
 
 **5. `test_secrets.py` — `test_dotenv_not_installed_fallback` падает**
 - Аналогичная проблема: `dotenv_values` импортируется локально внутри `_load()`, не на уровне модуля
 - Path `"tg_exporter.secrets.env_file_secret_provider.dotenv_values"` не существует
-- Файлы: `tg_exporter/secrets/env_file_secret_provider.py`, `tests/unit/test_secrets.py`
+- Файлы: `tg_exporter/secrets/env_file_secret_provider.py`, `tests/unit/test_secrets.py:138-145`
 
 **6. `test_secrets.py` — `test_chain_order_respected` падает**
 - Используются два `EnvVarsSecretProvider` с ожиданием изоляции, но они оба пишут в одни и те же переменные окружения OS
 - `ev2.set("ORDER_KEY", "second")` перезаписывает значение, установленное `ev1.set("ORDER_KEY", "first")`
 - Нужно использовать провайдеры с изолированным хранилищем (например `EnvFileSecretProvider` с разными файлами)
-- Файл: `tests/unit/test_secrets.py:217-224`
+- Файл: `tests/unit/test_secrets.py:213-223`
 
 ### Важные (⚠️)
 
@@ -44,32 +44,32 @@
 - `TelegramClientInterface` не объявляет метод `save_session()` — он есть только у `TelethonClientAdapter`
 - При использовании других реализаций `export-session` молча вернёт пустую строку, что приведёт к невалидному `secrets.env`
 - Рекомендация: либо добавить метод в ABC, либо выбрасывать явную ошибку если `hasattr` возвращает False
-- Файл: `tg_exporter_cli/commands/auth.py:84-85`
+- Файл: `tg_exporter_cli/commands/auth.py:109-110`
 
 **8. `export.py` вручную создаёт event loop вместо `run_async()`**
 - Создаёт `asyncio.new_event_loop()` и вызывает `loop.run_until_complete()` для разрешения диалога
 - Хелпер `run_async()` специально создан для этого — но не используется
-- Файл: `tg_exporter_cli/commands/export.py:79-94`
+- Файл: `tg_exporter_cli/commands/export.py:90-104`
 
 **9. `export.py` вручную разрешает диалоги, обходя оркестратор**
 - Вызывает `create_client().connect().get_dialogs()` напрямую, вместо того чтобы позволить оркестратору сделать это
 - Создаёт fallback-диалог через `_fallback_dialog()` если чат не найден
 - Это нарушает инкапсуляцию — оркестратор должен сам управлять поиском диалогов
-- Файл: `tg_exporter_cli/commands/export.py:79-96`
+- Файл: `tg_exporter_cli/commands/export.py:89-104`
 
 **10. `auth login` не сохраняет конфиг после установки `api_id`**
-- `container.config.api_id = api_id` меняет значение в памяти, но `container.config.save()` не вызывается
-- При следующем запуске контейнера api_id из опции будет потерян
-- Файл: `tg_exporter_cli/commands/auth.py:26-27`
+- `config.api_id = api_id` меняет значение в памяти, но `save_cli_config()` не вызывается
+- При следующем запуске api_id из опции будет потерян
+- Файл: `tg_exporter_cli/commands/auth.py:34-42`
 
 ### Мелкие (💡)
 
 **11. `version.py` хардкодит "1.0.0"**
 - Версию лучше читать из `pyproject.toml` или `_version.py`
-- Файл: `tg_exporter_cli/commands/version.py`
+- Файл: `tg_exporter_cli/commands/version.py:13`
 
 **12. `doctor.py` хардкодит путь к конфигу**
-- `config_path = DEFAULT_CONFIG_DIR / "cli_config.yaml"` — лучше использовать `Container` для определения фактического пути
+- `config_path = DEFAULT_CONFIG_DIR / "cli_config.yaml"` — лучше использовать `CliHost` для определения фактического пути
 - Файл: `tg_exporter_cli/commands/doctor.py:29`
 
 **13. Дублирование тестов экспортеров**
@@ -80,10 +80,14 @@
 **14. `auth login` сообщение отличается от плана**
 - План: «✅ Авторизован как @username»
 - Факт: «✅ Авторизован успешно» (без username)
-- Файл: `tg_exporter_cli/commands/auth.py:57`
+- Файл: `tg_exporter_cli/commands/auth.py:73`
 
 **15. `main.py` — команды-заглушки chats/profile/config оставлены как и требуется**
 - ✅ Заглушки `chats list`, `profile list`, `config show` присутствуют с `[TODO]`
+
+**16. ~~Сломанный relative import в `markdown_settings.py`~~ — исправлено**
+- ~~`from .app_config import ConfigValidationError` → `ModuleNotFoundError`~~
+- ✅ Исправлено в `tg_exporter/services/export/markdown_settings.py:26`: теперь `from tg_exporter.hosting.app_config_validator import ConfigValidationError`
 
 ## Соответствие плану (checklist)
 
@@ -98,7 +102,7 @@
 ### Задача B: export-команда
 - [x] `export run` — опции `--chat`, `--output`, `--format`, `--last`
 - [x] Создаёт `ExportTask` с правильными параметрами (включая `message_limit`)
-- [⚠️] Использует `container.orchestrator` ✅, но вручную резолвит диалоги
+- [⚠️] Использует `ExportOrchestrator` ✅, но вручную резолвит диалоги
 - [x] Выводит прогресс через callback
 
 ### Задача C: version и doctor
@@ -119,6 +123,12 @@
 ### AsyncRunner
 - [x] Корректно запускает async из sync Click ✅
 - [x] Обрабатывает closed loop ✅
+
+### Рефакторинг (после ревью)
+- [x] `SecretProvider` регистрируется в DI-контейнере, `ChainSecretProvider` — реализация
+- [x] `CliConfig` — чистый dataclass, загрузка/сохранение в `cli_config_repository.py`
+- [x] `AppConfig` — чистый dataclass, валидация в `app_config_validator.py`, I/O в `app_config_repository.py`
+- [x] `CliConfig` и `cli_config_repository` перенесены в `tg_exporter_cli/hosting/`
 
 ## Итог
 
