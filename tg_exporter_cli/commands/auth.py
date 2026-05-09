@@ -9,6 +9,7 @@ from tg_exporter.telegram.telegram_client_manager_interface import ITelegramClie
 from tg_exporter.telegram.credentials_manager import CredentialsManager
 from tg_exporter.secrets import SecretProvider
 from tg_exporter.hosting.app_config import AppConfig
+from tg_exporter.utils.file_utils import secure_permissions
 from tg_exporter_cli.hosting.cli_config import CliConfig, DEFAULT_SECRETS_ENV_FILENAME
 
 
@@ -120,7 +121,7 @@ def auth_export_session(output):
     output_path = Path(output)
     content = f"TG_EXPORTER_API_ID={api_id}\nTG_EXPORTER_API_HASH={api_hash}\nTG_EXPORTER_SESSION={session_str}\n"
     output_path.write_text(content)
-    output_path.chmod(0o600)
+    secure_permissions(output_path)
 
     click.echo(f"✅ Сессия экспортирована в {output_path}")
     click.echo("⚠️  Файл содержит полный доступ к вашему аккаунту Telegram. Храните его в безопасном месте.")

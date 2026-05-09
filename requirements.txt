@@ -6,17 +6,16 @@
 # Telegram API client
 telethon>=1.36,<2.0
 
-# UI framework
-customtkinter>=5.2,<6.0
+# CLI framework and config
+click>=8.1,<9.0
+pyyaml>=6.0,<7.0
+python-dotenv>=1.0,<2.0
 
 # System secrets storage
 keyring>=24.0,<26.0
 
 # ffmpeg for audio conversion
 imageio-ffmpeg>=0.4.9,<1.0
-
-# SOCKS proxy for telethon (optional, but build expects it)
-PySocks>=1.7,<2.0
 
 # Local Whisper transcription
 faster-whisper>=1.0,<2.0

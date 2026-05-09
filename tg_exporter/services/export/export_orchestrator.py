@@ -325,11 +325,10 @@ class ExportOrchestrator:
                     f.write(render_activity(result))
                 output_files.append(act_path)
 
-        # Инкрементальная история
+        # Инкрементальная история (в папке чата)
         if max_msg_id > 0:
             try:
-                peer_id = get_peer_id(dialog.entity)
-                self._history.set_last_id(peer_id, max_msg_id)
+                self._history.mark_completed(export_dir, max_msg_id, count)
             except Exception:
                 pass
 

@@ -2,7 +2,6 @@
   - AnalyticsCollector / render_top_authors / render_activity
   - ExportHistory
   - CancellationToken
-  - BackgroundWorker / EventDispatcher
 """
 
 import tempfile
@@ -184,69 +183,47 @@ class TestRenderActivity(unittest.TestCase):
 
 class TestExportHistory(unittest.TestCase):
 
-    def _make(self):
-        from tg_exporter.services.export_history import ExportHistory
-        with tempfile.TemporaryDirectory() as d:
-            path = Path(d) / "history.json"
-            yield ExportHistory(path=path)
-
     def setUp(self):
         from tg_exporter.services.export_history import ExportHistory
         self._tmp = tempfile.mkdtemp()
-        self.history_path = Path(self._tmp) / "history.json"
+        self._dir = Path(self._tmp)
         self.ExportHistory = ExportHistory
 
     def tearDown(self):
         import shutil
         shutil.rmtree(self._tmp, ignore_errors=True)
 
-    def _new(self):
-        return self.ExportHistory(path=self.history_path)
+    def test_mark_completed_creates_file(self):
+        self.ExportHistory.mark_completed(self._dir, 500, 1200)
+        data = self.ExportHistory.load(self._dir)
+        self.assertIsNotNone(data)
+        self.assertEqual(data["last_message_id"], 500)
+        self.assertEqual(data["total_exported"], 1200)
+        self.assertEqual(data["status"], "completed")
 
-    def test_get_returns_none_for_unknown_chat(self):
-        h = self._new()
-        self.assertIsNone(h.get_last_id(12345))
+    def test_mark_interrupted_sets_flag(self):
+        self.ExportHistory.mark_interrupted(self._dir, 300, 800)
+        data = self.ExportHistory.load(self._dir)
+        self.assertTrue(data["interrupted"])
 
-    def test_set_and_get(self):
-        h = self._new()
-        h.set_last_id(100, 500)
-        self.assertEqual(h.get_last_id(100), 500)
+    def test_mark_unavailable_sets_status(self):
+        self.ExportHistory.mark_unavailable(self._dir)
+        data = self.ExportHistory.load(self._dir)
+        self.assertEqual(data["status"], "unavailable")
 
-    def test_set_only_updates_if_greater(self):
-        h = self._new()
-        h.set_last_id(100, 500)
-        h.set_last_id(100, 300)  # smaller — should be ignored
-        self.assertEqual(h.get_last_id(100), 500)
+    def test_load_returns_none_for_nonexistent(self):
+        result = self.ExportHistory.load(self._dir / "nonexistent")
+        self.assertIsNone(result)
 
-    def test_set_updates_if_greater(self):
-        h = self._new()
-        h.set_last_id(100, 500)
-        h.set_last_id(100, 700)
-        self.assertEqual(h.get_last_id(100), 700)
+    def test_load_returns_none_when_no_file(self):
+        result = self.ExportHistory.load(self._dir)
+        self.assertIsNone(result)
 
-    def test_persists_across_instances(self):
-        h1 = self._new()
-        h1.set_last_id(42, 1000)
-        h2 = self._new()
-        self.assertEqual(h2.get_last_id(42), 1000)
-
-    def test_clear_removes_entry(self):
-        h = self._new()
-        h.set_last_id(10, 200)
-        h.clear(10)
-        self.assertIsNone(h.get_last_id(10))
-
-    def test_multiple_chats_independent(self):
-        h = self._new()
-        h.set_last_id(1, 100)
-        h.set_last_id(2, 200)
-        self.assertEqual(h.get_last_id(1), 100)
-        self.assertEqual(h.get_last_id(2), 200)
-
-    def test_load_from_nonexistent_file_returns_defaults(self):
-        path = Path(self._tmp) / "nonexistent" / "h.json"
-        h = self.ExportHistory(path=path)
-        self.assertIsNone(h.get_last_id(99))
+    def test_overwrite_persists(self):
+        self.ExportHistory.mark_completed(self._dir, 100, 200)
+        self.ExportHistory.mark_completed(self._dir, 999, 5000)
+        data = self.ExportHistory.load(self._dir)
+        self.assertEqual(data["last_message_id"], 999)
 
 
 # ──────────────────────────────────────────────
@@ -315,128 +292,6 @@ class TestCancellationToken(unittest.TestCase):
         t = self.CancellationToken()
         result = t.wait_for_cancel(timeout=0.01)
         self.assertFalse(result)
-
-
-# ──────────────────────────────────────────────
-# BackgroundWorker
-# ──────────────────────────────────────────────
-
-class TestBackgroundWorker(unittest.TestCase):
-
-    def setUp(self):
-        from tg_exporter.utils.worker import BackgroundWorker
-        self.worker = BackgroundWorker()
-        self.worker.start()
-
-    def tearDown(self):
-        self.worker.shutdown(timeout=1.0)
-
-    def test_submit_runs_task(self):
-        done = threading.Event()
-        self.worker.submit(lambda: done.set())
-        self.assertTrue(done.wait(timeout=2.0))
-
-    def test_put_event_visible_in_poll(self):
-        self.worker.put_event("test_event", {"data": 42})
-        # poll immediately
-        events = []
-        deadline = time.time() + 2.0
-        while time.time() < deadline and not events:
-            events = self.worker.poll_events()
-        self.assertTrue(any(e[0] == "test_event" for e in events))
-
-    def test_poll_returns_empty_when_no_events(self):
-        events = self.worker.poll_events()
-        self.assertIsInstance(events, list)
-        self.assertEqual(events, [])
-
-    def test_submit_sends_event_from_task(self):
-        self.worker.submit(self.worker.put_event, "from_bg", "payload")
-        events = []
-        deadline = time.time() + 2.0
-        while time.time() < deadline:
-            events.extend(self.worker.poll_events())
-            if any(e[0] == "from_bg" for e in events):
-                break
-            time.sleep(0.01)
-        self.assertTrue(any(e[0] == "from_bg" for e in events))
-
-    def test_task_exception_produces_worker_error_event(self):
-        self.worker.submit(lambda: 1 / 0)
-        events = []
-        deadline = time.time() + 2.0
-        while time.time() < deadline:
-            events.extend(self.worker.poll_events())
-            if any(e[0] == "worker_error" for e in events):
-                break
-            time.sleep(0.01)
-        error_events = [e for e in events if e[0] == "worker_error"]
-        self.assertEqual(len(error_events), 1)
-        self.assertIn("ZeroDivision", error_events[0][1])
-
-    def test_start_twice_is_safe(self):
-        self.worker.start()  # second start should not raise
-
-    def test_poll_max_events_limit(self):
-        for i in range(30):
-            self.worker.put_event("ev", i)
-        time.sleep(0.05)
-        events = self.worker.poll_events(max_events=10)
-        self.assertLessEqual(len(events), 10)
-
-
-# ──────────────────────────────────────────────
-# EventDispatcher
-# ──────────────────────────────────────────────
-
-class TestEventDispatcher(unittest.TestCase):
-
-    def setUp(self):
-        from tg_exporter.utils.worker import EventDispatcher
-        self.EventDispatcher = EventDispatcher
-
-    def test_on_and_dispatch(self):
-        d = self.EventDispatcher()
-        received = []
-        d.on("ping", lambda p: received.append(p))
-        d.dispatch("ping", "pong")
-        self.assertEqual(received, ["pong"])
-
-    def test_dispatch_unknown_event_is_silent(self):
-        d = self.EventDispatcher()
-        d.dispatch("no_handler", None)  # no raise
-
-    def test_multiple_handlers_for_same_event(self):
-        d = self.EventDispatcher()
-        results = []
-        d.on("ev", lambda p: results.append("A"))
-        d.on("ev", lambda p: results.append("B"))
-        d.dispatch("ev", None)
-        self.assertEqual(sorted(results), ["A", "B"])
-
-    def test_off_removes_handler(self):
-        d = self.EventDispatcher()
-        received = []
-        handler = lambda p: received.append(p)
-        d.on("ev", handler)
-        d.off("ev", handler)
-        d.dispatch("ev", 1)
-        self.assertEqual(received, [])
-
-    def test_handler_exception_does_not_stop_others(self):
-        d = self.EventDispatcher()
-        results = []
-        d.on("ev", lambda p: (_ for _ in ()).throw(RuntimeError("oops")))
-        d.on("ev", lambda p: results.append("ok"))
-        d.dispatch("ev", None)
-        self.assertEqual(results, ["ok"])
-
-    def test_dispatch_event_tuple(self):
-        d = self.EventDispatcher()
-        received = []
-        d.on("tick", lambda p: received.append(p))
-        d.dispatch_event(("tick", 42))
-        self.assertEqual(received, [42])
 
 
 if __name__ == "__main__":

@@ -1,80 +1,75 @@
 """
-ExportHistory — хранит последний экспортированный message_id для каждого чата.
+ExportHistory — хранит историю экспорта для каждого чата.
 
-Используется для инкрементального экспорта (только новые сообщения).
-Файл: ~/.tg_exporter/export_history.json
+Файл: {output_dir}/export_history.json (на каждый чат свой, в папке экспорта).
+Используется для инкрементального экспорта (--resume) и отслеживания статуса.
 """
-
 from __future__ import annotations
 
 import json
-import os
+import datetime
 from pathlib import Path
 from typing import Optional
 
-_HISTORY_PATH = Path(os.path.expanduser("~/.tg_exporter/export_history.json"))
+
+_HISTORY_FILENAME = "export_history.json"
 
 
 class ExportHistory:
-    """
-    Персистентное хранилище последних exported message_id.
+    """Персистентное хранилище состояния экспорта для одного чата."""
 
-    Ключ — строковый peer_id чата.
-    Значение — максимальный message_id из прошлого экспорта.
-    """
+    def __init__(self) -> None:
+        # Экземпляр без состояния — все методы принимают output_dir
+        pass
 
-    def __init__(self, path: Path = _HISTORY_PATH) -> None:
-        self._path = path
-        self._data: dict[str, int] = {}
-        self._load()
-
-    def get_last_id(self, peer_id: int) -> Optional[int]:
-        """Возвращает последний экспортированный message_id для чата."""
-        return self._data.get(str(peer_id))
-
-    def set_last_id(self, peer_id: int, message_id: int) -> None:
-        """Обновляет последний message_id и сохраняет на диск."""
-        key = str(peer_id)
-        current = self._data.get(key, 0)
-        if message_id > current:
-            self._data[key] = message_id
-            self._save()
-
-    def clear(self, peer_id: int) -> None:
-        """Сбрасывает историю для конкретного чата."""
-        key = str(peer_id)
-        if key in self._data:
-            del self._data[key]
-            self._save()
-
-    # ---- Internal ----
-
-    def _load(self) -> None:
+    @staticmethod
+    def load(output_dir: Path) -> Optional[dict]:
+        """Загружает историю экспорта из папки чата. Возвращает None если файла нет."""
+        hist_path = output_dir / _HISTORY_FILENAME
+        if not hist_path.exists():
+            return None
         try:
-            if self._path.exists():
-                with self._path.open("r", encoding="utf-8") as f:
-                    raw = json.load(f)
-                # Только целочисленные значения
-                self._data = {
-                    k: int(v)
-                    for k, v in raw.items()
-                    if str(v).isdigit()
-                }
-        except Exception:
-            self._data = {}
+            with hist_path.open("r", encoding="utf-8") as f:
+                return json.load(f)
+        except (json.JSONDecodeError, OSError):
+            return None
 
-    def _save(self) -> None:
-        """Атомарная запись: tmp + fsync + os.replace. Защита от поломки файла при крэше."""
-        try:
-            self._path.parent.mkdir(parents=True, exist_ok=True)
-            tmp_path = self._path.with_suffix(self._path.suffix + ".tmp")
-            with tmp_path.open("w", encoding="utf-8") as f:
-                json.dump(self._data, f, indent=2)
-                f.flush()
-                try:
-                    os.fsync(f.fileno())
-                except OSError:
-                    pass
-            os.replace(tmp_path, self._path)
-        except Exception:
-            pass
+    @staticmethod
+    def save(output_dir: Path, data: dict) -> None:
+        """Сохраняет данные истории в папку чата."""
+        from tg_exporter.utils.file_utils import atomic_write
+        hist_path = output_dir / _HISTORY_FILENAME
+        atomic_write(hist_path, json.dumps(data, indent=2, ensure_ascii=False))
+
+    @staticmethod
+    def mark_completed(output_dir: Path, last_id: int, total: int) -> None:
+        """Отметить экспорт как успешно завершённый."""
+        ExportHistory.save(output_dir, {
+            "last_message_id": last_id,
+            "last_export_date": datetime.datetime.now().isoformat(),
+            "total_exported": total,
+            "status": "completed",
+            "interrupted": False,
+        })
+
+    @staticmethod
+    def mark_interrupted(output_dir: Path, last_id: int, total: int) -> None:
+        """Отметить экспорт как прерванный (для --resume)."""
+        ExportHistory.save(output_dir, {
+            "last_message_id": last_id,
+            "last_export_date": datetime.datetime.now().isoformat(),
+            "total_exported": total,
+            "status": "interrupted",
+            "interrupted": True,
+        })
+
+    @staticmethod
+    def mark_unavailable(output_dir: Path) -> None:
+        """Отметить чат как недоступный."""
+        ExportHistory.save(output_dir, {
+            "last_message_id": 0,
+            "last_export_date": datetime.datetime.now().isoformat(),
+            "total_exported": 0,
+            "status": "unavailable",
+            "interrupted": False,
+        })

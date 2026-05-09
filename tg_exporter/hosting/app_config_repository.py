@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 
 from .app_config import AppConfig
+from ..utils.file_utils import secure_permissions
 
 CONFIG_DIR = Path(os.path.expanduser("~/.tg_exporter"))
 CONFIG_FILE = CONFIG_DIR / "config.json"
@@ -49,14 +50,4 @@ def save_app_config(config: AppConfig) -> None:
         except OSError:
             pass
     os.replace(tmp_path, CONFIG_FILE)
-    _secure_permissions(CONFIG_FILE)
-
-
-def _secure_permissions(path: Path) -> None:
-    import platform
-    if platform.system() == "Windows":
-        return
-    try:
-        os.chmod(path, 0o600)
-    except OSError:
-        pass
+    secure_permissions(CONFIG_FILE)

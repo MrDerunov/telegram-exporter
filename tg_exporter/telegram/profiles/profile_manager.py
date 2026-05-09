@@ -24,6 +24,7 @@ from typing import Optional
 
 from ..credentials_manager import CredentialsManager
 from ...utils.logger import logger
+from ...utils.file_utils import secure_permissions
 from .profile import Profile, _session_key, _normalize_phone
 
 
@@ -76,7 +77,7 @@ class ProfileManager:
             except OSError:
                 pass
         os.replace(tmp, _PROFILES_FILE)
-        _secure_permissions(_PROFILES_FILE)
+        secure_permissions(_PROFILES_FILE)
 
     # ---------------------------------------------------------- queries
 
@@ -203,13 +204,3 @@ class ProfileManager:
                 keyring.delete_password("tg_exporter", key)
         except Exception:
             pass
-
-
-def _secure_permissions(path: Path) -> None:
-    import platform
-    if platform.system() == "Windows":
-        return
-    try:
-        os.chmod(path, 0o600)
-    except OSError:
-        pass

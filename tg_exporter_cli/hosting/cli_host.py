@@ -94,3 +94,8 @@ class CliHost:
     def get(self, service_type: type) -> Any:
         """Получить сервис по типу."""
         return self._container.get(service_type)
+
+    @property
+    def config_path(self) -> Path:
+        """Путь к файлу конфига."""
+        return self._config_path
