@@ -11,7 +11,6 @@ from tg_exporter.services.export.export_orchestrator import ExportOrchestrator
 from tg_exporter.telegram.telegram_client_manager_interface import ITelegramClientManager
 from tg_exporter.utils.cancellation import CancellationToken
 from ..hosting import get_host
-from ..async_runner import run_async
 
 
 def _resolve_format(fmt: str) -> ExportFormat:

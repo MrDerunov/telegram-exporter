@@ -4,8 +4,8 @@ from pathlib import Path
 from typing import Any, Callable
 
 from .container import Container
-from ..cli_config import CliConfig, DEFAULT_CONFIG_DIR
-from ..cli_config_repository import load_cli_config
+from tg_exporter_cli.hosting.cli_config import CliConfig, DEFAULT_CONFIG_DIR
+from tg_exporter_cli.hosting.cli_config_repository import load_cli_config
 from tg_exporter.secrets import SecretProvider, EnvVarsSecretProvider, EnvFileSecretProvider, ChainSecretProvider
 from tg_exporter.hosting.app_config import AppConfig
 from tg_exporter.telegram.credentials_manager import CredentialsManager

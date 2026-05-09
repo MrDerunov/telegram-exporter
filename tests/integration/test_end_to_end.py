@@ -7,14 +7,14 @@ import os
 from pathlib import Path
 
 from tg_exporter_cli.hosting import CliHost
-from tg_exporter_cli.async_runner import run_async
+from tg_exporter_cli.utils.async_runner import run_async
 from tg_exporter.telegram.auth.auth_step import AuthStep
 from tg_exporter.telegram.auth.auth_service import AuthService
 from tg_exporter.telegram.telegram_client_manager_interface import ITelegramClientManager
 from tg_exporter.services.export.export_orchestrator import ExportOrchestrator
 from tests.fakes.fake_telegram_client import FakeTelegramClient
 from tests.fakes.fake_telegram_client_manager import FakeTelegramClientManager
-from tests.fakes.factories import generate_messages, make_export_message
+from tests.fakes.factories import generate_messages
 from tg_exporter.services.export.export_task import ExportTask
 from tg_exporter.services.export.export_format import ExportFormat
 from tg_exporter.services.export.export_progress import ExportProgress

@@ -3,10 +3,10 @@ import click
 import shutil
 from pathlib import Path
 
-from tg_exporter_cli.cli_config import DEFAULT_CONFIG_DIR
+from tg_exporter_cli.hosting.cli_config import DEFAULT_CONFIG_DIR
 from tg_exporter.telegram.auth.auth_service import AuthService
 from ..hosting import get_host
-from ..async_runner import run_async
+from tg_exporter_cli.utils.async_runner import run_async
 
 
 def _check(ok: bool) -> str:

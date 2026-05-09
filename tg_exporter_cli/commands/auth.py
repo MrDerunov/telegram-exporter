@@ -3,12 +3,12 @@ import click
 from pathlib import Path
 
 from ..hosting import get_host
-from ..async_runner import run_async
+from tg_exporter_cli.utils.async_runner import run_async
 from tg_exporter.telegram.auth.auth_service import AuthService
 from tg_exporter.telegram.telegram_client_manager_interface import ITelegramClientManager
 from tg_exporter.secrets import SecretProvider
 from tg_exporter.hosting.app_config import AppConfig
-from tg_exporter_cli.cli_config import CliConfig
+from tg_exporter_cli.hosting.cli_config import CliConfig
 
 
 @click.group("auth")
