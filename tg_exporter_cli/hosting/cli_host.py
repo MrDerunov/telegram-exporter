@@ -3,10 +3,11 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Callable
 
+import yaml
+
 from .container import Container
 from tg_exporter_cli.cli_constants import CONFIG_DIR, CONFIG_FILENAME, DEFAULT_ENV_FILENAME
 from tg_exporter_cli.hosting.cli_config import CliConfig
-from tg_exporter_cli.hosting.cli_config_repository import load_cli_config
 from tg_exporter_cli.hosting.config_mapper import map_to_app_config
 from tg_exporter.secrets import SecretProvider, EnvVarsSecretProvider, EnvFileSecretProvider, ChainSecretProvider
 from tg_exporter.secrets.secret_keys import API_HASH, DEEPGRAM_API_KEY, SESSION
@@ -43,40 +44,19 @@ class CliHost:
             EnvFileSecretProvider(self._env_file),
         ])
 
-        # YAML-конфиг → CliConfig → словарь (без секретов)
-        cli_config = load_cli_config(self._config_path)
+        # Сырой YAML → dict
+        if self._config_path.exists():
+            with open(self._config_path, "r") as f:
+                yaml_data = yaml.safe_load(f) or {}
+        else:
+            yaml_data = {}
 
-        # Чтение секретов из SecretProvider
-        api_hash = self._secret_provider.get(API_HASH) or ""
-        deepgram_api_key = self._secret_provider.get(DEEPGRAM_API_KEY) or ""
-        session = self._secret_provider.get(SESSION) or ""
+        # Мёрж секретов в YAML-словарь
+        yaml_data["api_hash"] = self._secret_provider.get(API_HASH) or ""
+        yaml_data["deepgram_api_key"] = self._secret_provider.get(DEEPGRAM_API_KEY) or ""
+        yaml_data["session"] = self._secret_provider.get(SESSION) or ""
 
-        # Мёрж: YAML-поля + секреты
-        return {
-            "version": cli_config.version,
-            "api_id": cli_config.api_id,
-            "api_hash": api_hash,
-            "default_profile": cli_config.default_profile,
-            "chats": cli_config.chats,
-            "default_format": cli_config.default_format,
-            "default_words_per_file": cli_config.default_words_per_file,
-            "default_download_media": cli_config.default_download_media,
-            "default_transcribe": cli_config.default_transcribe,
-            "default_analytics": cli_config.default_analytics,
-            "transcription_provider": cli_config.transcription_provider,
-            "transcription_model": cli_config.transcription_model,
-            "transcription_language": cli_config.transcription_language,
-            "deepgram_api_key": deepgram_api_key,
-            "secrets_source": cli_config.secrets_source,
-            "log_level": cli_config.log_level,
-            "log_file": cli_config.log_file,
-            "retry_max_attempts": cli_config.retry_max_attempts,
-            "retry_delay_seconds": cli_config.retry_delay_seconds,
-            "retry_max_delay_seconds": cli_config.retry_max_delay_seconds,
-            "rate_limit_media_download_delay_ms": cli_config.rate_limit_media_download_delay_ms,
-            "rate_limit_message_fetch_delay_ms": cli_config.rate_limit_message_fetch_delay_ms,
-            "session": session,
-        }
+        return yaml_data
 
     def _bind_services(self, raw_config: dict) -> None:
         """Маппит сырой конфиг на типизированные объекты и регистрирует сервисы."""
