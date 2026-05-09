@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 from .container import Container
-from tg_exporter_cli.hosting.cli_config import CliConfig, DEFAULT_CONFIG_DIR
+from tg_exporter_cli.hosting.cli_config import CliConfig, DEFAULT_CONFIG_DIR, DEFAULT_CONFIG_FILENAME, DEFAULT_ENV_FILENAME
 from tg_exporter_cli.hosting.cli_config_repository import load_cli_config
 from tg_exporter.secrets import SecretProvider, EnvVarsSecretProvider, EnvFileSecretProvider, ChainSecretProvider
 from tg_exporter.hosting.app_config import AppConfig
@@ -22,8 +22,8 @@ class CliHost:
 
     def __init__(self, config_path: Path | None = None, env_file: Path | None = None) -> None:
         self._container = Container()
-        self._config_path = config_path or DEFAULT_CONFIG_DIR / "cli_config.yaml"
-        self._env_file = env_file or Path(".env")
+        self._config_path = config_path or DEFAULT_CONFIG_DIR / DEFAULT_CONFIG_FILENAME
+        self._env_file = env_file or Path(DEFAULT_ENV_FILENAME)
 
     def build(self) -> CliHost:
         """Зарегистрировать все сервисы в контейнере."""

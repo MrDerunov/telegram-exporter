@@ -6,9 +6,10 @@ from ..hosting import get_host
 from tg_exporter_cli.utils.async_runner import run_async
 from tg_exporter.telegram.auth.auth_service import AuthService
 from tg_exporter.telegram.telegram_client_manager_interface import ITelegramClientManager
+from tg_exporter.telegram.credentials_manager import CredentialsManager
 from tg_exporter.secrets import SecretProvider
 from tg_exporter.hosting.app_config import AppConfig
-from tg_exporter_cli.hosting.cli_config import CliConfig
+from tg_exporter_cli.hosting.cli_config import CliConfig, DEFAULT_SECRETS_ENV_FILENAME
 
 
 @click.group("auth")
@@ -97,17 +98,17 @@ def auth_logout(profile):
 
 
 @auth_group.command("export-session")
-@click.option("--output", default="secrets.env", help="Путь к выходному файлу")
+@click.option("--output", default=DEFAULT_SECRETS_ENV_FILENAME, help="Путь к выходному файлу")
 def auth_export_session(output):
     """Экспортировать сессию в secrets.env для CI/CD."""
     host = get_host()
-    client_manager = host.get(ITelegramClientManager)
+    credentials = host.get(CredentialsManager)
     config = host.get(CliConfig)
     secret_provider = host.get(SecretProvider)
 
-    # Получаем сессию через адаптер
-    client = client_manager.create_client()  # type: ignore[assignment]
-    session_str = client.save_session() if hasattr(client, "save_session") else ""
+    # Сессия сохраняется через ITelegramClientManager при auth login,
+    # здесь читаем её из CredentialsManager (ключ в Keyring)
+    session_str = credentials.load_session(config.api_id) or ""
 
     if not session_str:
         click.echo("❌ Нет активной сессии. Сначала выполните auth login.", err=True)

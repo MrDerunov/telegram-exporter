@@ -8,6 +8,9 @@ from dataclasses import dataclass
 from pathlib import Path
 
 DEFAULT_CONFIG_DIR = Path.home() / ".tg_exporter"
+DEFAULT_CONFIG_FILENAME = "cli_config.yaml"
+DEFAULT_ENV_FILENAME = ".env"
+DEFAULT_SECRETS_ENV_FILENAME = "secrets.env"
 
 
 @dataclass

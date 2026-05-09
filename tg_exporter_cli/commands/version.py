@@ -3,6 +3,8 @@ import click
 import sys
 import platform
 
+from tg_exporter.app_constants import VERSION
+
 
 @click.command("version")
 def version_command():
@@ -10,4 +12,4 @@ def version_command():
     py_ver = sys.version.split()[0]
     os_info = platform.system()
     arch = platform.machine()
-    click.echo(f"tg-exporter 1.0.0 (python {py_ver}, {os_info} {arch})")
+    click.echo(f"tg-exporter {VERSION} (python {py_ver}, {os_info} {arch})")
