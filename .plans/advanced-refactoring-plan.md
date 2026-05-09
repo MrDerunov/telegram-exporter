@@ -17,7 +17,7 @@
 
 Удалить лишние файлы - иконки и т.п.
 
-
+добавить PyInstaller onefile (console)
 
 ## Part 2
 
