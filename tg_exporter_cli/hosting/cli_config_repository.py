@@ -7,15 +7,6 @@ from .cli_config import CliConfig, ChatEntry
 from tg_exporter.utils.file_utils import secure_permissions
 
 
-def load_cli_config(path: Path) -> CliConfig:
-    if not path.exists():
-        return CliConfig()
-    with open(path, "r") as f:
-        data = yaml.safe_load(f) or {}
-
-    return CliConfig.from_raw(data)
-
-
 def save_cli_config(config: CliConfig, path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     data = {

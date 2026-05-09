@@ -60,46 +60,45 @@ class CliHost:
 
     def _bind_services(self, raw_config: dict) -> None:
         """Маппит сырой конфиг на типизированные объекты и регистрирует сервисы."""
-        c = self._container
+        container = self._container
 
         # SecretProvider
-        c.register_instance(SecretProvider, self._secret_provider)
+        container.register_instance(SecretProvider, self._secret_provider)
 
         # CliConfig (frozen) — из словаря
         cli_config = CliConfig.from_raw(raw_config)
-        c.register_instance(CliConfig, cli_config)
+        container.register_instance(CliConfig, cli_config)
 
         # AppConfig (frozen) — через mapper
         app_config = map_to_app_config(cli_config)
-        c.register_instance(AppConfig, app_config)
+        container.register_instance(AppConfig, app_config)
 
         # Профили
-        c.register(
+        container.register(
             ProfileManager,
             lambda ctr: ProfileManager(ctr.get(SecretProvider)),
         )
 
         # Telegram-клиент + интерфейс
-        c.register(
-            TelethonClientManager,
+        container.register(
+            ITelegramClientManager,
             lambda ctr: TelethonClientManager(
                 ctr.get(AppConfig),
                 ctr.get(SecretProvider),
             ),
         )
-        c.register_interface(ITelegramClientManager, TelethonClientManager)
 
         # Auth
-        c.register(
+        container.register(
             AuthService,
             lambda ctr: AuthService(ctr.get(ITelegramClientManager)),
         )
 
         # ExportHistory
-        c.register(ExportHistory, lambda _: ExportHistory())
+        container.register(ExportHistory, lambda _: ExportHistory())
 
         # Экспорт
-        c.register(
+        container.register(
             ExportOrchestrator,
             lambda ctr: ExportOrchestrator(
                 ctr.get(ITelegramClientManager),
