@@ -20,17 +20,19 @@ from tg_exporter.services.export.export_orchestrator import ExportOrchestrator
 class CliHost:
     """Хост CLI-приложения. Содержит DI-контейнер и управляет регистрацией сервисов."""
 
-    def __init__(self, config_path: Path | None = None, env_file: Path | None = None) -> None:
+    def __init__(self,
+                 config_path: Path | None = None,
+                 env_file: Path | None = None) -> None:
         self._container = Container()
         self._config_path = config_path or DEFAULT_CONFIG_DIR / DEFAULT_CONFIG_FILENAME
         self._env_file = env_file or Path(DEFAULT_ENV_FILENAME)
 
     def build(self) -> CliHost:
         """Зарегистрировать все сервисы в контейнере."""
-        c = self._container
+        container = self._container
 
         # 1. Секреты (порядок: env vars → .env file)
-        c.register_instance(
+        container.register_instance(
             SecretProvider,
             ChainSecretProvider([
                 EnvVarsSecretProvider(),
@@ -39,7 +41,7 @@ class CliHost:
         )
 
         # 2. Конфиг (публичные настройки, без секретов)
-        c.register(CliConfig, lambda _: load_cli_config(self._config_path))
+        container.register(CliConfig, lambda _: load_cli_config(self._config_path))
 
         # 3. AppConfig (адаптация CliConfig для core-слоя)
         def _create_app_config(ctr: Container) -> AppConfig:
@@ -49,29 +51,29 @@ class CliHost:
                 ac.api_id = cli_cfg.api_id
             return ac
 
-        c.register(AppConfig, _create_app_config)
+        container.register(AppConfig, _create_app_config)
 
         # 4. CredentialsManager
-        c.register(CredentialsManager, lambda _: CredentialsManager())
+        container.register(CredentialsManager, lambda _: CredentialsManager())
 
         # 5. Профили
-        c.register(ProfileManager, lambda ctr: ProfileManager(ctr.get(CredentialsManager)))
+        container.register(ProfileManager, lambda ctr: ProfileManager(ctr.get(CredentialsManager)))
 
         # 6. Telegram-клиент + интерфейс
-        c.register(
+        container.register(
             TelethonClientManager,
             lambda ctr: TelethonClientManager(ctr.get(AppConfig), ctr.get(CredentialsManager)),
         )
-        c.register_interface(ITelegramClientManager, TelethonClientManager)
+        container.register_interface(ITelegramClientManager, TelethonClientManager)
 
         # 7. Auth
-        c.register(AuthService, lambda ctr: AuthService(ctr.get(ITelegramClientManager)))
+        container.register(AuthService, lambda ctr: AuthService(ctr.get(ITelegramClientManager)))
 
         # 8. ExportHistory
-        c.register(ExportHistory, lambda _: ExportHistory())
+        container.register(ExportHistory, lambda _: ExportHistory())
 
         # 9. Экспорт
-        c.register(
+        container.register(
             ExportOrchestrator,
             lambda ctr: ExportOrchestrator(
                 ctr.get(ITelegramClientManager),

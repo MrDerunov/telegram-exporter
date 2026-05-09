@@ -3,7 +3,7 @@ import click
 import sys
 import platform
 
-from tg_exporter.app_constants import VERSION
+from tg_exporter_cli.cli_constants import VERSION
 
 
 @click.command("version")

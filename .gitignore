@@ -3,6 +3,7 @@
 .venv_intel/
 venv/
 __pycache__/
+.pytest_cache
 *.pyc
 *.pyo
 .DS_Store
@@ -24,4 +25,3 @@ telegram_session.session-journal
 .cursor/
 .idea/
 .vscode/
-CLAUDE.md

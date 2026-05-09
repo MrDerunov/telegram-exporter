@@ -2,7 +2,7 @@
 from __future__ import annotations
 import click
 
-from tg_exporter.app_constants import VERSION
+from tg_exporter_cli.cli_constants import VERSION
 from .commands.auth import auth_group
 from .commands.export import export_group
 from .commands.chats import chats_group
