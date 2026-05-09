@@ -11,6 +11,8 @@ import datetime
 from pathlib import Path
 from typing import Optional
 
+from tg_exporter.utils.file_utils import atomic_write
+
 
 _HISTORY_FILENAME = "export_history.json"
 
@@ -37,7 +39,6 @@ class ExportHistory:
     @staticmethod
     def save(output_dir: Path, data: dict) -> None:
         """Сохраняет данные истории в папку чата."""
-        from tg_exporter.utils.file_utils import atomic_write
         hist_path = output_dir / _HISTORY_FILENAME
         atomic_write(hist_path, json.dumps(data, indent=2, ensure_ascii=False))
 

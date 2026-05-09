@@ -1,11 +1,11 @@
 """Команды управления чатами: list, show, add, remove."""
 from __future__ import annotations
 import click
-import asyncio
 
 from tg_exporter.telegram.telegram_client_manager_interface import ITelegramClientManager
 from tg_exporter_cli.hosting.cli_config import CliConfig, ChatEntry
 from tg_exporter_cli.hosting.cli_config_repository import save_cli_config
+from tg_exporter_cli.utils.async_runner import run_async
 from ..hosting import get_host
 
 
@@ -26,13 +26,12 @@ def chats_list(folder: str | None, folders_only: bool, search: str | None):
 
     try:
         client = client_manager.create_client()
-        loop = asyncio.get_event_loop() if asyncio.get_event_loop().is_running() else asyncio.new_event_loop()
 
         async def _fetch():
             await client.connect()
             return await client.get_dialogs()
 
-        dialogs = loop.run_until_complete(_fetch())
+        dialogs = run_async(_fetch())
 
         if folders_only:
             folders: set[str] = set()
@@ -87,7 +86,6 @@ def chats_show(chat_id: str):
 
     try:
         client = client_manager.create_client()
-        loop = asyncio.get_event_loop() if asyncio.get_event_loop().is_running() else asyncio.new_event_loop()
 
         async def _fetch():
             await client.connect()
@@ -97,7 +95,7 @@ def chats_show(chat_id: str):
                     return d
             return None
 
-        dialog = loop.run_until_complete(_fetch())
+        dialog = run_async(_fetch())
         if dialog is None:
             click.echo(f"❌ Чат {chat_id} не найден.", err=True)
             raise SystemExit(1)
@@ -130,13 +128,12 @@ def chats_add(chat_id: str | None, folder: str | None):
 
     try:
         client = client_manager.create_client()
-        loop = asyncio.get_event_loop() if asyncio.get_event_loop().is_running() else asyncio.new_event_loop()
 
         async def _fetch():
             await client.connect()
             return await client.get_dialogs()
 
-        dialogs = loop.run_until_complete(_fetch())
+        dialogs = run_async(_fetch())
         added = 0
         existing_ids = {c.id for c in config.chats}
 

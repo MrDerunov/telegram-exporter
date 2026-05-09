@@ -12,9 +12,8 @@ from __future__ import annotations
 import asyncio
 import datetime
 import os
+import shutil
 from typing import Callable, Optional
-
-from telethon.utils import get_peer_id
 
 from ...telegram.telegram_client_manager_interface import ITelegramClientManager
 from ...telegram.converter import message_to_export
@@ -263,7 +262,6 @@ class ExportOrchestrator:
                         if prep.saved_path and media_dirs:
                             audio_out = os.path.join(media_dirs.audio, f"vn_{msg_id}.wav")
                             try:
-                                import shutil
                                 shutil.move(prep.saved_path, audio_out)
                                 video_note_saved_ids.add(msg_id)
                             except Exception:

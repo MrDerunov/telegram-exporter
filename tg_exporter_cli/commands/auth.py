@@ -1,4 +1,5 @@
 """Команды аутентификации: login, status, logout, export-session, verify."""
+from __future__ import annotations
 import click
 from pathlib import Path
 

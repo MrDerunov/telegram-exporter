@@ -1,9 +1,7 @@
 """Команды управления профилями: list, add, remove, switch."""
 from __future__ import annotations
 import click
-import asyncio
 
-from tg_exporter.telegram.telegram_client_manager_interface import ITelegramClientManager
 from tg_exporter.telegram.profiles.profile_manager import ProfileManager
 from tg_exporter_cli.hosting.cli_config import CliConfig
 from tg_exporter_cli.hosting.cli_config_repository import save_cli_config
@@ -23,8 +21,8 @@ def profile_list():
     profile_manager = host.get(ProfileManager)
 
     try:
-        profiles = profile_manager.get_all()
-        active = profile_manager.get_active_phone()
+        profiles = profile_manager.list()
+        active_phone = profile_manager.active_phone()
 
         if not profiles:
             click.echo("Нет сохранённых профилей. Добавьте через: tg-exporter profile add")
@@ -33,7 +31,7 @@ def profile_list():
         click.echo(f"{'Телефон':<20} {'Имя':<20} {'API ID':<12} {'Статус'}")
         click.echo("-" * 70)
         for p in profiles:
-            status = "▶ активный" if p.phone == active else ""
+            status = "▶ активный" if p.phone == active_phone else ""
             click.echo(f"{p.phone:<20} {p.display_name:<20} {p.api_id:<12} {status}")
 
     except Exception as e:
@@ -53,8 +51,10 @@ def profile_add(phone: str, api_id: str, api_hash: str, name: str | None):
     config = host.get(CliConfig)
 
     try:
-        profile_manager.add(phone, api_id, api_hash, name or phone)
-        click.echo(f"✅ Профиль {phone} добавлен.")
+        # api_hash сохраняется через SecretProvider (уже при auth login),
+        # здесь только регистрируем профиль без сессии
+        profile_manager.add_or_update(phone, api_id, "", display_name=name or phone, set_active=True)
+        click.echo(f"✅ Профиль {phone} добавлен. Выполните auth login для входа.")
 
         if not config.default_profile or config.default_profile == "default":
             config.default_profile = phone
@@ -89,15 +89,16 @@ def profile_switch(phone: str):
     """Переключить активный профиль."""
     host = get_host()
     profile_manager = host.get(ProfileManager)
-    client_manager = host.get(ITelegramClientManager)
+    config = host.get(CliConfig)
 
     try:
         profile = profile_manager.set_active(phone)
         if profile is None:
             click.echo(f"❌ Профиль {phone} не найден.", err=True)
             raise SystemExit(1)
-        client_manager.destroy()
-        client_manager.use_session(profile.session)
+
+        config.default_profile = phone
+        save_cli_config(config, host.config_path)
         click.echo(f"✅ Переключено на профиль {phone}")
     except Exception as e:
         click.echo(f"❌ Ошибка переключения: {e}", err=True)

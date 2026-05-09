@@ -85,5 +85,6 @@ def save_cli_config(config: CliConfig, path: Path) -> None:
     with open(tmp, "w") as f:
         yaml.safe_dump(data, f, default_flow_style=False, allow_unicode=True)
     import os
+    os.fsync(f.fileno()) if hasattr(f, "fileno") else None
     os.replace(tmp, path)
     secure_permissions(path)

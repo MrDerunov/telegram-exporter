@@ -1,7 +1,6 @@
 """Команда экспорта: полный экспорт одного чата или всех чатов из конфига."""
 from __future__ import annotations
 import click
-import asyncio
 import datetime
 from pathlib import Path
 
@@ -13,6 +12,7 @@ from tg_exporter.services.export_history import ExportHistory
 from tg_exporter.telegram.telegram_client_manager_interface import ITelegramClientManager
 from tg_exporter.utils.cancellation import CancellationToken
 from tg_exporter_cli.hosting.cli_config import CliConfig
+from tg_exporter_cli.utils.async_runner import run_async
 from ..hosting import get_host
 
 
@@ -138,7 +138,7 @@ def export_run(
                 )
             except SystemExit as e:
                 if e.code != 0 and skip_unavailable:
-                    click.echo(f"  ⚠ Пропущен (недоступен)")
+                    click.echo(f"  ⚠ Ошибка экспорта {entry.name}, пропускаю.")
                     continue
                 raise
         return
@@ -204,14 +204,15 @@ def _run_export(
             click.echo(f"📋 Продолжение экспорта с сообщения #{last_exported_id}")
 
     try:
-        chat_id: int
+        # Определяем chat_id: int для peer_id, str для username
+        chat_id: int | None = None
         try:
             chat_id = int(chat)
         except ValueError:
-            chat_id = 0
+            chat_id = None  # username — потребует резолвинга
 
         task = ExportTask(
-            chat_id=chat_id,
+            chat_id=chat_id if chat_id is not None else 0,
             chat_name=chat,
             output_path=str(output_dir),
             format=export_format,
@@ -254,30 +255,38 @@ def _run_export(
             elif event_type == "info":
                 click.echo(f"\n  ℹ {data}")
 
+        # Получаем диалог
         client = client_manager.create_client()
-        loop = asyncio.get_event_loop() if asyncio.get_event_loop().is_running() else asyncio.new_event_loop()
 
         async def _get_dialog():
             await client.connect()
             dialogs = await client.get_dialogs()
+            # Поиск по точному ID или username
+            if chat_id is not None:
+                target_id = str(chat_id)
+                for d in dialogs:
+                    if str(d.id) == target_id:
+                        return d
+            # Поиск по имени/username
             for d in dialogs:
-                if str(d.id) == str(chat_id):
+                d_name = getattr(d, "name", "") or ""
+                d_title = getattr(d, "title", "") or ""
+                if d_name == chat or d_title == chat:
                     return d
-                if getattr(d, "name", "") == chat or getattr(d, "title", "") == chat:
+                # Username может быть вида @channel
+                entity = getattr(d, "entity", None)
+                if entity and getattr(entity, "username", "") == chat.lstrip("@"):
                     return d
-            return _fallback_dialog(chat_id if chat_id else chat, chat)
+            return None
 
-        dialog = loop.run_until_complete(_get_dialog())
+        dialog = run_async(_get_dialog())
+
+        if dialog is None:
+            click.echo(f"❌ Чат «{chat}» не найден. Проверьте ID или username.", err=True)
+            raise SystemExit(1)
 
         orchestrator.run(dialog, task, token, progress, _send)
 
     except Exception as e:
         click.echo(f"❌ Ошибка экспорта: {e}", err=True)
         raise SystemExit(1)
-
-
-def _fallback_dialog(peer_id, name: str):
-    """Создаёт минимальный объект диалога, когда чат не найден."""
-    entity_type = type("Entity", (), {"id": peer_id, "title": name, "broadcast": True, "username": ""})()
-    dialog_type = type("Dialog", (), {"id": peer_id, "name": name, "entity": entity_type, "title": name})()
-    return dialog_type
