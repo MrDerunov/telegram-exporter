@@ -12,6 +12,7 @@ from ..theme import C, SPACING, WIDGET, font, font_display
 from ..components.button import AppButton
 from ..components.entry import AppEntry
 from ..modal_utils import prepare_modal, show_modal, setup_smooth_scroll
+from ...hosting.app_config_repository import save_app_config
 
 if TYPE_CHECKING:
     from ..app import App
@@ -235,5 +236,5 @@ class SettingsModal(ctk.CTkToplevel):
         )
         new_cfg = dataclasses.replace(cfg, transcription_language=lang, markdown=md_cfg)
         self._app.config = new_cfg
-        new_cfg.save()
+        save_app_config(new_cfg)
         self.destroy()

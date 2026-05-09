@@ -6,7 +6,7 @@ from ..hosting import get_host
 from ..async_runner import run_async
 from tg_exporter.telegram.auth.auth_service import AuthService
 from tg_exporter.telegram.telegram_client_manager_interface import ITelegramClientManager
-from tg_exporter.secrets import ChainSecretProvider
+from tg_exporter.secrets import SecretProvider
 from tg_exporter.hosting.app_config import AppConfig
 from tg_exporter_cli.cli_config import CliConfig
 
@@ -27,7 +27,7 @@ def auth_login(phone, api_id, api_hash, profile):
     host = get_host()
     config = host.get(CliConfig)
     app_config = host.get(AppConfig)
-    secret_provider = host.get(ChainSecretProvider)
+    secret_provider = host.get(SecretProvider)
     auth_service = host.get(AuthService)
     client_manager = host.get(ITelegramClientManager)
 
@@ -103,7 +103,7 @@ def auth_export_session(output):
     host = get_host()
     client_manager = host.get(ITelegramClientManager)
     config = host.get(CliConfig)
-    secret_provider = host.get(ChainSecretProvider)
+    secret_provider = host.get(SecretProvider)
 
     # Получаем сессию через адаптер
     client = client_manager.create_client()  # type: ignore[assignment]

@@ -1,31 +1,17 @@
 """
-AppConfig — единственный источник истины для настроек приложения.
+AppConfig — конфигурация приложения (только поля).
 
 Секреты (api_hash, session) НЕ хранятся в конфиге — только в Keyring.
-Конфиг-файл содержит только несекретные настройки.
+Загрузкой/сохранением занимается app_config_repository.
+Валидацией занимается app_config_validator.
 """
 
 from __future__ import annotations
 
-import json
-import os
 from dataclasses import dataclass, field
-from pathlib import Path
 from typing import Optional
 
 from ..services.export.markdown_settings import MarkdownSettings
-
-
-CONFIG_DIR = Path(os.path.expanduser("~/.tg_exporter"))
-CONFIG_FILE = CONFIG_DIR / "config.json"
-
-WHISPER_MODELS = ("tiny", "base", "small", "medium", "large", "large-v2", "large-v3")
-TRANSCRIPTION_PROVIDERS = ("local", "deepgram")
-TRANSCRIPTION_LANGUAGES = ("multi", "ru", "en", "de", "fr", "es", "zh", "ja")
-
-
-class ConfigValidationError(ValueError):
-    pass
 
 
 @dataclass
@@ -45,47 +31,17 @@ class AppConfig:
     # Настройки Markdown
     markdown: MarkdownSettings = field(default_factory=MarkdownSettings)
 
-    # ---- Валидация ----
-
-    def validate(self) -> None:
-        if self.api_id:
-            digits = "".join(c for c in self.api_id if c.isdigit())
-            if not digits:
-                raise ConfigValidationError("api_id must contain digits")
-
-        if self.transcription_provider not in TRANSCRIPTION_PROVIDERS:
-            raise ConfigValidationError(
-                f"transcription_provider must be one of {TRANSCRIPTION_PROVIDERS}"
-            )
-
-        if self.transcription_language not in TRANSCRIPTION_LANGUAGES:
-            raise ConfigValidationError(
-                f"transcription_language must be one of {TRANSCRIPTION_LANGUAGES}"
-            )
-
-        if self.local_whisper_model not in WHISPER_MODELS:
-            raise ConfigValidationError(
-                f"local_whisper_model must be one of {WHISPER_MODELS}"
-            )
-
-        self.markdown.validate()
-
     @property
     def api_id_int(self) -> Optional[int]:
-        """Возвращает api_id как int, или None если не задан / невалиден."""
         digits = "".join(c for c in self.api_id if c.isdigit())
         return int(digits) if digits else None
 
-    # ---- Сериализация ----
-
     def to_dict(self) -> dict:
-        """Только несекретные поля — safe для записи в файл."""
         return {
             "api_id": self.api_id,
             "transcription_provider": self.transcription_provider,
             "transcription_language": self.transcription_language,
             "local_whisper_model": self.local_whisper_model,
-            # deepgram_api_key намеренно исключён — хранится в Keyring
             "include_private_chats": self.include_private_chats,
             "markdown": self.markdown.to_dict(),
         }
@@ -94,67 +50,13 @@ class AppConfig:
     def from_dict(cls, data: dict) -> "AppConfig":
         md_data = data.pop("markdown", {})
         known = {f for f in cls.__dataclass_fields__ if f != "markdown"}
-        # deepgram_api_key не читаем из файла — только из Keyring
         filtered = {k: v for k, v in data.items() if k in known and k != "deepgram_api_key"}
         obj = cls(**filtered)
         if md_data:
             obj.markdown = MarkdownSettings.from_dict(md_data)
         return obj
 
-    # ---- Персистентность ----
-
-    @classmethod
-    def load(cls) -> "AppConfig":
-        """Загружает конфиг из файла. Возвращает дефолтный если файл не существует.
-
-        При повреждении файла делает бэкап config.json.broken.{timestamp},
-        чтобы пользователь мог восстановить настройки вручную, а не получал
-        молчаливый сброс.
-        """
-        if not CONFIG_FILE.exists():
-            return cls()
-        try:
-            with CONFIG_FILE.open("r", encoding="utf-8") as f:
-                raw = json.load(f)
-            raw.pop("api_hash", None)
-            raw.pop("session", None)
-            return cls.from_dict(raw)
-        except (json.JSONDecodeError, TypeError, ValueError):
-            try:
-                import datetime as _dt
-                ts = _dt.datetime.now().strftime("%Y%m%d-%H%M%S")
-                backup = CONFIG_FILE.with_suffix(f".broken.{ts}.json")
-                CONFIG_FILE.rename(backup)
-            except OSError:
-                pass
-            return cls()
-
-    def save(self) -> None:
-        """Сохраняет только несекретные поля. Атомарно + права 0o600."""
-        CONFIG_DIR.mkdir(parents=True, exist_ok=True)
-        tmp_path = CONFIG_FILE.with_suffix(CONFIG_FILE.suffix + ".tmp")
-        with tmp_path.open("w", encoding="utf-8") as f:
-            json.dump(self.to_dict(), f, indent=2, ensure_ascii=False)
-            f.flush()
-            try:
-                os.fsync(f.fileno())
-            except OSError:
-                pass
-        os.replace(tmp_path, CONFIG_FILE)
-        _secure_permissions(CONFIG_FILE)
-
     def with_api_id(self, api_id: str) -> "AppConfig":
-        """Возвращает новый экземпляр с обновлённым api_id."""
         digits = "".join(c for c in (api_id or "") if c.isdigit())
         import dataclasses
         return dataclasses.replace(self, api_id=digits)
-
-
-def _secure_permissions(path: Path) -> None:
-    import platform
-    if platform.system() == "Windows":
-        return
-    try:
-        os.chmod(path, 0o600)
-    except OSError:
-        pass

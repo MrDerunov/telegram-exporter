@@ -11,15 +11,17 @@ from pathlib import Path
 class TestAppConfig(unittest.TestCase):
 
     def setUp(self):
-        from tg_exporter.hosting.app_config import AppConfig, ConfigValidationError
+        from tg_exporter.hosting.app_config import AppConfig
+        from tg_exporter.hosting.app_config_validator import ConfigValidationError, validate_app_config
         from tg_exporter.services.export.markdown_settings import MarkdownSettings
         self.AppConfig = AppConfig
         self.MarkdownSettings = MarkdownSettings
         self.ConfigValidationError = ConfigValidationError
+        self.validate_app_config = validate_app_config
 
     def test_defaults_are_valid(self):
         cfg = self.AppConfig()
-        cfg.validate()  # no raise
+        self.validate_app_config(cfg)  # no raise
 
     def test_api_id_int_strips_non_digits(self):
         cfg = self.AppConfig.from_dict({"api_id": " 12 34 "})
@@ -37,17 +39,17 @@ class TestAppConfig(unittest.TestCase):
     def test_validation_bad_provider(self):
         cfg = self.AppConfig(transcription_provider="unknown")
         with self.assertRaises(self.ConfigValidationError):
-            cfg.validate()
+            self.validate_app_config(cfg)
 
     def test_validation_bad_model(self):
         cfg = self.AppConfig(local_whisper_model="gpt4")
         with self.assertRaises(self.ConfigValidationError):
-            cfg.validate()
+            self.validate_app_config(cfg)
 
     def test_validation_bad_words_per_file(self):
         cfg = self.AppConfig(markdown=self.MarkdownSettings(words_per_file=100))
         with self.assertRaises(self.ConfigValidationError):
-            cfg.validate()
+            self.validate_app_config(cfg)
 
     def test_to_dict_excludes_secrets(self):
         cfg = self.AppConfig(api_id="123", deepgram_api_key="secret")
@@ -68,35 +70,37 @@ class TestAppConfig(unittest.TestCase):
 
     def test_save_load_roundtrip(self):
         with tempfile.TemporaryDirectory() as d:
-            from tg_exporter.hosting.app_config import CONFIG_FILE, CONFIG_DIR
-            import tg_exporter.hosting.app_config as cfg_mod
-            orig_file = cfg_mod.CONFIG_FILE
-            orig_dir = cfg_mod.CONFIG_DIR
+            from tg_exporter.hosting.app_config_repository import CONFIG_FILE, CONFIG_DIR
+            from tg_exporter.hosting.app_config_repository import save_app_config, load_app_config
+            import tg_exporter.hosting.app_config_repository as repo_mod
+            orig_file = repo_mod.CONFIG_FILE
+            orig_dir = repo_mod.CONFIG_DIR
             try:
-                cfg_mod.CONFIG_FILE = Path(d) / "config.json"
-                cfg_mod.CONFIG_DIR = Path(d)
+                repo_mod.CONFIG_FILE = Path(d) / "config.json"
+                repo_mod.CONFIG_DIR = Path(d)
                 cfg = self.AppConfig(
                     api_id="99887",
                     transcription_provider="local",
                     local_whisper_model="small",
                 )
-                cfg.save()
-                loaded = self.AppConfig.load()
+                save_app_config(cfg)
+                loaded = load_app_config()
                 self.assertEqual(loaded.api_id, "99887")
                 self.assertEqual(loaded.local_whisper_model, "small")
             finally:
-                cfg_mod.CONFIG_FILE = orig_file
-                cfg_mod.CONFIG_DIR = orig_dir
+                repo_mod.CONFIG_FILE = orig_file
+                repo_mod.CONFIG_DIR = orig_dir
 
     def test_load_returns_default_when_no_file(self):
-        import tg_exporter.hosting.app_config as cfg_mod
-        orig_file = cfg_mod.CONFIG_FILE
+        from tg_exporter.hosting.app_config_repository import load_app_config
+        import tg_exporter.hosting.app_config_repository as repo_mod
+        orig_file = repo_mod.CONFIG_FILE
         try:
-            cfg_mod.CONFIG_FILE = Path("/nonexistent/path/config.json")
-            cfg = self.AppConfig.load()
+            repo_mod.CONFIG_FILE = Path("/nonexistent/path/config.json")
+            cfg = load_app_config()
             self.assertEqual(cfg.api_id, "")
         finally:
-            cfg_mod.CONFIG_FILE = orig_file
+            repo_mod.CONFIG_FILE = orig_file
 
     def test_markdown_settings_roundtrip(self):
         from tg_exporter.services.export.markdown_settings import MarkdownSettings

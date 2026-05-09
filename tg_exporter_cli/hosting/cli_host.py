@@ -5,7 +5,8 @@ from typing import Any, Callable
 
 from .container import Container
 from ..cli_config import CliConfig, DEFAULT_CONFIG_DIR
-from tg_exporter.secrets import ChainSecretProvider, EnvVarsSecretProvider, EnvFileSecretProvider
+from ..cli_config_repository import load_cli_config
+from tg_exporter.secrets import SecretProvider, EnvVarsSecretProvider, EnvFileSecretProvider, ChainSecretProvider
 from tg_exporter.hosting.app_config import AppConfig
 from tg_exporter.telegram.credentials_manager import CredentialsManager
 from tg_exporter.telegram.profiles.profile_manager import ProfileManager
@@ -30,7 +31,7 @@ class CliHost:
 
         # 1. Секреты (порядок: env vars → .env file)
         c.register_instance(
-            ChainSecretProvider,
+            SecretProvider,
             ChainSecretProvider([
                 EnvVarsSecretProvider(),
                 EnvFileSecretProvider(self._env_file),
@@ -38,7 +39,7 @@ class CliHost:
         )
 
         # 2. Конфиг (публичные настройки, без секретов)
-        c.register(CliConfig, lambda _: CliConfig.load(self._config_path))
+        c.register(CliConfig, lambda _: load_cli_config(self._config_path))
 
         # 3. AppConfig (адаптация CliConfig для core-слоя)
         def _create_app_config(ctr: Container) -> AppConfig:
