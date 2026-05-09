@@ -25,3 +25,4 @@ telegram_session.session-journal
 .cursor/
 .idea/
 .vscode/
+tg_exporter.egg-info/
