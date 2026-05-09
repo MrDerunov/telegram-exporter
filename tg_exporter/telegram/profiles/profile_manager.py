@@ -1,7 +1,7 @@
 """
 ProfileManager — управление несколькими Telegram-аккаунтами.
 
-Метаданные профилей (несекретные): ~/.tg_exporter/profiles.json.
+Метаданные профилей (несекретные): ~/.tg-exporter/profiles.json.
 Сессии (секретные) хранятся через SecretProvider.
 
 Формат profiles.json:
@@ -28,7 +28,7 @@ from ...utils.file_utils import secure_permissions
 from .profile import Profile, _session_key, _normalize_phone
 
 
-_PROFILES_FILE = Path(os.path.expanduser("~/.tg_exporter/profiles.json"))
+_PROFILES_FILE = Path(os.path.expanduser("~/.tg-exporter/profiles.json"))
 
 
 class ProfileManager:

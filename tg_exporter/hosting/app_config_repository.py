@@ -8,7 +8,7 @@ from pathlib import Path
 from .app_config import AppConfig
 from ..utils.file_utils import secure_permissions
 
-CONFIG_DIR = Path(os.path.expanduser("~/.tg_exporter"))
+CONFIG_DIR = Path(os.path.expanduser("~/.tg-exporter"))
 CONFIG_FILE = CONFIG_DIR / "config.json"
 
 

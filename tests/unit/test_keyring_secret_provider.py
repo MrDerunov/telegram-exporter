@@ -21,7 +21,7 @@ class TestKeyringSecretProvider:
             mock_kr.get_password.return_value = "my_secret"
             provider = KeyringSecretProvider()
             assert provider.get("api_hash") == "my_secret"
-            mock_kr.get_password.assert_called_once_with("tg_exporter", "api_hash")
+            mock_kr.get_password.assert_called_once_with("tg-exporter", "api_hash")
 
     def test_get_returns_none_when_not_found(self):
         """get() → None если секрета нет."""
@@ -43,7 +43,7 @@ class TestKeyringSecretProvider:
         with patch("tg_exporter.secrets.keyring_secret_provider.keyring") as mock_kr:
             provider = KeyringSecretProvider()
             provider.set("api_hash", "abc123")
-            mock_kr.set_password.assert_called_once_with("tg_exporter", "api_hash", "abc123")
+            mock_kr.set_password.assert_called_once_with("tg-exporter", "api_hash", "abc123")
 
     def test_set_handles_exception(self):
         """set() не падает при ошибке keyring."""
@@ -57,7 +57,7 @@ class TestKeyringSecretProvider:
         with patch("tg_exporter.secrets.keyring_secret_provider.keyring") as mock_kr:
             provider = KeyringSecretProvider()
             provider.delete("api_hash")
-            mock_kr.delete_password.assert_called_once_with("tg_exporter", "api_hash")
+            mock_kr.delete_password.assert_called_once_with("tg-exporter", "api_hash")
 
     def test_delete_handles_exception(self):
         """delete() не падает при ошибке keyring."""

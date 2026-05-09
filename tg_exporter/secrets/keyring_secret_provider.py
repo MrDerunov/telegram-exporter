@@ -5,7 +5,7 @@ from tg_exporter.secrets.secret_provider import SecretProvider
 
 logger = logging.getLogger(__name__)
 
-_SERVICE = "tg_exporter"
+_SERVICE = "tg-exporter"
 
 
 class KeyringSecretProvider(SecretProvider):

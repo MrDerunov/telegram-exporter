@@ -1,5 +1,5 @@
 """CliConfig — конфигурация CLI-приложения (frozen).
-Хранится в ~/.tg_exporter/cli_config.yaml.
+Хранится в ~/.tg-exporter/cli_config.yaml.
 Секреты (api_hash, deepgram_api_key) не сериализуются в YAML —
 они читаются через SecretProvider при _configure_cli.
 Загрузкой/сохранением занимается cli_config_repository.

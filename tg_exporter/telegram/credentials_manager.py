@@ -21,7 +21,7 @@ except ImportError:
     _KEYRING_AVAILABLE = False
 
 
-_SERVICE_NAME = "tg_exporter"
+_SERVICE_NAME = "tg-exporter"
 
 
 class KeyringUnavailableError(RuntimeError):
@@ -33,9 +33,9 @@ class CredentialsManager:
     Thread-safe менеджер секретов через системный Keyring.
 
     Ключи в Keyring:
-        tg_exporter / {api_id}:api_hash  → api_hash
-        tg_exporter / {api_id}:session   → session string
-        tg_exporter / deepgram           → Deepgram API key
+        tg-exporter / {api_id}:api_hash  → api_hash
+        tg-exporter / {api_id}:session   → session string
+        tg-exporter / deepgram           → Deepgram API key
     """
 
     # ---- Проверка доступности ----

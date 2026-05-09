@@ -1,7 +1,7 @@
 """
 AppLogger — логгер приложения с автоматическим редактированием секретов.
 
-Пишет в файл ~/.tg_exporter/app.log.
+Пишет в файл ~/.tg-exporter/app.log.
 Чувствительные данные (api_hash, session, номера телефонов) автоматически
 заменяются на <redacted> перед записью.
 """
@@ -17,7 +17,7 @@ from pathlib import Path
 from typing import Optional
 
 
-LOG_PATH = Path(os.path.expanduser("~/.tg_exporter/app.log"))
+LOG_PATH = Path(os.path.expanduser("~/.tg-exporter/app.log"))
 MAX_LOG_SIZE = 5 * 1024 * 1024  # 5 MB — ротация
 
 

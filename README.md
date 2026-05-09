@@ -82,14 +82,14 @@ python main.py
 ## Где приложение хранит файлы
 
 ```
-~/.tg_exporter/
+~/.tg-exporter/
 ├── config.json              # api_id и настройки (без секретов)
 ├── profiles.json            # список аккаунтов (без сессий)
 ├── export_history.json      # для инкрементального экспорта
 └── app.log                  # лог приложения
 ```
 
-Секреты (`api_hash`, сессии, Deepgram key) — в системном Keyring (`tg_exporter`).
+Секреты (`api_hash`, сессии, Deepgram key) — в системном Keyring (`tg-exporter`).
 
 ## Лицензия
 

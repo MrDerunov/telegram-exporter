@@ -75,7 +75,7 @@ load_session(profile) → str | None
 ```
 
 **Хранение:**
-- Метаданные (phone, display_name, api_id) → `~/.tg_exporter/profiles.json`
+- Метаданные (phone, display_name, api_id) → `~/.tg-exporter/profiles.json`
 - Сессии → Keyring под ключом `{api_id}:session:{phone}`
 
 **Thread-safety:** внутренний `threading.Lock` на чтение/запись profiles.json.
