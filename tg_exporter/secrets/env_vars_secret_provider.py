@@ -2,8 +2,7 @@ import os
 from typing import Optional
 
 from tg_exporter.secrets.secret_provider import SecretProvider
-
-_PREFIX = "TG_EXPORTER_"
+from tg_exporter.secrets.secret_keys import _ENV_PREFIX
 
 
 class EnvVarsSecretProvider(SecretProvider):
@@ -12,7 +11,7 @@ class EnvVarsSecretProvider(SecretProvider):
     writable = True
 
     def _full_key(self, key: str) -> str:
-        return f"{_PREFIX}{key}"
+        return f"{_ENV_PREFIX}{key}"
 
     def get(self, key: str) -> Optional[str]:
         return os.environ.get(self._full_key(key))

@@ -35,7 +35,7 @@ def test_full_flow_auth_and_export(tmp_path: Path) -> None:
     host = (
         CliHost(config_path=config_path, env_file=env_file)
         .build()
-        .rebind_services(lambda c: c.register_instance(ITelegramClientManager, fake_manager))
+        .rebind_services(lambda c, raw: c.register_instance(ITelegramClientManager, fake_manager))
     )
 
     # ---- Шаг 1: проверка авторизации через сервис ----

@@ -1,6 +1,7 @@
 """Команды управления профилями: list, add, remove, switch."""
 from __future__ import annotations
 import click
+import dataclasses
 
 from tg_exporter.telegram.profiles.profile_manager import ProfileManager
 from tg_exporter_cli.hosting.cli_config import CliConfig
@@ -57,7 +58,7 @@ def profile_add(phone: str, api_id: str, api_hash: str, name: str | None):
         click.echo(f"✅ Профиль {phone} добавлен. Выполните auth login для входа.")
 
         if not config.default_profile or config.default_profile == "default":
-            config.default_profile = phone
+            config = dataclasses.replace(config, default_profile=phone)
             save_cli_config(config, host.config_path)
 
     except Exception as e:
@@ -97,7 +98,7 @@ def profile_switch(phone: str):
             click.echo(f"❌ Профиль {phone} не найден.", err=True)
             raise SystemExit(1)
 
-        config.default_profile = phone
+        config = dataclasses.replace(config, default_profile=phone)
         save_cli_config(config, host.config_path)
         click.echo(f"✅ Переключено на профиль {phone}")
     except Exception as e:

@@ -2,6 +2,7 @@
 from __future__ import annotations
 import click
 import yaml
+import dataclasses
 
 from tg_exporter_cli.hosting.cli_config import CliConfig
 from tg_exporter_cli.hosting.cli_config_repository import save_cli_config
@@ -86,7 +87,7 @@ def config_set(key: str, value: str):
         click.echo(f"❌ Неверное значение для {key}: {value}", err=True)
         raise SystemExit(1)
 
-    setattr(config, key, parsed)
+    config = dataclasses.replace(config, **{key: parsed})
     save_cli_config(config, host.config_path)
     click.echo(f"✅ {key} = {parsed}")
 

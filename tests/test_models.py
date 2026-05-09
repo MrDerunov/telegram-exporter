@@ -51,22 +51,22 @@ class TestAppConfig(unittest.TestCase):
         with self.assertRaises(self.ConfigValidationError):
             self.validate_app_config(cfg)
 
-    def test_to_dict_excludes_secrets(self):
-        cfg = self.AppConfig(api_id="123", deepgram_api_key="secret")
+    def test_to_dict_includes_config_fields(self):
+        cfg = self.AppConfig(api_id="123", api_hash="hash", deepgram_api_key="secret")
         d = cfg.to_dict()
-        self.assertNotIn("api_hash", d)
-        self.assertNotIn("session", d)
-        self.assertNotIn("deepgram_api_key", d)
-        self.assertIn("api_id", d)
+        self.assertEqual(d["api_id"], "123")
+        self.assertEqual(d["api_hash"], "hash")
+        self.assertEqual(d["deepgram_api_key"], "secret")
 
-    def test_from_dict_ignores_secrets(self):
+    def test_from_dict_loads_all_fields(self):
         cfg = self.AppConfig.from_dict({
             "api_id": "123",
-            "api_hash": "should_be_ignored",
-            "session": "should_be_ignored",
+            "api_hash": "my_hash",
+            "deepgram_api_key": "dg_key",
         })
         self.assertEqual(cfg.api_id, "123")
-        self.assertEqual(cfg.deepgram_api_key, "")
+        self.assertEqual(cfg.api_hash, "my_hash")
+        self.assertEqual(cfg.deepgram_api_key, "dg_key")
 
     def test_save_load_roundtrip(self):
         with tempfile.TemporaryDirectory() as d:

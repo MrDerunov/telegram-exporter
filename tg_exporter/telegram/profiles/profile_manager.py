@@ -2,7 +2,7 @@
 ProfileManager — управление несколькими Telegram-аккаунтами.
 
 Метаданные профилей (несекретные): ~/.tg_exporter/profiles.json.
-Сессии (секретные) хранятся в Keyring под ключом `{api_id}:session:{phone}`.
+Сессии (секретные) хранятся через SecretProvider.
 
 Формат profiles.json:
 {
@@ -22,7 +22,7 @@ import threading
 from pathlib import Path
 from typing import Optional
 
-from ..credentials_manager import CredentialsManager
+from tg_exporter.secrets.secret_provider import SecretProvider
 from ...utils.logger import logger
 from ...utils.file_utils import secure_permissions
 from .profile import Profile, _session_key, _normalize_phone
@@ -36,11 +36,11 @@ class ProfileManager:
     CRUD над списком профилей + активным профилем.
 
     Thread-safe: внутренний lock защищает загрузку/сохранение файла.
-    Секреты (session string) всегда идут через CredentialsManager/Keyring.
+    Секреты (session string) всегда идут через SecretProvider.
     """
 
-    def __init__(self, credentials: CredentialsManager) -> None:
-        self._credentials = credentials
+    def __init__(self, secrets: SecretProvider) -> None:
+        self._secrets = secrets
         self._lock = threading.Lock()
         self._profiles: list[Profile] = []
         self._active_phone: Optional[str] = None
@@ -121,9 +121,7 @@ class ProfileManager:
         if not api_id:
             raise ValueError("api_id required")
         if session_string:
-            self._credentials._require_keyring()  # type: ignore[attr-defined]
-            import keyring
-            keyring.set_password("tg_exporter", _session_key(api_id, phone), session_string)
+            self._secrets.set(_session_key(api_id, phone), session_string)
         with self._lock:
             existing = next((p for p in self._profiles if p.phone == phone), None)
             if existing is not None:
@@ -150,7 +148,7 @@ class ProfileManager:
             return profile
 
     def remove(self, phone: str) -> bool:
-        """Удаляет профиль и его сессию из Keyring."""
+        """Удаляет профиль и его сессию через SecretProvider."""
         phone = _normalize_phone(phone)
         with self._lock:
             profile = next((p for p in self._profiles if p.phone == phone), None)
@@ -179,28 +177,15 @@ class ProfileManager:
     def load_session(self, profile: Profile) -> Optional[str]:
         if not profile.api_id or not profile.phone:
             return None
-        try:
-            import keyring
-            return keyring.get_password("tg_exporter", _session_key(profile.api_id, profile.phone)) or None
-        except Exception:
-            return None
+        return self._secrets.get(_session_key(profile.api_id, profile.phone))
 
     def save_session(self, profile: Profile, session_string: str) -> None:
         if not session_string or not profile.api_id or not profile.phone:
             return
-        try:
-            import keyring
-            keyring.set_password("tg_exporter", _session_key(profile.api_id, profile.phone), session_string)
-        except Exception as exc:
-            logger.error(f"profiles: save_session failed: {exc}")
+        self._secrets.set(_session_key(profile.api_id, profile.phone), session_string)
 
     def _delete_session(self, api_id: str, phone: str) -> None:
         if not api_id or not phone:
             return
-        try:
-            import keyring
-            key = _session_key(api_id, phone)
-            if keyring.get_password("tg_exporter", key):
-                keyring.delete_password("tg_exporter", key)
-        except Exception:
-            pass
+        key = _session_key(api_id, phone)
+        self._secrets.delete(key)

@@ -48,12 +48,10 @@ class ExportOrchestrator:
         manager: ITelegramClientManager,
         config: AppConfig,
         history: ExportHistory,
-        deepgram_key: Optional[str] = None,
     ) -> None:
         self._manager = manager
         self._config = config
         self._history = history
-        self._deepgram_key = deepgram_key
         self._media = MediaDownloader()
 
     def run(
@@ -127,7 +125,7 @@ class ExportOrchestrator:
         transcribe_failed = False
         if task.transcribe_audio:
             try:
-                transcriber = create_transcriber(self._config, self._deepgram_key)
+                transcriber = create_transcriber(self._config)
                 # Статус-колбэк (сообщения) + прогресс-колбэк (скачивание модели).
                 status_setter = getattr(transcriber, "set_status_callback", None)
                 if callable(status_setter):

@@ -1,7 +1,7 @@
 """
-AppConfig — конфигурация приложения (только поля).
+AppConfig — конфигурация приложения (frozen, только поля).
 
-Секреты (api_hash, session) НЕ хранятся в конфиге — только в Keyring.
+Все секреты приходят из CliConfig через config_mapper.
 Загрузкой/сохранением занимается app_config_repository.
 Валидацией занимается app_config_validator.
 """
@@ -14,10 +14,11 @@ from typing import Optional
 from ..services.export.markdown_settings import MarkdownSettings
 
 
-@dataclass
+@dataclass(frozen=True)
 class AppConfig:
-    # Telegram API — только несекретная часть
+    # Telegram API
     api_id: str = ""
+    api_hash: str = ""
 
     # Транскрипция
     transcription_provider: str = "local"
@@ -43,10 +44,11 @@ class AppConfig:
         """Только несекретные поля — safe для записи в файл."""
         return {
             "api_id": self.api_id,
+            "api_hash": self.api_hash,
             "transcription_provider": self.transcription_provider,
             "transcription_language": self.transcription_language,
             "local_whisper_model": self.local_whisper_model,
-            # deepgram_api_key намеренно исключён — хранится в Keyring
+            "deepgram_api_key": self.deepgram_api_key,
             "include_private_chats": self.include_private_chats,
             "markdown": self.markdown.to_dict(),
         }
@@ -55,11 +57,10 @@ class AppConfig:
     def from_dict(cls, data: dict) -> "AppConfig":
         md_data = data.pop("markdown", {})
         known = {f for f in cls.__dataclass_fields__ if f != "markdown"}
-        # deepgram_api_key не читаем из файла — только из Keyring
-        filtered = {k: v for k, v in data.items() if k in known and k != "deepgram_api_key"}
+        filtered = {k: v for k, v in data.items() if k in known}
         obj = cls(**filtered)
         if md_data:
-            obj.markdown = MarkdownSettings.from_dict(md_data)
+            obj = _replace_attr(obj, "markdown", MarkdownSettings.from_dict(md_data))
         return obj
 
     def with_api_id(self, api_id: str) -> "AppConfig":
@@ -67,3 +68,9 @@ class AppConfig:
         digits = "".join(c for c in (api_id or "") if c.isdigit())
         import dataclasses
         return dataclasses.replace(self, api_id=digits)
+
+
+def _replace_attr(obj: AppConfig, name: str, value) -> AppConfig:
+    """dataclasses.replace для frozen AppConfig."""
+    import dataclasses
+    return dataclasses.replace(obj, **{name: value})

@@ -1,6 +1,7 @@
 """Команды управления чатами: list, show, add, remove."""
 from __future__ import annotations
 import click
+import dataclasses
 
 from tg_exporter.telegram.telegram_client_manager_interface import ITelegramClientManager
 from tg_exporter_cli.hosting.cli_config import CliConfig, ChatEntry
@@ -136,6 +137,7 @@ def chats_add(chat_id: str | None, folder: str | None):
         dialogs = run_async(_fetch())
         added = 0
         existing_ids = {c.id for c in config.chats}
+        new_chats = list(config.chats)
 
         if chat_id:
             target_id = int(chat_id)
@@ -143,7 +145,7 @@ def chats_add(chat_id: str | None, folder: str | None):
                 if d.id == target_id:
                     name = getattr(d, "name", "") or getattr(d, "title", "") or str(d.id)
                     if target_id not in existing_ids:
-                        config.chats.append(ChatEntry(name=name, id=target_id))
+                        new_chats.append(ChatEntry(name=name, id=target_id))
                         added = 1
                         click.echo(f"✅ Чат «{name}» (ID: {target_id}) добавлен в конфиг.")
                     else:
@@ -161,7 +163,7 @@ def chats_add(chat_id: str | None, folder: str | None):
                     did = d.id
                     if did not in existing_ids:
                         name = getattr(d, "name", "") or getattr(d, "title", "") or str(did)
-                        config.chats.append(ChatEntry(name=name, id=did))
+                        new_chats.append(ChatEntry(name=name, id=did))
                         existing_ids.add(did)
                         added += 1
             if added:
@@ -170,6 +172,7 @@ def chats_add(chat_id: str | None, folder: str | None):
                 click.echo(f"⚠ В папке «{folder}» не найдено новых чатов.")
 
         if added:
+            config = dataclasses.replace(config, chats=tuple(new_chats))
             save_cli_config(config, config_path)
 
     except Exception as e:
@@ -186,11 +189,12 @@ def chats_remove(chat_id: str):
     config_path = host.config_path
 
     target_id = int(chat_id)
-    for i, c in enumerate(config.chats):
+    for c in config.chats:
         if c.id == target_id:
-            removed = config.chats.pop(i)
+            new_chats = tuple(ch for ch in config.chats if ch.id != target_id)
+            config = dataclasses.replace(config, chats=new_chats)
             save_cli_config(config, config_path)
-            click.echo(f"✅ Чат «{removed.name}» (ID: {target_id}) удалён из конфига.")
+            click.echo(f"✅ Чат «{c.name}» (ID: {target_id}) удалён из конфига.")
             return
 
     click.echo(f"❌ Чат {chat_id} не найден в конфиге.", err=True)

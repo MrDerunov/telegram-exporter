@@ -5,6 +5,7 @@ from pathlib import Path
 
 from tg_exporter_cli.hosting import CliHost
 from tg_exporter.telegram.telegram_client_manager_interface import ITelegramClientManager
+from tg_exporter.secrets.secret_provider import SecretProvider
 from tests.fakes.fake_telegram_client import FakeTelegramClient
 from tests.fakes.fake_telegram_client_manager import FakeTelegramClientManager
 
@@ -29,5 +30,5 @@ def host_with_fake_client(fake_manager: FakeTelegramClientManager, tmp_path: Pat
     return (
         CliHost(config_path=config_path, env_file=env_file)
         .build()
-        .rebind_services(lambda c: c.register_instance(ITelegramClientManager, fake_manager))
+        .rebind_services(lambda c, raw: c.register_instance(ITelegramClientManager, fake_manager))
     )

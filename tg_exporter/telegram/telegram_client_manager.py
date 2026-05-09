@@ -1,5 +1,5 @@
 """TelethonClientManager — фабрика, создающая TelethonClientAdapter.
-Читает credentials из CredentialsManager, создаёт адаптер с нужной сессией.
+Читает api_hash из AppConfig, сессию из SecretProvider.
 """
 from __future__ import annotations
 import threading
@@ -8,7 +8,8 @@ from typing import Optional
 from .telegram_client_manager_interface import ITelegramClientManager
 from .telegram_client_interface import TelegramClientInterface
 from .telethon_client_adapter import TelethonClientAdapter
-from .credentials_manager import CredentialsManager
+from tg_exporter.secrets.secret_provider import SecretProvider
+from tg_exporter.secrets.secret_keys import SESSION
 from tg_exporter.hosting.app_config import AppConfig
 
 
@@ -19,9 +20,9 @@ class ClientNotConfiguredError(RuntimeError):
 class TelethonClientManager(ITelegramClientManager):
     """Создаёт TelethonClientAdapter с правильной сессией и конфигом."""
 
-    def __init__(self, config: AppConfig, credentials: CredentialsManager) -> None:
+    def __init__(self, config: AppConfig, secrets: SecretProvider) -> None:
         self._config = config
-        self._credentials = credentials
+        self._secrets = secrets
         self._session_override: Optional[str] = None
         self._current_client: Optional[TelethonClientAdapter] = None
         self._lock = threading.Lock()
@@ -55,7 +56,7 @@ class TelethonClientManager(ITelegramClientManager):
                     "api_id не задан. Настройте конфиг."
                 )
 
-            api_hash = self._credentials.load_api_hash(self._config.api_id)
+            api_hash = self._config.api_hash
             if not api_hash:
                 raise ClientNotConfiguredError(
                     "api_hash не найден. Введите API Hash."
@@ -63,7 +64,7 @@ class TelethonClientManager(ITelegramClientManager):
 
             session_str = (
                 self._session_override
-                or self._credentials.load_session(self._config.api_id)
+                or self._secrets.get(SESSION)
                 or ""
             )
 
@@ -75,14 +76,14 @@ class TelethonClientManager(ITelegramClientManager):
             return self._current_client
 
     def save_session(self) -> None:
-        """Сохранить сессию в CredentialsManager."""
+        """Сохранить сессию в SecretProvider."""
         with self._lock:
             if self._current_client is None:
                 return
             try:
                 session_str = self._current_client.save_session()
-                if session_str and self._config.api_id:
-                    self._credentials.save_session(self._config.api_id, session_str)
+                if session_str:
+                    self._secrets.set(SESSION, session_str)
             except Exception:
                 pass
 

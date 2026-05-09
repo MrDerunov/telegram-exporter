@@ -1,30 +1,33 @@
-"""Tests for ProfileManager — хранение, CRUD, активный профиль, сессии в keyring."""
+"""Tests for ProfileManager — хранение, CRUD, активный профиль, сессии через SecretProvider."""
 
 from __future__ import annotations
 
 import json
 import os
-import sys
 import tempfile
 import unittest
 from pathlib import Path
-from unittest import mock
+from typing import Optional
+
+from tg_exporter.secrets.secret_provider import SecretProvider
 
 
-class _FakeKeyring:
-    """In-memory замена keyring для изоляции тестов от системного хранилища."""
+class _FakeSecretProvider(SecretProvider):
+    """In-memory замена SecretProvider для изоляции тестов."""
+
+    writable = True
 
     def __init__(self) -> None:
-        self.store: dict[tuple[str, str], str] = {}
+        self.store: dict[str, str] = {}
 
-    def set_password(self, service: str, key: str, value: str) -> None:
-        self.store[(service, key)] = value
+    def get(self, key: str) -> Optional[str]:
+        return self.store.get(key)
 
-    def get_password(self, service: str, key: str):
-        return self.store.get((service, key))
+    def set(self, key: str, value: str) -> None:
+        self.store[key] = value
 
-    def delete_password(self, service: str, key: str) -> None:
-        self.store.pop((service, key), None)
+    def delete(self, key: str) -> None:
+        self.store.pop(key, None)
 
 
 class TestProfileManager(unittest.TestCase):
@@ -34,14 +37,8 @@ class TestProfileManager(unittest.TestCase):
         self.addCleanup(self._tmp.cleanup)
         self._fake_home = Path(self._tmp.name)
 
-        # Подмена keyring на in-memory fake (до импорта ProfileManager)
-        self._fake_kr = _FakeKeyring()
-        sys.modules["keyring"] = self._fake_kr  # type: ignore[assignment]
-        self.addCleanup(lambda: sys.modules.pop("keyring", None))
-
         # Импортируем и патчим путь к profiles.json
         from tg_exporter.telegram.profiles import profile_manager as profiles_mod
-        from tg_exporter.telegram.credentials import CredentialsManager
         from tg_exporter.telegram.profiles import ProfileManager
 
         self._profiles_mod = profiles_mod
@@ -49,10 +46,8 @@ class TestProfileManager(unittest.TestCase):
         profiles_mod._PROFILES_FILE = self._fake_home / "profiles.json"
         self.addCleanup(lambda: setattr(profiles_mod, "_PROFILES_FILE", self._orig_path))
 
-        self._creds = CredentialsManager()
-        # CredentialsManager._require_keyring() должен возвращать True с фейком
-        self._creds._require_keyring = lambda: True  # type: ignore[method-assign]
-        self.pm = ProfileManager(self._creds)
+        self._secrets = _FakeSecretProvider()
+        self.pm = ProfileManager(self._secrets)
 
     def test_empty_initial_state(self):
         self.assertTrue(self.pm.is_empty())
@@ -70,13 +65,13 @@ class TestProfileManager(unittest.TestCase):
         self.assertEqual(self.pm.active_phone(), "+79991112233")
         self.assertEqual(len(self.pm.list()), 1)
 
-    def test_session_stored_in_keyring(self):
+    def test_session_stored_in_secret_provider(self):
         self.pm.add_or_update(
             phone="+79991112233", api_id="42",
             session_string="session-A",
         )
-        key = ("tg_exporter", "42:session:+79991112233")
-        self.assertEqual(self._fake_kr.store.get(key), "session-A")
+        key = "42:session:+79991112233"
+        self.assertEqual(self._secrets.store.get(key), "session-A")
 
     def test_add_second_profile_preserves_active(self):
         self.pm.add_or_update(phone="+71111111111", api_id="42", session_string="s1")
@@ -111,8 +106,8 @@ class TestProfileManager(unittest.TestCase):
         self.assertTrue(self.pm.remove("+71111111111"))
         # Активный должен переключиться на оставшийся
         self.assertEqual(self.pm.active_phone(), "+72222222222")
-        # Сессия удалена из keyring
-        self.assertNotIn(("tg_exporter", "42:session:+71111111111"), self._fake_kr.store)
+        # Сессия удалена из SecretProvider
+        self.assertNotIn("42:session:+71111111111", self._secrets.store)
 
     def test_remove_last_clears_active(self):
         self.pm.add_or_update(phone="+71111111111", api_id="42", session_string="s1")
@@ -144,7 +139,7 @@ class TestProfileManager(unittest.TestCase):
         self.pm.set_active("+72222222222")
 
         from tg_exporter.telegram.profiles import ProfileManager
-        pm2 = ProfileManager(self._creds)
+        pm2 = ProfileManager(self._secrets)
         self.assertEqual(pm2.active_phone(), "+72222222222")
         self.assertEqual(len(pm2.list()), 2)
 
@@ -173,8 +168,8 @@ class TestProfileManager(unittest.TestCase):
         )
         self.assertEqual(updated.display_name, "New")
         self.assertEqual(len(self.pm.list()), 1)
-        key = ("tg_exporter", "42:session:+71111111111")
-        self.assertEqual(self._fake_kr.store.get(key), "v2")
+        key = "42:session:+71111111111"
+        self.assertEqual(self._secrets.store.get(key), "v2")
 
     def test_file_has_no_session_secrets(self):
         self.pm.add_or_update(

@@ -4,19 +4,16 @@
 
 from __future__ import annotations
 
-from typing import Optional
-
 from .base import BaseTranscriber, TranscriptionError
 from ...hosting.app_config import AppConfig
 
 
-def create_transcriber(config: AppConfig, deepgram_key: Optional[str] = None) -> BaseTranscriber:
+def create_transcriber(config: AppConfig) -> BaseTranscriber:
     """
     Создаёт транскрибер по настройкам конфига.
 
     Args:
-        config: AppConfig с полями transcription_provider, local_whisper_model, etc.
-        deepgram_key: API ключ Deepgram (берётся из Keyring отдельно, не из конфига)
+        config: AppConfig с полями transcription_provider, local_whisper_model, deepgram_api_key
 
     Returns:
         Нужный BaseTranscriber
@@ -27,7 +24,7 @@ def create_transcriber(config: AppConfig, deepgram_key: Optional[str] = None) ->
     provider = (config.transcription_provider or "local").strip().lower()
 
     if provider == "deepgram":
-        key = (deepgram_key or "").strip()
+        key = (config.deepgram_api_key or "").strip()
         if not key:
             raise TranscriptionError(
                 "Deepgram API ключ не задан. Введите его в настройках."
