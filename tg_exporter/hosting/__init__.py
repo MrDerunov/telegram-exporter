@@ -1,4 +1,5 @@
-from .app_config import AppConfig, ConfigValidationError
+from .app_config import AppConfig
+from .app_config_validator import ConfigValidationError
 from ..services.export.export_message import ExportMessage
 from ..services.export.media_type import MediaType
 from ..services.export.export_task import ExportTask

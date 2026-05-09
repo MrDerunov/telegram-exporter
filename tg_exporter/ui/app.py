@@ -29,6 +29,7 @@ from .views.export_modal import ExportModal
 from .views.help_modal import HelpModal
 
 from ..hosting.app_config import AppConfig
+from ..hosting.app_config_repository import load_app_config, save_app_config
 from ..services.export.export_task import ExportTask
 from ..services.export.export_progress import ExportProgress
 from ..services.export.export_format import ExportFormat
@@ -83,7 +84,7 @@ class App(ctk.CTk):
         self._setup_window()
 
         # Phase 1: config и credentials
-        self.config = AppConfig.load()
+        self.config = load_app_config()
         self.credentials = CredentialsManager()
         self._migrate_legacy_config()
 
@@ -211,7 +212,7 @@ class App(ctk.CTk):
         except Exception as exc:
             logger.error("save_api_hash failed", exc=exc)
 
-        self.config.save()
+        save_app_config(self.config)
         self._client_mgr.update_config(self.config)
         self.login_view.refresh_state()
 
@@ -220,7 +221,7 @@ class App(ctk.CTk):
             self.credentials.delete_all(self.config.api_id)
         self._client_mgr.destroy()
         self.config = AppConfig()
-        self.config.save()
+        save_app_config(self.config)
         self.login_view.refresh_state()
 
     # ---- Chat list actions ----
@@ -408,11 +409,11 @@ class App(ctk.CTk):
 
     def set_transcription_provider(self, provider: str) -> None:
         self.config = _update_config(self.config, transcription_provider=provider)
-        self.config.save()
+        save_app_config(self.config)
 
     def set_local_whisper_model(self, model: str) -> None:
         self.config = _update_config(self.config, local_whisper_model=model or "base")
-        self.config.save()
+        save_app_config(self.config)
 
     # ---- Background tasks ----
 
@@ -425,7 +426,7 @@ class App(ctk.CTk):
             if session_str:
                 if active.api_id and active.api_id != self.config.api_id:
                     self.config = self.config.with_api_id(active.api_id)
-                    self.config.save()
+                    save_app_config(self.config)
                     self._client_mgr.update_config(self.config)
                 self._client_mgr.use_session(session_str)
         result = _run_async(self._auth.check_session())
@@ -468,7 +469,7 @@ class App(ctk.CTk):
             # Убеждаемся, что api_id клиента соответствует профилю.
             if profile.api_id and profile.api_id != self.config.api_id:
                 self.config = self.config.with_api_id(profile.api_id)
-                self.config.save()
+                save_app_config(self.config)
                 self._client_mgr.update_config(self.config)
             self._client_mgr.use_session(session_str)
             adapter = self._client_mgr.create_client()

@@ -1,4 +1,3 @@
-from ...hosting.app_config import AppConfig, ConfigValidationError
 from .export_message import ExportMessage
 from .media_type import MediaType
 from .export_task import ExportTask
@@ -11,7 +10,6 @@ from .poll_data import PollAnswer, PollData
 from .reaction_item import ReactionItem
 
 __all__ = [
-    "ConfigValidationError",
     "ExportMessage",
     "MediaType",
     "ExportTask",

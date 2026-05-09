@@ -2,65 +2,31 @@
 from __future__ import annotations
 import click
 
-from .container import Container
+from .commands.auth import auth_group
+from .commands.export import export_group
+from .commands.version import version_command
+from .commands.doctor import doctor_command
 
 
 @click.group()
 @click.version_option(version="1.0.0", prog_name="tg-exporter")
-def cli() -> None:
+@click.pass_context
+def cli(ctx: click.Context) -> None:
     """tg-exporter — экспорт чатов Telegram в JSON и Markdown."""
-    pass
+    from .hosting import CliHost
+
+    ctx.obj = CliHost().build()
+    ctx.obj.run()
 
 
-@cli.group()
-def auth() -> None:
-    """Аутентификация в Telegram."""
-    pass
+# Реальные команды
+cli.add_command(auth_group)
+cli.add_command(export_group)
+cli.add_command(version_command)
+cli.add_command(doctor_command)
 
 
-@auth.command("login")
-def auth_login() -> None:
-    """Интерактивный вход в аккаунт."""
-    click.echo("[TODO] auth login")
-
-
-@auth.command("status")
-def auth_status() -> None:
-    """Проверить статус авторизации."""
-    click.echo("[TODO] auth status")
-
-
-@auth.command("logout")
-def auth_logout() -> None:
-    """Выйти из аккаунта."""
-    click.echo("[TODO] auth logout")
-
-
-@auth.command("export-session")
-def auth_export_session() -> None:
-    """Экспортировать сессию в secrets.env."""
-    click.echo("[TODO] auth export-session")
-
-
-@auth.command("verify")
-def auth_verify() -> None:
-    """Проверить валидность сессии (для CI/CD)."""
-    click.echo("[TODO] auth verify")
-
-
-@cli.group()
-def export() -> None:
-    """Экспорт сообщений из чатов."""
-    pass
-
-
-@export.command("run")
-@click.option("--chat", required=True, help="ID или username чата")
-def export_run(chat: str) -> None:
-    """Запустить экспорт."""
-    click.echo(f"[TODO] export --chat {chat}")
-
-
+# Заглушки (будут реализованы в Фазе 3/4)
 @cli.group()
 def chats() -> None:
     """Управление списком чатов."""
@@ -95,18 +61,6 @@ def config() -> None:
 def config_show() -> None:
     """Показать текущий конфиг."""
     click.echo("[TODO] config show")
-
-
-@cli.command("version")
-def version() -> None:
-    """Показать версию утилиты."""
-    click.echo("tg-exporter 1.0.0")
-
-
-@cli.command("doctor")
-def doctor() -> None:
-    """Диагностика окружения."""
-    click.echo("[TODO] doctor")
 
 
 if __name__ == "__main__":
