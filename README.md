@@ -1,5 +1,5 @@
 <div align="center">
-  <h1>tg-exporter</h1>
+  <h1>Telegram Exporter Cli</h1>
   <p><b>Консольная утилита для экспорта чатов и каналов Telegram в JSON и Markdown.</b></p>
   <p>
     <a href="https://github.com/MrDerunov/telegram-exporter/releases">
