@@ -140,7 +140,7 @@ class ExportOrchestrator:
                     logger.info(
                         f"transcription: preload start "
                         f"(provider={self._config.transcription_provider}, "
-                        f"model={self._config.local_whisper_model})"
+                        f"model={self._config.transcription_model})"
                     )
                     transcriber.preload()
                     logger.info("transcription: preload done")

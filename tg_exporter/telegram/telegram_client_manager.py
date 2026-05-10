@@ -9,7 +9,7 @@ from .telegram_client_manager_interface import ITelegramClientManager
 from .telegram_client_interface import TelegramClientInterface
 from .telethon_client_adapter import TelethonClientAdapter
 from tg_exporter.secrets.secret_store import ISecretStore
-from tg_exporter.secrets.secret_keys import SESSION
+from tg_exporter.secrets.secret_keys import SESSION, API_HASH
 from tg_exporter.hosting.static_config import StaticConfig
 
 
@@ -56,7 +56,7 @@ class TelethonClientManager(ITelegramClientManager):
                     "api_id не задан. Настройте конфиг."
                 )
 
-            api_hash = self._config.api_hash
+            api_hash = self._config.api_hash or self._secrets.get(API_HASH) or ""
             if not api_hash:
                 raise ClientNotConfiguredError(
                     "api_hash не найден. Введите API Hash."

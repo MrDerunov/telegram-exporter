@@ -104,7 +104,9 @@ logger = AppLogger()
 def init_logger(config_dir: Path) -> None:
     """Инициализирует логгер с путём на основе config_dir.
     Вызывается из CliHost.run() ПОСЛЕ build().
+    Обновляет _path существующего экземпляра AppLogger.
     """
-    global LOG_PATH, logger
+    global LOG_PATH
     LOG_PATH = config_dir / "app.log"
-    logger = AppLogger(LOG_PATH)
+    # Обновляем путь в существующем экземпляре — все модули уже импортировали его
+    logger._path = LOG_PATH

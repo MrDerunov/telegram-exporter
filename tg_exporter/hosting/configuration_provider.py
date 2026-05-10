@@ -45,22 +45,34 @@ def _load_json(path: Path) -> dict:
 
 
 def _load_dotenv(path: Path) -> dict[str, str]:
-    """Читает .env файл. Возвращает {} если файл отсутствует."""
+    """Читает .env файл. Ключи приводятся к lowercase, префикс TG_EXPORTER_ снимается."""
     if not path.exists():
         return {}
     try:
         from dotenv import dotenv_values
-        return dotenv_values(path)
+        raw = dotenv_values(path)
     except ImportError:
         return {}
+    result: dict[str, str] = {}
+    prefix_lower = _ENV_PREFIX.lower()
+    for k, v in raw.items():
+        if v is None:
+            continue
+        key = k.lower()
+        if key.startswith(prefix_lower):
+            key = key[len(prefix_lower):]
+        result[key] = v
+    return result
 
 
 def _load_env_vars() -> dict[str, str]:
-    """Читает переменные окружения с префиксом TG_EXPORTER_ (без префикса в ключах)."""
+    """Читает переменные окружения с префиксом TG_EXPORTER_ (ключи в lowercase)."""
     result: dict[str, str] = {}
+    prefix_lower = _ENV_PREFIX.lower()
     for full_key, value in os.environ.items():
-        if full_key.startswith(_ENV_PREFIX):
-            short_key = full_key[len(_ENV_PREFIX):]
+        lower_key = full_key.lower()
+        if lower_key.startswith(prefix_lower):
+            short_key = lower_key[len(prefix_lower):]
             result[short_key] = value
     return result
 
