@@ -164,6 +164,9 @@ class JsonSettingsStore(ISettingsStore):
         # атомарная запись + secure_permissions (0o600)
 ```
 
+> **Примечание:** `config_dir` берётся из `ConfigurationResult.config_dir` при создании
+> в хосте, а не через DI. Это позволяет тестам подменять путь.
+
 ### 2.2. KeyringSecretStore
 
 **Новый файл:** `tg_exporter/secrets/keyring_secret_store.py`
@@ -287,23 +290,12 @@ def _merge_dicts(base: dict, override: dict) -> dict:
     return base
 ```
 
-### 3.3. map_to_typed()
+### 3.3. Класс ConfigurationProvider
 
-```python
-def map_merged_to_typed(merged: dict) -> tuple[StaticConfig, StateModel, dict]:
-    """
-    Из merged-словаря собирает:
-    - StaticConfig (через from_raw)
-    - StateModel (через from_dict)
-    - secrets dict (api_hash, deepgram_api_key, sessions)
-    """
-```
-
-> **Примечание:** `StateModel` собирается из merged-словаря, но его сохранением
-> в state.json занимается `SettingsRepository` (через `ISettingsStore`),
-> а не `ConfigurationProvider`.
-
-### 3.4. Класс ConfigurationProvider
+**Важно — разделение ответственности:**
+`ConfigurationProvider` НЕ маппит словарь в типы. Он только собирает сырые данные
+из всех источников и возвращает `ConfigurationResult` с сырым словарём.
+Маппингом в `StaticConfig` / `StateModel` занимается **хост** (`CliHost._bind_services`).
 
 ```python
 class ConfigurationProvider:
@@ -313,20 +305,20 @@ class ConfigurationProvider:
 
     def build(self) -> ConfigurationResult:
         merged = build_merged_config(self._config_dir, self._env_file)
-        static, state, secrets = map_merged_to_typed(merged)
         return ConfigurationResult(
-            static_config=static,
-            state_model=state,
-            secrets=secrets,
+            raw=merged,
             config_dir=self._config_dir,
         )
 
 @dataclass(frozen=True)
 class ConfigurationResult:
-    static_config: StaticConfig
-    state_model: StateModel
-    secrets: dict
-    config_dir: Path
+    """Сырой результат сборки конфигурации из всех источников.
+    Хост маппит raw в типизированные конфиги при _bind_services.
+    Регистрируется в DI как singleton — любой компонент может получить
+    доступ к config_dir или сырым данным.
+    """
+    raw: dict          # объединённый словарь всех настроек
+    config_dir: Path   # директория, где лежат config/state/secrets файлы
 ```
 
 ---
@@ -335,49 +327,66 @@ class ConfigurationResult:
 
 **Файл:** `tg_exporter_cli/hosting/cli_host.py`
 
-### 4.1. Новый метод build()
+### 4.1. Разделение build() и run()
+
+- **`build()`** — только собирает конфигурацию и регистрирует зависимости в DI.
+  Не создаёт файлов/папок, не делает операций с ОС.
+- **`run()`** — инициализирует логгер (создаёт app.log), может выполнять другие
+  операции с ОС (создание директорий, миграции и т.п.).
 
 ```python
-def build(self) -> CliHost:
-    # 1. Определить config_dir
-    config_dir = resolve_config_dir()
+class CliHost:
+    def build(self) -> CliHost:
+        # 1. Определить config_dir
+        config_dir = resolve_config_dir()
 
-    # 2. Собрать конфигурацию из всех источников
-    provider = ConfigurationProvider(config_dir, self._env_file)
-    result = provider.build()
+        # 2. Собрать конфигурацию из всех источников (только чтение, без записи)
+        provider = ConfigurationProvider(config_dir, self._env_file)
+        result = provider.build()
 
-    # 3. Создать SecretStore (keyring или file)
-    if result.static_config.secrets_source == "file":
-        secret_store = JsonSecretStore(config_dir)
-    else:
-        secret_store = KeyringSecretStore()
+        # 3. Зарегистрировать зависимости в DI
+        self._bind_services(result)
+        return self
 
-    # 4. Создать хранилище состояния
-    settings_store = JsonSettingsStore(config_dir)
-
-    # 5. Инициализировать логгер с config_dir
-    init_logger(config_dir)
-
-    # 6. Зарегистрировать в DI
-    self._bind_services(result, settings_store, secret_store)
-    return self
+    def run(self) -> None:
+        """Инициализация ОС-ресурсов: логгер, директории и т.п.
+        Вызывается ПОСЛЕ build() при старте приложения."""
+        result = self._container.get(ConfigurationResult)
+        init_logger(result.config_dir)
 ```
 
-### 4.2. Регистрация в DI
+### 4.2. Сигнатура _bind_services — принимает ConfigurationResult
+
+Хост сам маппит `ConfigurationResult.raw` в типизированные конфиги.
+Это разделение ответственности: ConfigurationProvider собирает сырые данные,
+хост превращает их в типы.
 
 ```python
-def _bind_services(self, result, settings_store, secret_store):
+def _bind_services(self, result: ConfigurationResult) -> None:
     c = self._container
 
-    # Configs
-    c.register_instance(StaticConfig, result.static_config)
-    c.register_instance(StateModel, result.state_model)
+    # ConfigurationResult — регистрируем как есть, для доступа к config_dir
+    c.register_instance(ConfigurationResult, result)
 
-    # Stores
-    c.register_instance(ISettingsStore, settings_store)
+    # Маппинг сырого словаря в типизированные конфиги (делает хост)
+    static_config = StaticConfig.from_raw(result.raw)
+    state_model = StateModel.from_dict(result.raw)
+
+    c.register_instance(StaticConfig, static_config)
+    c.register_instance(StateModel, state_model)
+
+    # SecretStore — тип выбирается на основе настройки из static_config
+    if static_config.secrets_source == "file":
+        secret_store = JsonSecretStore(result.config_dir)
+    else:
+        secret_store = KeyringSecretStore()
     c.register_instance(ISecretStore, secret_store)
 
-    # ProfileManager (обновлённый конструктор)
+    # SettingsStore
+    settings_store = JsonSettingsStore(result.config_dir)
+    c.register_instance(ISettingsStore, settings_store)
+
+    # ProfileManager — принимает ISecretStore + ISettingsStore
     c.register(
         ProfileManager,
         lambda ctr: ProfileManager(
@@ -408,18 +417,22 @@ def _bind_services(self, result, settings_store, secret_store):
     )
 ```
 
-### 4.3. Совместимость
+### 4.3. Переход на ISecretStore — без обратной совместимости
 
-Для обратной совместимости `CliHost.get(SecretProvider)` должен продолжать
-работать (команды пока используют `SecretProvider`). Варианты:
+**Вариант C:** Обновить все команды сразу на `ISecretStore`.
+Никаких алиасов `SecretProvider` — старый интерфейс удаляется полностью.
+Все команды, использующие `host.get(SecretProvider)`, переходят на `host.get(ISecretStore)`.
 
-- **Вариант A:** `register_instance(SecretProvider, secret_store)` — если `ISecretStore` наследует `SecretProvider`
-- **Вариант B:** Зеркальная регистрация: `register_instance(SecretProvider, secret_store)`
-- **Вариант C:** Обновить все команды сразу на `ISecretStore`
+### 4.4. Доступ к config_dir из команд
 
-**Рекомендация:** Вариант B — зарегистрировать `SecretProvider` как алиас к `ISecretStore`.
-Добавить `SecretProvider = ISecretStore` в `tg_exporter/secrets/__init__.py` для
-совместимости.
+Команды, которым нужен путь к конфиг-директории, получают его через DI:
+```python
+result = host.get(ConfigurationResult)
+config_dir = result.config_dir
+```
+
+Больше нет `host.config_path` — путь к директории конфига доступен через
+`ConfigurationResult`, который зарегистрирован в DI как singleton.
 
 ---
 
@@ -464,7 +477,9 @@ class ProfileManager:
 После рефакторинга чаты должны быть в `StateModel.chats`. Команды `chats`
 должны использовать `ISettingsStore` для сохранения.
 
-**Вариант:** `ProfileManager._save()` сохраняет ТОЛЬКО профили, не трогая чаты.
+**Решение:** `ProfileManager._save()` сохраняет ТОЛЬКО профили (не трогает чаты).
+При сохранении читает текущее состояние через `ISettingsStore.load()`,
+меняет в нём только профили и `active_phone`, а `chats` оставляет как есть.
 Команды чатов работают с `ISettingsStore` напрямую, загружая полный `StateModel`,
 меняя в нём `chats`, и сохраняя обратно.
 
@@ -491,7 +506,7 @@ class ProfileManager:
       logger = AppLogger(LOG_PATH)
   ```
 - При инициализации `AppLogger.__init__` использовать `LOG_PATH` из глобальной переменной.
-- Вызывать `init_logger()` из `CliHost.build()`.
+- Вызывать `init_logger()` из `CliHost.run()` — именно run() отвечает за создание файлов/папок в ОС, build() только регистрирует зависимости.
 
 ---
 
@@ -513,7 +528,7 @@ class ProfileManager:
 Изменения:
 - `host.get(CliConfig)` → `host.get(StaticConfig)`
 - `save_cli_config(...)` → запись через `ISettingsStore` или прямую запись config.json
-- `host.config_path` → `host.get_config_dir()` или отдельная регистрация config_dir в DI
+- `host.config_path` → `host.get(ConfigurationResult).config_dir`
 
 ### 7.3. Команда `profile`
 
@@ -521,14 +536,15 @@ class ProfileManager:
 
 Изменения:
 - `host.get(CliConfig)` → больше не нужно (default_profile теперь в StateModel/ProfileManager)
-- `save_cli_config(...)` → `ProfileManager` сам сохраняет через ISettingsStore
+- `save_cli_config(...)` → убрать, `ProfileManager` сам сохраняет через ISettingsStore
+- `host.config_path` → `host.get(ConfigurationResult).config_dir` (если нужен для информации)
 
 ### 7.4. Команда `auth`
 
 **Файл:** `tg_exporter_cli/commands/auth.py`
 
 Изменения:
-- `host.get(SecretProvider)` → `host.get(ISecretStore)` (или оставить совместимость)
+- `host.get(SecretProvider)` → `host.get(ISecretStore)`
 - `host.get(CliConfig)` → `host.get(StaticConfig)`
 
 ### 7.5. Команда `doctor`
@@ -572,7 +588,7 @@ class ProfileManager:
 |---|---|
 | `tg_exporter_cli/hosting/cli_config.py` | `StaticConfig` + `StateModel` |
 | `tg_exporter_cli/hosting/cli_config_repository.py` | `ISettingsStore` + `JsonSettingsStore` |
-| `tg_exporter_cli/hosting/config_mapper.py` | `ConfigurationProvider.map_merged_to_typed()` |
+| `tg_exporter_cli/hosting/config_mapper.py` | Хост маппит в `_bind_services` |
 | `tg_exporter/hosting/app_config.py` | `StaticConfig` |
 | `tg_exporter/hosting/app_config_repository.py` | `ConfigurationProvider` |
 | `tg_exporter/hosting/app_config_validator.py` | Валидация в `StaticConfig.from_raw()` |
@@ -587,7 +603,7 @@ class ProfileManager:
 | Файл | Причина |
 |---|---|
 | `tg_exporter/secrets/secret_keys.py` | Константы ключей нужны всем |
-| `tg_exporter/secrets/keyring_secret_provider.py` | Код переносится в `keyring_secret_store.py` |
+| `tg_exporter/secrets/keyring_secret_provider.py` | `KeyringSecretStore` |
 | `tg_exporter/telegram/profiles/profile.py` | Внутренняя модель ProfileManager |
 | `tg_exporter_cli/hosting/container.py` | DI-контейнер без изменений |
 | `tg_exporter_cli/hosting/__init__.py` | Точка входа get_host() |
@@ -600,16 +616,21 @@ class ProfileManager:
 
 | Тип | Реализация | Жизненный цикл |
 |---|---|---|
-| `StaticConfig` | instance | singleton |
-| `StateModel` | instance | singleton |
+| `ConfigurationResult` | instance (сырой словарь + config_dir) | singleton |
+| `StaticConfig` | instance (маппится хостом из result.raw) | singleton |
+| `StateModel` | instance (маппится хостом из result.raw) | singleton |
 | `ISettingsStore` | `JsonSettingsStore` | singleton |
 | `ISecretStore` | `KeyringSecretStore` / `JsonSecretStore` | singleton |
-| `SecretProvider` | = ISecretStore (алиас) | singleton |
 
-### 10.2. Config dir в DI
+### 10.2. Доступ к config_dir
 
-Зарегистрировать `config_dir` как `Path` в контейнере или добавить метод
-`host.get_config_dir()` для команд, которым нужен путь.
+Любой компонент получает config_dir через DI:
+```python
+result = container.get(ConfigurationResult)
+config_dir = result.config_dir
+```
+
+Больше нет `host.config_path` — путь доступен через `ConfigurationResult.config_dir`.
 
 ---
 
@@ -630,44 +651,6 @@ class ProfileManager:
 - `test_keyring_secret_provider.py` — переименовать в test_keyring_secret_store
 
 ---
-
-## Шаг 12. Миграция данных
-
-При первом запуске новой версии нужно мигрировать старые данные:
-
-### 12.1. Миграция cli_config.yaml → config.json + state.json
-```python
-def migrate_from_yaml(config_dir: Path):
-    yaml_path = Path.home() / ".tg-exporter" / "cli_config.yaml"
-    if not yaml_path.exists():
-        return
-    with open(yaml_path) as f:
-        data = yaml.safe_load(f) or {}
-
-    # Разделить на static config и state
-    static = {k: v for k, v in data.items() if k in StaticConfig.__dataclass_fields__}
-    state = {
-        "active_phone": data.get("default_profile", ""),
-        "chats": data.get("chats", []),
-        "profiles": [],  # profiles.json будет мигрирован отдельно
-    }
-
-    # Сохранить в config_dir
-    write_config_json(config_dir, static)
-    write_state_json(config_dir, state)
-
-    # Удалить старый файл (или переименовать в .bak)
-    yaml_path.rename(yaml_path.with_suffix(".yaml.bak"))
-```
-
-### 12.2. Миграция profiles.json → state.json
-
-ProfileManager при первом старте читает старый `~/.tg-exporter/profiles.json`
-и записывает профили в `state.json`.
-
-### 12.3. Миграция config.json (legacy) → config.json (new)
-
-Старый `config.json` в `~/.tg-exporter/` игнорируется (формат другой, путь другой).
 
 ---
 
@@ -717,10 +700,7 @@ ProfileManager при первом старте читает старый `~/.tg
 - [ ] 9.2 Обновить существующие тесты
 - [ ] 9.3 Запустить полный тестовый набор
 
-### Фаза 10: Миграция
-- [ ] 10.1 Функция миграции из cli_config.yaml
-- [ ] 10.2 Функция миграции profiles.json → state.json
-- [ ] 10.3 Вызов миграции при старте
+
 
 ---
 
@@ -737,8 +717,9 @@ ProfileManager при первом старте читает старый `~/.tg
 - **SecretStore по умолчанию keyring:** для ручного использования на ПК.
   `secrets_source: "file"` — для CI, пишет в `secrets.json`.
 
-- **Обратная совместимость:** `SecretProvider` остаётся алиасом `ISecretStore`,
-  `CliConfig` удаляется (все поля переносятся в `StaticConfig` + `StateModel`).
+- **Без обратной совместимости:** `SecretProvider` удаляется полностью, все команды
+  переходят на `ISecretStore`. `CliConfig` удаляется (все поля переносятся
+  в `StaticConfig` + `StateModel`).
 
 - **API_ID не секрет:** хранится в config.json как обычное поле static config.
 
