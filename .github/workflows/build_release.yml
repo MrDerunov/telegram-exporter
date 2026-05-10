@@ -1,67 +1,112 @@
 name: Build release artifacts
 
 on:
-  push:
-    tags:
-      - "v*"
   workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.bump.outputs.version }}
+      tag: ${{ steps.bump.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: bump
+        name: Determine next version
+        run: |
+          LATEST_TAG=$(git tag -l 'v*' --sort=-v:refname | head -1)
+          if [ -z "$LATEST_TAG" ]; then
+            NEW_VERSION="0.0.1"
+          else
+            BASE="${LATEST_TAG#v}"
+            MAJOR=$(echo "$BASE" | cut -d. -f1)
+            MINOR=$(echo "$BASE" | cut -d. -f2)
+            PATCH=$(echo "$BASE" | cut -d. -f3)
+            NEW_VERSION="${MAJOR}.${MINOR}.$((PATCH + 1))"
+          fi
+          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "tag=v$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "Next version: v$NEW_VERSION"
+
   build-linux:
+    needs: version
     runs-on: ubuntu-22.04
+    env:
+      TG_EXPORTER_VERSION: ${{ needs.version.outputs.version }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - name: Set version from tag
-        if: startsWith(github.ref, 'refs/tags/')
-        run: echo "TG_EXPORTER_VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_ENV
       - name: Build Linux bundle
         run: chmod +x ./scripts/build_linux.sh && ./scripts/build_linux.sh
-      - name: Publish to Releases
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v2
+      - uses: actions/upload-artifact@v4
         with:
-          files: dist/tg-exporter-linux-x86_64.tar.gz
+          name: linux-bundle
+          path: dist/tg-exporter-linux-x86_64.tar.gz
 
   build-macos-arm64:
+    needs: version
     runs-on: macos-14
+    env:
+      TG_EXPORTER_VERSION: ${{ needs.version.outputs.version }}
+      TARGET_ARCH: arm64
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - name: Set version from tag
-        if: startsWith(github.ref, 'refs/tags/')
-        run: echo "TG_EXPORTER_VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_ENV
       - name: Build macOS bundle
-        env:
-          TARGET_ARCH: arm64
         run: chmod +x ./scripts/build_mac.sh && ./scripts/build_mac.sh
-      - name: Publish to Releases
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v2
+      - uses: actions/upload-artifact@v4
         with:
-          files: dist/tg-exporter-mac-arm64.tar.gz
+          name: macos-bundle
+          path: dist/tg-exporter-mac-arm64.tar.gz
 
   build-windows:
+    needs: version
     runs-on: windows-latest
+    env:
+      TG_EXPORTER_VERSION: ${{ needs.version.outputs.version }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - name: Set version from tag
-        if: startsWith(github.ref, 'refs/tags/')
-        run: echo "TG_EXPORTER_VERSION=${{ github.ref_name }}" | ForEach-Object { $v = $_ -replace '^v',''; "TG_EXPORTER_VERSION=$v" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append }
       - name: Build Windows bundle
         run: powershell -ExecutionPolicy Bypass -File .\scripts\build_win.ps1
-      - name: Publish to Releases
-        if: startsWith(github.ref, 'refs/tags/')
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-bundle
+          path: dist/tg-exporter-windows-x86_64.zip
+
+  release:
+    needs: [version, build-linux, build-macos-arm64, build-windows]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: '*-bundle'
+          path: dist
+          merge-multiple: true
+      - name: Create and push tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag ${{ needs.version.outputs.tag }}
+          git push origin ${{ needs.version.outputs.tag }}
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/tg-exporter-windows-x86_64.zip
+          tag_name: ${{ needs.version.outputs.tag }}
+          name: ${{ needs.version.outputs.tag }}
+          files: |
+            dist/tg-exporter-linux-x86_64.tar.gz
+            dist/tg-exporter-mac-arm64.tar.gz
+            dist/tg-exporter-windows-x86_64.zip
