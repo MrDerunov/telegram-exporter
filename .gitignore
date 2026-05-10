@@ -29,3 +29,4 @@ tg_exporter.egg-info/
 
 .env
 secrets.json
+app.log

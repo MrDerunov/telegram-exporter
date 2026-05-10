@@ -34,7 +34,7 @@ class StaticConfig:
     markdown: MarkdownSettings = field(default_factory=MarkdownSettings)
 
     # Источник секретов: "keyring" или "file"
-    secrets_source: str = "keyring"
+    secrets_source: str = "file"
 
     # Логирование
     log_level: str = "INFO"
@@ -82,7 +82,7 @@ class StaticConfig:
             include_private_chats=bool(data.get("include_private_chats", False)),
             default_profile=str(data.get("default_profile", "default")),
             markdown=md,
-            secrets_source=str(data.get("secrets_source", "keyring")),
+            secrets_source=str(data.get("secrets_source", "file")),
             log_level=str(logging_data.get("level", "INFO")),
             retry_max_attempts=int(retry.get("max_attempts", 3)),
             retry_delay_seconds=int(retry.get("delay_seconds", 2)),
