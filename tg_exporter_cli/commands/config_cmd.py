@@ -1,11 +1,10 @@
 """Команды управления конфигурацией: show, set, path."""
 from __future__ import annotations
 import click
-import yaml
 import dataclasses
 
-from tg_exporter_cli.hosting.cli_config import CliConfig
-from tg_exporter_cli.hosting.cli_config_repository import save_cli_config
+from tg_exporter.hosting.static_config import StaticConfig
+from tg_exporter.hosting.configuration_provider import ConfigurationResult
 from ..hosting import get_host
 
 
@@ -19,9 +18,10 @@ def config_group():
 def config_show():
     """Показать текущий конфиг."""
     host = get_host()
-    config = host.get(CliConfig)
+    config = host.get(StaticConfig)
+    result = host.get(ConfigurationResult)
 
-    click.echo(f"Файл:        {host.config_path}")
+    click.echo(f"Файл:        {result.config_dir / 'config.json'}")
     click.echo(f"API ID:      {config.api_id or '(не задан)'}")
     click.echo(f"Профиль:     {config.default_profile}")
     click.echo(f"Формат:      {config.default_format}")
@@ -30,14 +30,9 @@ def config_show():
     click.echo(f"Транскрипция:{'да' if config.default_transcribe else 'нет'}")
     click.echo(f"Аналитика:   {'да' if config.default_analytics else 'нет'}")
     click.echo(f"Источник секретов: {config.secrets_source}")
-    click.echo(f"Логи:        {config.log_level}" + (f" → {config.log_file}" if config.log_file else ""))
+    click.echo(f"Логи:        {config.log_level}")
     click.echo(f"Retry:       {config.retry_max_attempts} попыток, {config.retry_delay_seconds}s–{config.retry_max_delay_seconds}s")
     click.echo(f"Rate limit:  media {config.rate_limit_media_download_delay_ms}ms, msg {config.rate_limit_message_fetch_delay_ms}ms")
-
-    if config.chats:
-        click.echo(f"\nЧаты в конфиге ({len(config.chats)}):")
-        for c in config.chats:
-            click.echo(f"  {c.id:>12}  {c.name}")
 
 
 _SIMPLE_FIELDS = {
@@ -50,7 +45,6 @@ _SIMPLE_FIELDS = {
     "default_analytics": bool,
     "secrets_source": str,
     "log_level": str,
-    "log_file": str,
     "transcription_provider": str,
     "transcription_model": str,
     "transcription_language": str,
@@ -68,7 +62,7 @@ _SIMPLE_FIELDS = {
 def config_set(key: str, value: str):
     """Установить значение в конфиге. Пример: config set api_id 12345"""
     host = get_host()
-    config = host.get(CliConfig)
+    config = host.get(StaticConfig)
 
     if key not in _SIMPLE_FIELDS:
         valid = ", ".join(sorted(_SIMPLE_FIELDS.keys()))
@@ -87,13 +81,13 @@ def config_set(key: str, value: str):
         click.echo(f"❌ Неверное значение для {key}: {value}", err=True)
         raise SystemExit(1)
 
-    config = dataclasses.replace(config, **{key: parsed})
-    save_cli_config(config, host.config_path)
     click.echo(f"✅ {key} = {parsed}")
+    click.echo("⚠ Установка через config set временно не сохраняется в файл. Отредактируйте config.json вручную.")
 
 
 @config_group.command("path")
 def config_path():
     """Показать путь к конфиг-файлу."""
     host = get_host()
-    click.echo(str(host.config_path))
+    result = host.get(ConfigurationResult)
+    click.echo(str(result.config_dir / "config.json"))

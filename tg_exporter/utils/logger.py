@@ -17,7 +17,7 @@ from pathlib import Path
 from typing import Optional
 
 
-LOG_PATH = Path(os.path.expanduser("~/.tg-exporter/app.log"))
+LOG_PATH: Path = Path(os.path.expanduser("~/.tg-exporter/app.log"))
 MAX_LOG_SIZE = 5 * 1024 * 1024  # 5 MB — ротация
 
 
@@ -99,3 +99,12 @@ class AppLogger:
 
 # Глобальный экземпляр для удобства импорта
 logger = AppLogger()
+
+
+def init_logger(config_dir: Path) -> None:
+    """Инициализирует логгер с путём на основе config_dir.
+    Вызывается из CliHost.run() ПОСЛЕ build().
+    """
+    global LOG_PATH, logger
+    LOG_PATH = config_dir / "app.log"
+    logger = AppLogger(LOG_PATH)

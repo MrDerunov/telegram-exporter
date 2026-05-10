@@ -1,17 +1,20 @@
 """CliHost — хост CLI-приложения. Владеет DI-контейнером и управляет жизненным циклом."""
 from __future__ import annotations
-from pathlib import Path
 from typing import Any, Callable
 
-import yaml
-
 from .container import Container
-from tg_exporter_cli.cli_constants import CONFIG_DIR, CONFIG_FILENAME, DEFAULT_ENV_FILENAME
-from tg_exporter_cli.hosting.cli_config import CliConfig
-from tg_exporter_cli.hosting.config_mapper import map_to_app_config
-from tg_exporter.secrets import SecretProvider, EnvVarsSecretProvider, EnvFileSecretProvider, ChainSecretProvider
-from tg_exporter.secrets.secret_keys import API_HASH, DEEPGRAM_API_KEY, SESSION
-from tg_exporter.hosting.app_config import AppConfig
+from tg_exporter.hosting.configuration_provider import (
+    ConfigurationProvider,
+    ConfigurationResult,
+    resolve_config_dir,
+)
+from tg_exporter.hosting.static_config import StaticConfig
+from tg_exporter.hosting.state_model import StateModel
+from tg_exporter.hosting.settings_store import ISettingsStore
+from tg_exporter.hosting.json_settings_store import JsonSettingsStore
+from tg_exporter.secrets.secret_store import ISecretStore
+from tg_exporter.secrets.keyring_secret_store import KeyringSecretStore
+from tg_exporter.secrets.json_secret_store import JsonSecretStore
 from tg_exporter.telegram.profiles.profile_manager import ProfileManager
 from tg_exporter.telegram.telegram_client_manager import TelethonClientManager
 from tg_exporter.telegram.telegram_client_manager_interface import ITelegramClientManager
@@ -23,105 +26,94 @@ from tg_exporter.services.export.export_orchestrator import ExportOrchestrator
 class CliHost:
     """Хост CLI-приложения. Содержит DI-контейнер и управляет регистрацией сервисов."""
 
-    def __init__(self, config_path: Path | None = None, env_file: Path | None = None) -> None:
+    def __init__(self) -> None:
         self._container = Container()
-        self._config_path = config_path or CONFIG_DIR / CONFIG_FILENAME
-        self._env_file = env_file or Path(DEFAULT_ENV_FILENAME)
-        self._secret_provider: SecretProvider | None = None
-        self._raw_config: dict = {}
 
     def build(self) -> CliHost:
-        """Собрать конфигурацию и зарегистрировать все сервисы в контейнере."""
-        self._raw_config = self._configure_cli()
-        self._bind_services(self._raw_config)
+        """Собрать конфигурацию и зарегистрировать все сервисы в контейнере.
+        Только чтение конфигов и DI-регистрация — без создания файлов/папок."""
+        config_dir = resolve_config_dir()
+        provider = ConfigurationProvider(config_dir)
+        result = provider.build()
+        self._bind_services(result)
         return self
 
-    def _configure_cli(self) -> dict:
-        """Читает конфигурацию и секреты, возвращает единый словарь."""
-        # Цепочка секретов: env vars → .env file
-        self._secret_provider = ChainSecretProvider([
-            EnvVarsSecretProvider(),
-            EnvFileSecretProvider(self._env_file),
-        ])
-
-        # Сырой YAML → dict
-        if self._config_path.exists():
-            with open(self._config_path, "r") as f:
-                yaml_data = yaml.safe_load(f) or {}
-        else:
-            yaml_data = {}
-
-        # Мёрж секретов в YAML-словарь
-        yaml_data["api_hash"] = self._secret_provider.get(API_HASH) or ""
-        yaml_data["deepgram_api_key"] = self._secret_provider.get(DEEPGRAM_API_KEY) or ""
-        yaml_data["session"] = self._secret_provider.get(SESSION) or ""
-
-        return yaml_data
-
-    def _bind_services(self, raw_config: dict) -> None:
+    def _bind_services(self, result: ConfigurationResult) -> None:
         """Маппит сырой конфиг на типизированные объекты и регистрирует сервисы."""
-        container = self._container
+        c = self._container
 
-        # SecretProvider
-        container.register_instance(SecretProvider, self._secret_provider)
+        # ConfigurationResult — для доступа к config_dir и сырым данным
+        c.register_instance(ConfigurationResult, result)
 
-        # CliConfig (frozen) — из словаря
-        cli_config = CliConfig.from_raw(raw_config)
-        container.register_instance(CliConfig, cli_config)
+        # Маппинг сырого словаря в типизированные конфиги (делает хост)
+        static_config = StaticConfig.from_raw(result.raw)
+        state_model = StateModel.from_dict(result.raw)
 
-        # AppConfig (frozen) — через mapper
-        app_config = map_to_app_config(cli_config)
-        container.register_instance(AppConfig, app_config)
+        c.register_instance(StaticConfig, static_config)
+        c.register_instance(StateModel, state_model)
+
+        # SecretStore — тип выбирается на основе настройки из static_config
+        if static_config.secrets_source == "file":
+            secret_store: ISecretStore = JsonSecretStore(result.config_dir)
+        else:
+            secret_store = KeyringSecretStore()
+        c.register_instance(ISecretStore, secret_store)
+
+        # SettingsStore
+        settings_store = JsonSettingsStore(result.config_dir)
+        c.register_instance(ISettingsStore, settings_store)
 
         # Профили
-        container.register(
+        c.register(
             ProfileManager,
-            lambda ctr: ProfileManager(ctr.get(SecretProvider)),
+            lambda ctr: ProfileManager(
+                secrets=ctr.get(ISecretStore),
+                settings=ctr.get(ISettingsStore),
+            ),
         )
 
         # Telegram-клиент + интерфейс
-        container.register(
+        c.register(
             ITelegramClientManager,
             lambda ctr: TelethonClientManager(
-                ctr.get(AppConfig),
-                ctr.get(SecretProvider),
+                config=ctr.get(StaticConfig),
+                secrets=ctr.get(ISecretStore),
             ),
         )
 
         # Auth
-        container.register(
+        c.register(
             AuthService,
             lambda ctr: AuthService(ctr.get(ITelegramClientManager)),
         )
 
         # ExportHistory
-        container.register(ExportHistory, lambda _: ExportHistory())
+        c.register(ExportHistory, lambda _: ExportHistory())
 
         # Экспорт
-        container.register(
+        c.register(
             ExportOrchestrator,
             lambda ctr: ExportOrchestrator(
                 ctr.get(ITelegramClientManager),
-                ctr.get(AppConfig),
+                ctr.get(StaticConfig),
                 ctr.get(ExportHistory),
             ),
         )
 
-    def rebind_services(self, callback: Callable[[Container, dict], None]) -> CliHost:
+    def rebind_services(self, callback: Callable[[Container, ConfigurationResult], None]) -> CliHost:
         """Позволяет переопределить регистрации сервисов (для тестов).
-        callback получает (container, raw_config)."""
-        callback(self._container, self._raw_config)
+        callback получает (container, ConfigurationResult)."""
+        result = self._container.get(ConfigurationResult)
+        callback(self._container, result)
         return self
 
     def run(self) -> None:
-        """Запустить хост (заглушка, будет использоваться позже)."""
-        pass
+        """Инициализация ОС-ресурсов: логгер, директории.
+        Вызывается ПОСЛЕ build() при старте приложения."""
+        result = self._container.get(ConfigurationResult)
+        from tg_exporter.utils.logger import init_logger
+        init_logger(result.config_dir)
 
     def get(self, service_type: type) -> Any:
         """Получить сервис по типу."""
         return self._container.get(service_type)
-
-    @property
-    def config_path(self) -> Path:
-        """Путь к файлу конфига."""
-        return self._config_path

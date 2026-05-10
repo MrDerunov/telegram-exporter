@@ -8,11 +8,11 @@ from tg_exporter_cli.utils.async_runner import run_async
 from tg_exporter_cli.cli_constants import DEFAULT_SECRETS_ENV_FILENAME
 from tg_exporter.telegram.auth.auth_service import AuthService
 from tg_exporter.telegram.telegram_client_manager_interface import ITelegramClientManager
-from tg_exporter.secrets import SecretProvider
+from tg_exporter.secrets.secret_store import ISecretStore
 from tg_exporter.secrets.secret_keys import API_HASH, API_ID, SESSION, API_HASH_ENV, API_ID_ENV, SESSION_ENV
-from tg_exporter.hosting.app_config import AppConfig
+from tg_exporter.hosting.configuration_provider import ConfigurationResult
+from tg_exporter.hosting.static_config import StaticConfig
 from tg_exporter.utils.file_utils import secure_permissions
-from tg_exporter_cli.hosting.cli_config import CliConfig
 
 
 @click.group("auth")
@@ -33,22 +33,22 @@ def auth_login(
         profile):
     """Интерактивный вход в аккаунт Telegram."""
     host = get_host()
-    config = host.get(CliConfig)
-    secret_provider = host.get(SecretProvider)
+    config = host.get(StaticConfig)
+    secret_store = host.get(ISecretStore)
     auth_service = host.get(AuthService)
     client_manager = host.get(ITelegramClientManager)
 
     # API credentials
     if api_id:
-        secret_provider.set(API_ID, api_id)
+        secret_store.set(API_ID, api_id)
     if api_hash:
-        secret_provider.set(API_HASH, api_hash)
+        secret_store.set(API_HASH, api_hash)
     if not config.api_id:
         api_id = click.prompt("API ID")
-        secret_provider.set(API_ID, api_id)
-    if not config.api_hash and not secret_provider.get(API_HASH):
+        secret_store.set(API_ID, api_id)
+    if not config.api_hash and not secret_store.get(API_HASH):
         api_hash = click.prompt("API Hash", hide_input=True)
-        secret_provider.set(API_HASH, api_hash)
+        secret_store.set(API_HASH, api_hash)
 
     # Phone
     if not phone:
@@ -107,17 +107,17 @@ def auth_logout(profile):
 def auth_export_session(output):
     """Экспортировать сессию в secrets.env для CI/CD."""
     host = get_host()
-    config = host.get(CliConfig)
-    secret_provider = host.get(SecretProvider)
+    config = host.get(StaticConfig)
+    secret_store = host.get(ISecretStore)
 
-    session_str = secret_provider.get(SESSION) or ""
+    session_str = secret_store.get(SESSION) or ""
 
     if not session_str:
         click.echo("❌ Нет активной сессии. Сначала выполните auth login.", err=True)
         raise SystemExit(1)
 
     api_id = config.api_id
-    api_hash = secret_provider.get(API_HASH) or ""
+    api_hash = secret_store.get(API_HASH) or ""
 
     output_path = Path(output)
     content = f"{API_ID_ENV}={api_id}\n{API_HASH_ENV}={api_hash}\n{SESSION_ENV}={session_str}\n"

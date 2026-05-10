@@ -1,17 +1,18 @@
+"""KeyringSecretStore — хранилище секретов через системный keyring."""
+from __future__ import annotations
+
 import logging
 from typing import Optional
 
-from tg_exporter.secrets.secret_provider import SecretProvider
+from tg_exporter.secrets.secret_store import ISecretStore
 
 logger = logging.getLogger(__name__)
 
 _SERVICE = "tg-exporter"
 
 
-class KeyringSecretProvider(SecretProvider):
+class KeyringSecretStore(ISecretStore):
     """Провайдер секретов через системный keyring."""
-
-    writable = True
 
     def get(self, key: str) -> Optional[str]:
         try:

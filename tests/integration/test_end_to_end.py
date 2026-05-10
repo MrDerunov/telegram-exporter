@@ -30,12 +30,10 @@ def test_full_flow_auth_and_export(tmp_path: Path) -> None:
 
     fake_manager = FakeTelegramClientManager(fake_client)
 
-    config_path = tmp_path / "cli_config.yaml"
-    env_file = tmp_path / ".env"
     host = (
-        CliHost(config_path=config_path, env_file=env_file)
+        CliHost()
         .build()
-        .rebind_services(lambda c, raw: c.register_instance(ITelegramClientManager, fake_manager))
+        .rebind_services(lambda c, result: c.register_instance(ITelegramClientManager, fake_manager))
     )
 
     # ---- Шаг 1: проверка авторизации через сервис ----
@@ -81,13 +79,11 @@ def test_full_flow_auth_and_export(tmp_path: Path) -> None:
     orchestrator.run(dialog, task, token, progress, collect_events)
 
     # ---- Проверка результата ----
-    # Выводим события для отладки
     error_events = [e for e in events if e[0] == "export_error"]
     error_msg = error_events[0][1] if error_events else progress.error
     assert progress.status.name == "DONE", f"Expected DONE, got {progress.status.name}. Error: {error_msg}. Events: {[e[0] for e in events]}"
     assert len(progress.output_files) > 0
 
-    # Ищем result.json в output_files
     json_files = [f for f in progress.output_files if f.endswith("result.json")]
     assert len(json_files) > 0, f"No result.json in {progress.output_files}"
 
@@ -97,6 +93,5 @@ def test_full_flow_auth_and_export(tmp_path: Path) -> None:
     assert "messages" in data
     assert len(data["messages"]) > 0
 
-    # Проверяем что был отправлен export_done
     done_events = [e for e in events if e[0] == "export_done"]
     assert len(done_events) == 1

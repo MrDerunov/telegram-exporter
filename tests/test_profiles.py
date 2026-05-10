@@ -1,21 +1,19 @@
-"""Tests for ProfileManager — хранение, CRUD, активный профиль, сессии через SecretProvider."""
+"""Tests for ProfileManager — хранение, CRUD, активный профиль, сессии через ISecretStore."""
 
 from __future__ import annotations
 
 import json
-import os
-import tempfile
 import unittest
 from pathlib import Path
 from typing import Optional
 
-from tg_exporter.secrets.secret_provider import SecretProvider
+from tg_exporter.secrets.secret_store import ISecretStore
+from tg_exporter.hosting.settings_store import ISettingsStore
+from tg_exporter.hosting.state_model import StateModel
 
 
-class _FakeSecretProvider(SecretProvider):
-    """In-memory замена SecretProvider для изоляции тестов."""
-
-    writable = True
+class _FakeSecretStore(ISecretStore):
+    """In-memory замена ISecretStore для изоляции тестов."""
 
     def __init__(self) -> None:
         self.store: dict[str, str] = {}
@@ -30,24 +28,26 @@ class _FakeSecretProvider(SecretProvider):
         self.store.pop(key, None)
 
 
+class _FakeSettingsStore(ISettingsStore):
+    """In-memory замена ISettingsStore для изоляции тестов."""
+
+    def __init__(self) -> None:
+        self._state = StateModel()
+
+    def load(self) -> StateModel:
+        return self._state
+
+    def save(self, state: StateModel) -> None:
+        self._state = state
+
+
 class TestProfileManager(unittest.TestCase):
 
     def setUp(self):
-        self._tmp = tempfile.TemporaryDirectory()
-        self.addCleanup(self._tmp.cleanup)
-        self._fake_home = Path(self._tmp.name)
-
-        # Импортируем и патчим путь к profiles.json
-        from tg_exporter.telegram.profiles import profile_manager as profiles_mod
+        self._secrets = _FakeSecretStore()
+        self._settings = _FakeSettingsStore()
         from tg_exporter.telegram.profiles import ProfileManager
-
-        self._profiles_mod = profiles_mod
-        self._orig_path = profiles_mod._PROFILES_FILE
-        profiles_mod._PROFILES_FILE = self._fake_home / "profiles.json"
-        self.addCleanup(lambda: setattr(profiles_mod, "_PROFILES_FILE", self._orig_path))
-
-        self._secrets = _FakeSecretProvider()
-        self.pm = ProfileManager(self._secrets)
+        self.pm = ProfileManager(self._secrets, self._settings)
 
     def test_empty_initial_state(self):
         self.assertTrue(self.pm.is_empty())
@@ -65,7 +65,7 @@ class TestProfileManager(unittest.TestCase):
         self.assertEqual(self.pm.active_phone(), "+79991112233")
         self.assertEqual(len(self.pm.list()), 1)
 
-    def test_session_stored_in_secret_provider(self):
+    def test_session_stored_in_secret_store(self):
         self.pm.add_or_update(
             phone="+79991112233", api_id="42",
             session_string="session-A",
@@ -106,7 +106,7 @@ class TestProfileManager(unittest.TestCase):
         self.assertTrue(self.pm.remove("+71111111111"))
         # Активный должен переключиться на оставшийся
         self.assertEqual(self.pm.active_phone(), "+72222222222")
-        # Сессия удалена из SecretProvider
+        # Сессия удалена из SecretStore
         self.assertNotIn("42:session:+71111111111", self._secrets.store)
 
     def test_remove_last_clears_active(self):
@@ -139,7 +139,7 @@ class TestProfileManager(unittest.TestCase):
         self.pm.set_active("+72222222222")
 
         from tg_exporter.telegram.profiles import ProfileManager
-        pm2 = ProfileManager(self._secrets)
+        pm2 = ProfileManager(self._secrets, self._settings)
         self.assertEqual(pm2.active_phone(), "+72222222222")
         self.assertEqual(len(pm2.list()), 2)
 
@@ -171,17 +171,29 @@ class TestProfileManager(unittest.TestCase):
         key = "42:session:+71111111111"
         self.assertEqual(self._secrets.store.get(key), "v2")
 
-    def test_file_has_no_session_secrets(self):
+    def test_state_has_no_session_secrets(self):
         self.pm.add_or_update(
             phone="+71111111111", api_id="42",
             session_string="super-secret-session",
         )
-        path = self._fake_home / "profiles.json"
-        raw = path.read_text(encoding="utf-8")
-        self.assertNotIn("super-secret-session", raw)
-        data = json.loads(raw)
-        self.assertEqual(data["active_phone"], "+71111111111")
-        self.assertEqual(len(data["profiles"]), 1)
+        state = self._settings.load()
+        # Сессий в StateModel быть не должно
+        self.assertEqual(state.active_phone, "+71111111111")
+        self.assertEqual(len(state.profiles), 1)
+        self.assertEqual(state.profiles[0].phone, "+71111111111")
+
+    def test_chats_preserved_in_state(self):
+        from tg_exporter.hosting.state_model import ChatEntry
+        # Предустановка чатов через settings
+        self._settings.save(StateModel(
+            chats=(ChatEntry(name="Test", id=123),),
+        ))
+        # Добавляем профиль
+        self.pm.add_or_update(phone="+71111111111", api_id="42", session_string="s1")
+        # Чаты не должны быть затронуты
+        state = self._settings.load()
+        self.assertEqual(len(state.chats), 1)
+        self.assertEqual(state.chats[0].id, 123)
 
 
 if __name__ == "__main__":

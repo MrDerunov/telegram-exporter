@@ -4,8 +4,8 @@ import click
 import dataclasses
 
 from tg_exporter.telegram.telegram_client_manager_interface import ITelegramClientManager
-from tg_exporter_cli.hosting.cli_config import CliConfig, ChatEntry
-from tg_exporter_cli.hosting.cli_config_repository import save_cli_config
+from tg_exporter.hosting.state_model import StateModel, ChatEntry
+from tg_exporter.hosting.settings_store import ISettingsStore
 from tg_exporter_cli.utils.async_runner import run_async
 from ..hosting import get_host
 
@@ -124,8 +124,8 @@ def chats_add(chat_id: str | None, folder: str | None):
     """Добавить чат(ы) в конфиг для быстрого доступа."""
     host = get_host()
     client_manager = host.get(ITelegramClientManager)
-    config = host.get(CliConfig)
-    config_path = host.config_path
+    state = host.get(StateModel)
+    settings = host.get(ISettingsStore)
 
     if not chat_id and not folder:
         raise click.UsageError("Укажите --chat ID или --folder NAME")
@@ -139,8 +139,8 @@ def chats_add(chat_id: str | None, folder: str | None):
 
         dialogs = run_async(_fetch())
         added = 0
-        existing_ids = {c.id for c in config.chats}
-        new_chats = list(config.chats)
+        existing_ids = {c.id for c in state.chats}
+        new_chats = list(state.chats)
 
         if chat_id:
             target_id = int(chat_id)
@@ -175,8 +175,8 @@ def chats_add(chat_id: str | None, folder: str | None):
                 click.echo(f"⚠ В папке «{folder}» не найдено новых чатов.")
 
         if added:
-            config = dataclasses.replace(config, chats=tuple(new_chats))
-            save_cli_config(config, config_path)
+            new_state = dataclasses.replace(state, chats=tuple(new_chats))
+            settings.save(new_state)
 
     except Exception as e:
         click.echo(f"❌ Ошибка: {e}", err=True)
@@ -188,15 +188,15 @@ def chats_add(chat_id: str | None, folder: str | None):
 def chats_remove(chat_id: str):
     """Убрать чат из конфига."""
     host = get_host()
-    config = host.get(CliConfig)
-    config_path = host.config_path
+    state = host.get(StateModel)
+    settings = host.get(ISettingsStore)
 
     target_id = int(chat_id)
-    for c in config.chats:
+    for c in state.chats:
         if c.id == target_id:
-            new_chats = tuple(ch for ch in config.chats if ch.id != target_id)
-            config = dataclasses.replace(config, chats=new_chats)
-            save_cli_config(config, config_path)
+            new_chats = tuple(ch for ch in state.chats if ch.id != target_id)
+            new_state = dataclasses.replace(state, chats=new_chats)
+            settings.save(new_state)
             click.echo(f"✅ Чат «{c.name}» (ID: {target_id}) удалён из конфига.")
             return
 

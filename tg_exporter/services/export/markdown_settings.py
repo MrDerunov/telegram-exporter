@@ -7,6 +7,11 @@ from __future__ import annotations
 from dataclasses import dataclass, asdict
 
 
+class ConfigValidationError(ValueError):
+    """Ошибка валидации конфигурации."""
+    pass
+
+
 DATE_FORMATS = ("DD.MM.YYYY", "YYYY-MM-DD", "MM/DD/YYYY")
 
 
@@ -23,7 +28,6 @@ class MarkdownSettings:
     plain_text: bool = True
 
     def validate(self) -> None:
-        from tg_exporter.hosting.app_config_validator import ConfigValidationError
         if self.words_per_file < 1000:
             raise ConfigValidationError("words_per_file must be >= 1000")
         if self.date_format not in DATE_FORMATS:

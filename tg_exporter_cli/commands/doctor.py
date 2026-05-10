@@ -1,9 +1,10 @@
 """Команда doctor — диагностика окружения."""
+from __future__ import annotations
 import click
 import shutil
 from pathlib import Path
 
-from tg_exporter_cli.hosting.cli_config import DEFAULT_CONFIG_DIR, DEFAULT_CONFIG_FILENAME
+from tg_exporter.hosting.configuration_provider import resolve_config_dir
 from tg_exporter.telegram.auth.auth_service import AuthService
 from ..hosting import get_host
 from tg_exporter_cli.utils.async_runner import run_async
@@ -26,9 +27,15 @@ def doctor_command():
     click.echo(f"{_check(True)} Python {sys.version.split()[0]}")
 
     # Конфиг
-    config_path = DEFAULT_CONFIG_DIR / DEFAULT_CONFIG_FILENAME
+    config_dir = resolve_config_dir()
+    config_path = config_dir / "config.json"
     config_ok = config_path.exists()
     click.echo(f"{_check(config_ok)} Конфиг: {config_path} {'(OK)' if config_ok else '(отсутствует)'}")
+
+    # state.json
+    state_path = config_dir / "state.json"
+    state_ok = state_path.exists()
+    click.echo(f"{_check(state_ok)} Состояние: {state_path} {'(OK)' if state_ok else '(отсутствует)'}")
 
     # Keyring
     try:

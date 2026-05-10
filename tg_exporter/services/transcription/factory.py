@@ -5,15 +5,15 @@
 from __future__ import annotations
 
 from .base import BaseTranscriber, TranscriptionError
-from ...hosting.app_config import AppConfig
+from ...hosting.static_config import StaticConfig
 
 
-def create_transcriber(config: AppConfig) -> BaseTranscriber:
+def create_transcriber(config: StaticConfig) -> BaseTranscriber:
     """
     Создаёт транскрибер по настройкам конфига.
 
     Args:
-        config: AppConfig с полями transcription_provider, local_whisper_model, deepgram_api_key
+        config: StaticConfig с полями transcription_provider, transcription_model, deepgram_api_key
 
     Returns:
         Нужный BaseTranscriber
@@ -32,7 +32,7 @@ def create_transcriber(config: AppConfig) -> BaseTranscriber:
         from .deepgram_transcriber import DeepgramTranscriber
         return DeepgramTranscriber(api_key=key)
 
-    model_id = (config.local_whisper_model or "base").strip()
+    model_id = (config.transcription_model or "base").strip()
 
     from .whisper_transcriber import WhisperTranscriber
     return WhisperTranscriber(model_size=model_id)

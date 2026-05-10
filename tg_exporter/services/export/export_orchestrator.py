@@ -21,7 +21,7 @@ from .exporters import JsonExporter, MarkdownExporter
 from .export_task import ExportTask
 from .export_progress import ExportProgress
 from .export_format import ExportFormat
-from ...hosting.app_config import AppConfig
+from ...hosting.static_config import StaticConfig
 from ..analytics import AnalyticsCollector, render_top_authors, render_activity
 from ..export_history import ExportHistory
 from ..media_downloader import MediaDownloader, MediaDirs, AudioPrepResult
@@ -46,7 +46,7 @@ class ExportOrchestrator:
     def __init__(
         self,
         manager: ITelegramClientManager,
-        config: AppConfig,
+        config: StaticConfig,
         history: ExportHistory,
     ) -> None:
         self._manager = manager

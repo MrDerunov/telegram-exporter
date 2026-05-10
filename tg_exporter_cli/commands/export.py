@@ -11,7 +11,7 @@ from tg_exporter.services.export.export_orchestrator import ExportOrchestrator
 from tg_exporter.services.export_history import ExportHistory
 from tg_exporter.telegram.telegram_client_manager_interface import ITelegramClientManager
 from tg_exporter.utils.cancellation import CancellationToken
-from tg_exporter_cli.hosting.cli_config import CliConfig
+from tg_exporter.hosting.state_model import StateModel
 from tg_exporter_cli.utils.async_runner import run_async
 from ..hosting import get_host
 
@@ -91,7 +91,7 @@ def export_run(
     host = get_host()
     orchestrator = host.get(ExportOrchestrator)
     client_manager = host.get(ITelegramClientManager)
-    config = host.get(CliConfig)
+    state = host.get(StateModel)
     history = host.get(ExportHistory)
 
     # Валидация флагов
@@ -109,7 +109,7 @@ def export_run(
 
     # Режим --all: экспорт всех чатов из конфига
     if export_all:
-        chats = config.chats
+        chats = state.chats
         if not chats:
             click.echo("❌ Нет чатов в конфиге. Добавьте через: tg-exporter chats add --chat ID", err=True)
             raise SystemExit(1)

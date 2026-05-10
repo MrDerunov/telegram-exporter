@@ -2,108 +2,71 @@
 
 import dataclasses
 import datetime
-import json
-import tempfile
 import unittest
-from pathlib import Path
+
+from tg_exporter.hosting.static_config import StaticConfig
+from tg_exporter.services.export.markdown_settings import MarkdownSettings, ConfigValidationError
 
 
-class TestAppConfig(unittest.TestCase):
-
-    def setUp(self):
-        from tg_exporter.hosting.app_config import AppConfig
-        from tg_exporter.hosting.app_config_validator import ConfigValidationError, validate_app_config
-        from tg_exporter.services.export.markdown_settings import MarkdownSettings
-        self.AppConfig = AppConfig
-        self.MarkdownSettings = MarkdownSettings
-        self.ConfigValidationError = ConfigValidationError
-        self.validate_app_config = validate_app_config
+class TestStaticConfig(unittest.TestCase):
 
     def test_defaults_are_valid(self):
-        cfg = self.AppConfig()
-        self.validate_app_config(cfg)  # no raise
+        cfg = StaticConfig()
+        cfg.markdown.validate()  # no raise
 
     def test_api_id_int_strips_non_digits(self):
-        cfg = self.AppConfig.from_dict({"api_id": " 12 34 "})
-        self.assertEqual(cfg.api_id, " 12 34 ")  # raw stored as-is
+        cfg = StaticConfig.from_raw({"api_id": " 12 34 "})
+        self.assertEqual(cfg.api_id, " 12 34 ")
         self.assertEqual(cfg.api_id_int, 1234)
 
-    def test_with_api_id_strips_non_digits(self):
-        cfg = self.AppConfig().with_api_id("abc-123-xyz")
-        self.assertEqual(cfg.api_id, "123")
-
     def test_api_id_int_none_when_empty(self):
-        cfg = self.AppConfig()
+        cfg = StaticConfig()
         self.assertIsNone(cfg.api_id_int)
 
-    def test_validation_bad_provider(self):
-        cfg = self.AppConfig(transcription_provider="unknown")
-        with self.assertRaises(self.ConfigValidationError):
-            self.validate_app_config(cfg)
-
-    def test_validation_bad_model(self):
-        cfg = self.AppConfig(local_whisper_model="gpt4")
-        with self.assertRaises(self.ConfigValidationError):
-            self.validate_app_config(cfg)
-
     def test_validation_bad_words_per_file(self):
-        cfg = self.AppConfig(markdown=self.MarkdownSettings(words_per_file=100))
-        with self.assertRaises(self.ConfigValidationError):
-            self.validate_app_config(cfg)
+        cfg = StaticConfig(markdown=MarkdownSettings(words_per_file=100))
+        with self.assertRaises(ConfigValidationError):
+            cfg.markdown.validate()
 
-    def test_to_dict_includes_config_fields(self):
-        cfg = self.AppConfig(api_id="123", api_hash="hash", deepgram_api_key="secret")
-        d = cfg.to_dict()
-        self.assertEqual(d["api_id"], "123")
-        self.assertEqual(d["api_hash"], "hash")
-        self.assertEqual(d["deepgram_api_key"], "secret")
-
-    def test_from_dict_loads_all_fields(self):
-        cfg = self.AppConfig.from_dict({
+    def test_from_raw_loads_nested_fields(self):
+        cfg = StaticConfig.from_raw({
             "api_id": "123",
             "api_hash": "my_hash",
             "deepgram_api_key": "dg_key",
+            "transcription": {
+                "provider": "deepgram",
+                "model": "large",
+                "language": "ru",
+            },
+            "defaults": {
+                "format": "json",
+                "words_per_file": 10000,
+                "download_media": True,
+            },
+            "logging": {
+                "level": "DEBUG",
+            },
+            "retry": {
+                "max_attempts": 5,
+            },
         })
         self.assertEqual(cfg.api_id, "123")
         self.assertEqual(cfg.api_hash, "my_hash")
         self.assertEqual(cfg.deepgram_api_key, "dg_key")
+        self.assertEqual(cfg.transcription_provider, "deepgram")
+        self.assertEqual(cfg.transcription_model, "large")
+        self.assertEqual(cfg.transcription_language, "ru")
+        self.assertEqual(cfg.default_format, "json")
+        self.assertEqual(cfg.default_words_per_file, 10000)
+        self.assertTrue(cfg.default_download_media)
+        self.assertEqual(cfg.log_level, "DEBUG")
+        self.assertEqual(cfg.retry_max_attempts, 5)
 
-    def test_save_load_roundtrip(self):
-        with tempfile.TemporaryDirectory() as d:
-            from tg_exporter.hosting.app_config_repository import CONFIG_FILE, CONFIG_DIR
-            from tg_exporter.hosting.app_config_repository import save_app_config, load_app_config
-            import tg_exporter.hosting.app_config_repository as repo_mod
-            orig_file = repo_mod.CONFIG_FILE
-            orig_dir = repo_mod.CONFIG_DIR
-            try:
-                repo_mod.CONFIG_FILE = Path(d) / "config.json"
-                repo_mod.CONFIG_DIR = Path(d)
-                cfg = self.AppConfig(
-                    api_id="99887",
-                    transcription_provider="local",
-                    local_whisper_model="small",
-                )
-                save_app_config(cfg)
-                loaded = load_app_config()
-                self.assertEqual(loaded.api_id, "99887")
-                self.assertEqual(loaded.local_whisper_model, "small")
-            finally:
-                repo_mod.CONFIG_FILE = orig_file
-                repo_mod.CONFIG_DIR = orig_dir
-
-    def test_load_returns_default_when_no_file(self):
-        from tg_exporter.hosting.app_config_repository import load_app_config
-        import tg_exporter.hosting.app_config_repository as repo_mod
-        orig_file = repo_mod.CONFIG_FILE
-        try:
-            repo_mod.CONFIG_FILE = Path("/nonexistent/path/config.json")
-            cfg = load_app_config()
-            self.assertEqual(cfg.api_id, "")
-        finally:
-            repo_mod.CONFIG_FILE = orig_file
+    def test_secrets_source_defaults_to_keyring(self):
+        cfg = StaticConfig()
+        self.assertEqual(cfg.secrets_source, "keyring")
 
     def test_markdown_settings_roundtrip(self):
-        from tg_exporter.services.export.markdown_settings import MarkdownSettings
         s = MarkdownSettings(words_per_file=30_000, date_format="YYYY-MM-DD", plain_text=False)
         s2 = MarkdownSettings.from_dict(s.to_dict())
         self.assertEqual(s2.words_per_file, 30_000)

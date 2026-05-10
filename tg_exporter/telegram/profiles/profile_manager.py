@@ -1,46 +1,44 @@
 """
 ProfileManager — управление несколькими Telegram-аккаунтами.
 
-Метаданные профилей (несекретные): ~/.tg-exporter/profiles.json.
-Сессии (секретные) хранятся через SecretProvider.
+Метаданные профилей (несекретные) и список чатов хранятся в state.json
+через ISettingsStore. Сессии (секретные) — через ISecretStore.
 
-Формат profiles.json:
+Формат state.json (фрагмент с профилями):
 {
   "active_phone": "+7999...",
   "profiles": [
     {"phone": "+7999...", "display_name": "Max", "api_id": "123"},
     ...
-  ]
+  ],
+  "chats": [...]
 }
 """
 
 from __future__ import annotations
 
-import json
-import os
 import threading
-from pathlib import Path
 from typing import Optional
 
-from tg_exporter.secrets.secret_provider import SecretProvider
+from tg_exporter.secrets.secret_store import ISecretStore
+from tg_exporter.hosting.settings_store import ISettingsStore
+from tg_exporter.hosting.state_model import StateModel, ProfileEntry
 from ...utils.logger import logger
-from ...utils.file_utils import secure_permissions
 from .profile import Profile, _session_key, _normalize_phone
-
-
-_PROFILES_FILE = Path(os.path.expanduser("~/.tg-exporter/profiles.json"))
 
 
 class ProfileManager:
     """
     CRUD над списком профилей + активным профилем.
 
-    Thread-safe: внутренний lock защищает загрузку/сохранение файла.
-    Секреты (session string) всегда идут через SecretProvider.
+    Thread-safe: внутренний lock защищает загрузку/сохранение состояния.
+    Секреты (session string) всегда идут через ISecretStore.
+    Состояние (профили, чаты) — через ISettingsStore → state.json.
     """
 
-    def __init__(self, secrets: SecretProvider) -> None:
+    def __init__(self, secrets: ISecretStore, settings: ISettingsStore) -> None:
         self._secrets = secrets
+        self._settings = settings
         self._lock = threading.Lock()
         self._profiles: list[Profile] = []
         self._active_phone: Optional[str] = None
@@ -49,35 +47,25 @@ class ProfileManager:
     # ---------------------------------------------------------- persistence
 
     def _load(self) -> None:
-        if not _PROFILES_FILE.exists():
-            return
-        try:
-            with _PROFILES_FILE.open("r", encoding="utf-8") as f:
-                raw = json.load(f)
-            self._active_phone = raw.get("active_phone") or None
-            self._profiles = [
-                Profile.from_dict(p) for p in (raw.get("profiles") or [])
-                if isinstance(p, dict) and p.get("phone")
-            ]
-        except (json.JSONDecodeError, OSError, TypeError, ValueError) as exc:
-            logger.warning(f"profiles: load failed: {exc}")
+        state = self._settings.load()
+        self._active_phone = state.active_phone or None
+        self._profiles = [
+            Profile(phone=p.phone, display_name=p.display_name, api_id=p.api_id)
+            for p in state.profiles
+        ]
 
     def _save(self) -> None:
-        _PROFILES_FILE.parent.mkdir(parents=True, exist_ok=True)
-        data = {
-            "active_phone": self._active_phone,
-            "profiles": [p.to_dict() for p in self._profiles],
-        }
-        tmp = _PROFILES_FILE.with_suffix(".json.tmp")
-        with tmp.open("w", encoding="utf-8") as f:
-            json.dump(data, f, indent=2, ensure_ascii=False)
-            f.flush()
-            try:
-                os.fsync(f.fileno())
-            except OSError:
-                pass
-        os.replace(tmp, _PROFILES_FILE)
-        secure_permissions(_PROFILES_FILE)
+        # Читаем текущее состояние чтобы сохранить chats нетронутыми
+        current = self._settings.load()
+        state = StateModel(
+            active_phone=self._active_phone or "",
+            profiles=tuple(
+                ProfileEntry(phone=p.phone, display_name=p.display_name, api_id=p.api_id)
+                for p in self._profiles
+            ),
+            chats=current.chats,  # чаты не трогаем
+        )
+        self._settings.save(state)
 
     # ---------------------------------------------------------- queries
 
@@ -148,7 +136,7 @@ class ProfileManager:
             return profile
 
     def remove(self, phone: str) -> bool:
-        """Удаляет профиль и его сессию через SecretProvider."""
+        """Удаляет профиль и его сессию через ISecretStore."""
         phone = _normalize_phone(phone)
         with self._lock:
             profile = next((p for p in self._profiles if p.phone == phone), None)
