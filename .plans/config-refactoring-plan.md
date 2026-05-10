@@ -423,7 +423,19 @@ def _bind_services(self, result: ConfigurationResult) -> None:
 Никаких алиасов `SecretProvider` — старый интерфейс удаляется полностью.
 Все команды, использующие `host.get(SecretProvider)`, переходят на `host.get(ISecretStore)`.
 
-### 4.4. Доступ к config_dir из команд
+### 4.4. rebind_services — callback принимает ConfigurationResult
+
+```python
+def rebind_services(self, callback: Callable[[Container, ConfigurationResult], None]) -> CliHost:
+    """Позволяет переопределить регистрации сервисов (для тестов).
+    callback получает (container, ConfigurationResult).
+    Замена старого callback(container, raw_config) — теперь передаём типизированный объект."""
+    result = self._container.get(ConfigurationResult)
+    callback(self._container, result)
+    return self
+```
+
+### 4.5. Доступ к config_dir из команд
 
 Команды, которым нужен путь к конфиг-директории, получают его через DI:
 ```python
