@@ -8,6 +8,12 @@ $env:PYTHONIOENCODING = "utf-8"
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
 Set-Location (Join-Path $root "..")
 
+# Версия для вшивания в бинарник
+$version = $env:TG_EXPORTER_VERSION
+if (!$version) { $version = "0.0.0" }
+"VERSION = `"$version`"" | Out-File -Encoding utf8 -FilePath tg_exporter_cli\_version.py
+Write-Host "Build version: $version"
+
 # Установка PyInstaller (CI ставит deps, этот шаг — подстраховка)
 python -m pip install pyinstaller
 if ($LASTEXITCODE -ne 0) { throw "pip install pyinstaller failed" }
@@ -15,29 +21,31 @@ if ($LASTEXITCODE -ne 0) { throw "pip install pyinstaller failed" }
 # Генерация .ico иконки (опционально, если есть assets/app_icon.png)
 $iconPng = Join-Path (Get-Location) "assets\app_icon.png"
 $iconIco = Join-Path (Get-Location) "icons\app.ico"
-$iconArg = ""
+
+$pyinstallerArgs = @(
+    "--onefile", "--console", "--name", "tg-exporter",
+    "--exclude-module", "customtkinter",
+    "--exclude-module", "app_legacy",
+    "--exclude-module", "app",
+    "--collect-all", "telethon",
+    "--collect-all", "faster_whisper",
+    "--collect-all", "ctranslate2",
+    "--collect-all", "tokenizers",
+    "--collect-all", "imageio_ffmpeg",
+    "--collect-all", "tg_exporter",
+    "--hidden-import", "tg_exporter.services.transcription.factory",
+    "tg_exporter_cli/main.py"
+)
 
 if (Test-Path $iconPng) {
     python -m pip install pillow
     if ($LASTEXITCODE -ne 0) { throw "pip install pillow failed" }
     python scripts\make_icons.py --in $iconPng --out $iconIco
-    $iconArg = "--icon `"$iconIco`""
+    $pyinstallerArgs = @("--icon", "$iconIco") + $pyinstallerArgs
     Write-Host "Icon generated: $iconIco"
 }
 
-pyinstaller --onefile --console --name tg-exporter $iconArg `
-    --exclude-module customtkinter `
-    --exclude-module app_legacy `
-    --exclude-module app `
-    --collect-all telethon `
-    --collect-all faster_whisper `
-    --collect-all ctranslate2 `
-    --collect-all tokenizers `
-    --collect-all imageio_ffmpeg `
-    --collect-all tg_exporter `
-    --hidden-import keyring.backends `
-    --hidden-import tg_exporter.services.transcription.factory `
-    tg_exporter_cli/main.py
+pyinstaller @pyinstallerArgs
 
 $exePath = "dist\tg-exporter.exe"
 if (!(Test-Path $exePath)) {

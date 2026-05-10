@@ -1,23 +1,9 @@
 <div align="center">
-  <img src="assets/app_icon.png" width="128" alt="Telegram Exporter Logo">
-
-  <h1>Telegram Exporter</h1>
-
-  <p><b>Десктопное приложение для экспорта чатов и каналов Telegram в JSON и Markdown.</b><br>
-  С транскрипцией голосовых, скачиванием медиа и поддержкой нескольких аккаунтов.</p>
-
+  <h1>Telegram Exporter Cli</h1>
+  <p><b>Консольная утилита для экспорта чатов и каналов Telegram в JSON и Markdown.</b></p>
   <p>
-    <a href="https://t.me/+cK5SwFPffNViOWUy">
-      <img src="https://img.shields.io/badge/TELEGRAM-%D0%9A%D0%90%D0%9D%D0%90%D0%9B_%D0%90%D0%92%D0%A2%D0%9E%D0%A0%D0%90-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white&labelColor=555555" alt="Telegram Канал Автора">
-    </a>
-    <a href="https://www.youtube.com/channel/UCLk7uewdd5s7kszfy736ScA">
-      <img src="https://img.shields.io/badge/YOUTUBE-%D0%9A%D0%90%D0%9D%D0%90%D0%9B_%D0%90%D0%92%D0%A2%D0%9E%D0%A0%D0%90-FF0000?style=for-the-badge&logo=youtube&logoColor=white&labelColor=555555" alt="YouTube Канал Автора">
-    </a>
-  </p>
-
-  <p>
-    <a href="https://github.com/morf3uzzz/telegram-exporter/releases">
-      <img src="https://img.shields.io/github/v/release/morf3uzzz/telegram-exporter?style=flat-square" alt="GitHub Release">
+    <a href="https://github.com/MrDerunov/telegram-exporter/releases">
+      <img src="https://img.shields.io/github/v/release/MrDerunov/telegram-exporter?style=flat-square" alt="Release">
     </a>
     <a href="https://opensource.org/licenses/MIT">
       <img src="https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square" alt="License: MIT">
@@ -25,71 +11,105 @@
   </p>
 </div>
 
+> **Форк** от [morf3uzzz/telegram-exporter](https://github.com/morf3uzzz/telegram-exporter). Оригинал — десктопное GUI-приложение. Здесь оно пересобрано как консольная утилита с ядром (`tg_exporter`) и CLI-интерфейсом (`tg_exporter_cli`).
 
 ## Что умеет
 
-- **Экспорт в JSON или Markdown** — вся история сообщений с метаданными или в удобном для чтения виде (подходит для Obsidian).
-- **Несколько аккаунтов** — добавил все свои номера один раз, переключаешься между ними в один клик.
-- **Транскрипция голосовых и видео-кружков**:
-  - локально через Faster-Whisper (модели от tiny до large-v3);
-  - облачно через Deepgram (nova-3, быстро и точно).
-- **Скачивание медиа** — фото, видео, голосовые, документы раскладываются по папкам.
-- **Фильтры**: период (неделя / месяц / свой диапазон), папки Telegram, авторы.
-- **Инкрементальный экспорт** — дозабирает только новые сообщения с прошлого раза.
-- **Аналитика**: топ авторов и активность по датам.
-- **Безопасность**: `api_hash` и сессии хранятся в системном Keyring, не в открытых файлах.
+- **Экспорт в JSON и Markdown** — сообщения с метаданными, реакциями, медиа, ссылками и опросами
+- **Инкрементальный экспорт** — дозабирает только новые сообщения (`--resume`)
+- **Фильтры:** период (`--days`, `--date-from/--date-to`), последние N сообщений (`--last`), топики форумов (`--topic-id`)
+- **Массовый экспорт** всех чатов из конфига (`export --all --skip-unavailable`)
+- **Скачивание медиа** — фото, видео, голосовые, документы раскладываются по папкам
+- **Транскрипция голосовых и видео-кружков:** локально (Faster-Whisper) или через Deepgram
+- **Аналитика:** топ авторов, активность по датам
+- **Несколько аккаунтов** через профили (`profile list/add/remove/switch`)
+- **Управление чатами:** просмотр по папкам Telegram, поиск, добавление в конфиг (`chats`)
+- **CI/CD-режим:** auth export-session → secrets.env, auth verify для проверки сессии
+- **Диагностика:** `doctor` — Python, конфиг, сессия, ffmpeg, место на диске
 
 ## Установка
 
 ### Готовые сборки
 
-Открой [Releases](https://github.com/morf3uzzz/telegram-exporter/releases) и скачай файл под свою ОС:
+Скачай последнюю версию со [страницы релизов](https://github.com/MrDerunov/telegram-exporter/releases):
 
-- **macOS Apple Silicon (M1/M2/M3/M4)** — `TelegramExporter-mac-arm64.dmg`
-- **macOS Intel** — `TelegramExporter-mac-intel.dmg`
-- **Windows** — `TelegramExporterSetup.exe`
-- **Linux (x86_64)** — `TelegramExporter-linux-x86_64.tar.gz` (распаковать и запустить бинарь внутри)
+| Платформа | Файл |
+|-----------|------|
+| Linux (x86_64) | `tg-exporter-linux-x86_64.tar.gz` |
+| macOS (Apple Silicon) | `tg-exporter-mac-arm64.tar.gz` |
+| Windows (x86_64) | `tg-exporter-windows-x86_64.zip` |
 
 ### Из исходников
 
 ```bash
-git clone https://github.com/morf3uzzz/telegram-exporter.git
+git clone https://github.com/MrDerunov/telegram-exporter.git
 cd telegram-exporter
 python3 -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-python main.py
+pip install -e .
 ```
 
-Нужен Python 3.11+.
+Python 3.11+.
 
 ## Первый запуск
 
-1. Получи `api_id` и `api_hash` на [my.telegram.org](https://my.telegram.org) → API development tools.
-2. Введи их в окне логина приложения.
-3. Введи номер телефона → код из Telegram → (если есть) пароль 2FA.
-4. После входа можно добавить ещё аккаунты через кнопку **«Аккаунт ▾»** в шапке.
+```bash
+# Получи api_id и api_hash на https://my.telegram.org → API development tools
+tg-exporter auth login
 
-> **Если из РФ и не приходит код / «Ошибка соединения, проверьте интернет»** — включи VPN. Приложение ходит напрямую к серверам Telegram, а их IP в России заблокированы. Обычные «VPN для сайтов» не всегда помогают — нужен такой, который прогоняет весь трафик (например, AmneziaVPN, Outline, WireGuard). Если один VPN не сработал — попробуй другой.
+# Проверить статус
+tg-exporter auth status
 
-## Транскрипция
+# Диагностика окружения
+tg-exporter doctor
+```
 
-- **Локальная (Whisper)** — работает офлайн, первый запуск модели скачает её с HuggingFace (от ~75 МБ для `tiny` до ~3 ГБ для `large-v3`). Для `large-v3` желательно 8 ГБ RAM.
-- **Deepgram** — нужен API-ключ ([deepgram.com](https://deepgram.com)), ключ вводится в настройках приложения и хранится в Keyring.
+Интерактивно вводятся: API ID, API Hash, номер телефона, код из Telegram, пароль 2FA (если есть).
 
-Ограничение: одно голосовое/кружок не длиннее 15 минут.
+> **Из РФ:** серверы Telegram заблокированы — нужен VPN с полным туннелированием (Amnezia, Outline, WireGuard).
 
-## Где приложение хранит файлы
+## Где хранятся файлы
 
 ```
 ~/.tg-exporter/
-├── config.json              # api_id и настройки (без секретов)
-├── profiles.json            # список аккаунтов (без сессий)
-├── export_history.json      # для инкрементального экспорта
-└── app.log                  # лог приложения
+├── config.yaml           # настройки (без секретов)
+├── secrets.json          # api_hash, сессия, ключи (0o600)
+├── profiles.json         # список аккаунтов
+└── app.log               # лог
 ```
 
-Секреты (`api_hash`, сессии, Deepgram key) — в системном Keyring (`tg-exporter`).
+Секреты также можно хранить в переменных окружения (`TG_EXPORTER_*`) или `.env`-файле — приоритет: env vars > secrets.json.
+
+## Примеры
+
+```bash
+# Экспорт чата в Markdown
+tg-exporter export --chat @channel_name --format markdown
+
+# Последние 7 дней с медиа и транскрипцией
+tg-exporter export --chat -1001234567890 --days 7 --download-media --transcribe
+
+# Тестовый экспорт: последние 100 сообщений
+tg-exporter export --chat -1001234567890 --last 100
+
+# Продолжить прерванный экспорт
+tg-exporter export --chat -1001234567890 --resume
+
+# Массовый экспорт всех чатов из конфига
+tg-exporter export --all --skip-unavailable --format both
+
+# Просмотр чатов по папкам Telegram
+tg-exporter chats list
+tg-exporter chats list --folder "Работа"
+tg-exporter chats list --search "кот"
+
+# Добавить чат в конфиг
+tg-exporter chats add --chat -1001234567890
+
+# CI/CD: экспорт сессии
+tg-exporter auth export-session
+tg-exporter auth verify
+```
 
 ## Лицензия
 

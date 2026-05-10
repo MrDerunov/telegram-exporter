@@ -30,3 +30,6 @@ tg_exporter.egg-info/
 .env
 secrets.json
 app.log
+
+# Generated version file (created by build scripts / CI)
+tg_exporter_cli/_version.py

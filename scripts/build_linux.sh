@@ -7,7 +7,11 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-# Установка PyInstaller (если ещё не установлен — CI ставит deps, этот шаг подстраховка)
+# Версия для вшивания в бинарник
+VERSION="${TG_EXPORTER_VERSION:-0.0.0}"
+echo "VERSION = \"$VERSION\"" > tg_exporter_cli/_version.py
+echo "Версия сборки: $VERSION"
+
 pip install pyinstaller &>/dev/null || { echo "Ошибка: не удалось установить pyinstaller" >&2; exit 1; }
 
 pyinstaller --onefile --console --name tg-exporter \
@@ -20,7 +24,6 @@ pyinstaller --onefile --console --name tg-exporter \
   --collect-all tokenizers \
   --collect-all imageio_ffmpeg \
   --collect-all tg_exporter \
-  --hidden-import keyring.backends \
   --hidden-import tg_exporter.services.transcription.factory \
   tg_exporter_cli/main.py
 
