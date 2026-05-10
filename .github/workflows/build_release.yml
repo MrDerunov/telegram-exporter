@@ -1,7 +1,6 @@
 name: Build release artifacts
 
 on:
-  workflow_dispatch:
   push:
     tags:
       - "v*"
@@ -10,11 +9,21 @@ permissions:
   contents: write
 
 jobs:
-  # macOS Intel (x86_64) намеренно не собирается в CI:
-  # GitHub Actions для macos-13 регулярно падает по таймауту/ресурсам
-  # на установке faster-whisper/ctranslate2. Intel DMG собирается локально
-  # через ./scripts/build_mac.sh с TARGET_ARCH=x86_64 и прикладывается к
-  # релизу вручную.
+  build-linux:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Build Linux bundle
+        run: chmod +x ./scripts/build_linux.sh && ./scripts/build_linux.sh
+      - name: Publish to Releases
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/tg-exporter-linux-x86_64.tar.gz
+
   build-macos-arm64:
     runs-on: macos-14
     steps:
@@ -22,16 +31,15 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - name: Build DMG
+      - name: Build macOS bundle
         env:
-          DMG_NAME: TelegramExporter-mac-arm64.dmg
           TARGET_ARCH: arm64
         run: chmod +x ./scripts/build_mac.sh && ./scripts/build_mac.sh
       - name: Publish to Releases
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/TelegramExporter-mac-arm64.dmg
+          files: dist/tg-exporter-mac-arm64.tar.gz
 
   build-windows:
     runs-on: windows-latest
@@ -40,35 +48,10 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - name: Build EXE
-        run: powershell -ExecutionPolicy Bypass -File .\scripts\build_win_installer.ps1
-      - name: Install Inno Setup
-        run: choco install innosetup -y
-      - name: Build installer
-        run: iscc .\installer\TelegramExporter.iss
+      - name: Build Windows bundle
+        run: powershell -ExecutionPolicy Bypass -File .\scripts\build_win.ps1
       - name: Publish to Releases
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/TelegramExporterSetup.exe
-
-  build-linux:
-    runs-on: ubuntu-22.04
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-      - name: Install system deps for Tk
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y python3-tk tk-dev libxcb1 libxrender1 libsm6
-      - name: Build Linux bundle
-        env:
-          ARCHIVE_NAME: TelegramExporter-linux-x86_64.tar.gz
-        run: chmod +x ./scripts/build_linux.sh && ./scripts/build_linux.sh
-      - name: Publish to Releases
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v2
-        with:
-          files: dist/TelegramExporter-linux-x86_64.tar.gz
+          files: dist/tg-exporter-windows-x86_64.zip
