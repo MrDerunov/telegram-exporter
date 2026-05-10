@@ -1,3 +1,6 @@
+# Windows build: PyInstaller --onefile --console → zip.
+# Консольное приложение tg-exporter (Click CLI), entry point: tg_exporter_cli/main.py.
+
 $ErrorActionPreference = "Stop"
 $env:PYTHONUTF8 = "1"
 $env:PYTHONIOENCODING = "utf-8"
@@ -5,41 +8,53 @@ $env:PYTHONIOENCODING = "utf-8"
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
 Set-Location (Join-Path $root "..")
 
-python -m venv .venv
-. .venv\Scripts\Activate.ps1
-
-python -m pip install --upgrade pip
-if ($LASTEXITCODE -ne 0) { throw "pip upgrade failed" }
-
-python -m pip install -r requirements.txt
-if ($LASTEXITCODE -ne 0) { throw "pip install requirements failed" }
-
+# Установка PyInstaller (CI ставит deps, этот шаг — подстраховка)
 python -m pip install pyinstaller
 if ($LASTEXITCODE -ne 0) { throw "pip install pyinstaller failed" }
 
-python -c "import customtkinter, telethon, faster_whisper, keyring, keyring.backends; print('deps OK')"
-if ($LASTEXITCODE -ne 0) { throw "dependency import smoke-test failed" }
-
+# Генерация .ico иконки (опционально, если есть assets/app_icon.png)
 $iconPng = Join-Path (Get-Location) "assets\app_icon.png"
 $iconIco = Join-Path (Get-Location) "icons\app.ico"
 $iconArg = ""
 
 if (Test-Path $iconPng) {
-    pip install pillow
+    python -m pip install pillow
+    if ($LASTEXITCODE -ne 0) { throw "pip install pillow failed" }
     python scripts\make_icons.py --in $iconPng --out $iconIco
     $iconArg = "--icon `"$iconIco`""
+    Write-Host "Icon generated: $iconIco"
 }
 
-pyinstaller --windowed --onefile --name "TelegramExporter" $iconArg `
-    --exclude-module app_legacy --exclude-module app `
-    --collect-all customtkinter --collect-all telethon `
-    --collect-all faster_whisper --collect-all ctranslate2 `
-    --collect-all tokenizers --collect-all imageio_ffmpeg `
+pyinstaller --onefile --console --name tg-exporter $iconArg `
+    --exclude-module customtkinter `
+    --exclude-module app_legacy `
+    --exclude-module app `
+    --collect-all telethon `
+    --collect-all faster_whisper `
+    --collect-all ctranslate2 `
+    --collect-all tokenizers `
+    --collect-all imageio_ffmpeg `
     --collect-all tg_exporter `
-    --hidden-import tg_exporter.ui.app `
-    --hidden-import tg_exporter.core.orchestrator `
-    --hidden-import tg_exporter.services.transcription.factory `
     --hidden-import keyring.backends `
-    main.py
+    --hidden-import tg_exporter.services.transcription.factory `
+    tg_exporter_cli/main.py
 
-Write-Host "EXE ready: dist\TelegramExporter.exe"
+$exePath = "dist\tg-exporter.exe"
+if (!(Test-Path $exePath)) {
+    throw "PyInstaller did not create $exePath"
+}
+
+# Sanity check: консольный бинарник должен быть разумного размера (~25 MB+)
+$exeSizeMB = [math]::Round((Get-Item $exePath).Length / 1MB, 1)
+Write-Host "EXE size: $exeSizeMB MB"
+if ($exeSizeMB -lt 20) {
+    Write-Warning "EXE size is suspiciously small ($exeSizeMB MB). Something may be missing."
+}
+
+# Упаковка в zip
+$archiveName = "tg-exporter-windows-x86_64.zip"
+$archivePath = "dist\$archiveName"
+if (Test-Path $archivePath) { Remove-Item $archivePath -Force }
+Compress-Archive -Path $exePath -DestinationPath $archivePath
+
+Write-Host "Archive ready: $archivePath"

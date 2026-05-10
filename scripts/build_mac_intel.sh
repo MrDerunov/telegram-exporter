@@ -7,9 +7,10 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-export VENV_DIR="${VENV_DIR:-.venv_intel}"
-export DMG_NAME="${DMG_NAME:-TelegramExporter-mac-intel.dmg}"
+export TARGET_ARCH="x86_64"
+export ARCHIVE_NAME="tg-exporter-mac-x86_64.tar.gz"
 
-echo "Сборка для Intel (x86_64). DMG: $DMG_NAME"
-arch -x86_64 /bin/bash -c "cd \"$ROOT\" && chmod +x ./scripts/build_mac.sh && ./scripts/build_mac.sh"
-echo "Готово: dist/$DMG_NAME"
+echo "Сборка для Intel (x86_64). Архив: $ARCHIVE_NAME"
+chmod +x ./scripts/build_mac.sh
+./scripts/build_mac.sh
+echo "Готово: dist/$ARCHIVE_NAME"
