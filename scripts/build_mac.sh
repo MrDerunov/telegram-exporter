@@ -49,7 +49,6 @@ pyinstaller --onefile --console --name tg-exporter \
   --collect-all tokenizers \
   --collect-all imageio_ffmpeg \
   --collect-all tg_exporter \
-  --hidden-import keyring.backends \
   --hidden-import tg_exporter.services.transcription.factory \
   tg_exporter_cli/main.py
 
