@@ -8,6 +8,12 @@ $env:PYTHONIOENCODING = "utf-8"
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
 Set-Location (Join-Path $root "..")
 
+# Версия для вшивания в бинарник
+$version = $env:TG_EXPORTER_VERSION
+if (!$version) { $version = "0.0.0" }
+"VERSION = `"$version`"" | Out-File -Encoding utf8 -FilePath tg_exporter_cli\_version.py
+Write-Host "Build version: $version"
+
 # Установка PyInstaller (CI ставит deps, этот шаг — подстраховка)
 python -m pip install pyinstaller
 if ($LASTEXITCODE -ne 0) { throw "pip install pyinstaller failed" }

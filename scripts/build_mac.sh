@@ -31,7 +31,11 @@ if [ "$TARGET_ARCH" = "x86_64" ] && [ "$HOST_ARCH" = "arm64" ] && [ "${_BUILD_RE
   _BUILD_REEXEC=1 exec /usr/bin/arch -x86_64 /bin/bash "$0" "$@"
 fi
 
-# Установка PyInstaller (CI ставит deps, этот шаг — подстраховка)
+# Версия для вшивания в бинарник
+VERSION="${TG_EXPORTER_VERSION:-0.0.0}"
+echo "VERSION = \"$VERSION\"" > tg_exporter_cli/_version.py
+echo "Версия сборки: $VERSION"
+
 pip install pyinstaller &>/dev/null || { echo "Ошибка: не удалось установить pyinstaller" >&2; exit 1; }
 
 pyinstaller --onefile --console --name tg-exporter \
