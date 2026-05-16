@@ -106,12 +106,12 @@ class ExportMessage:
 
         return d
 
-    def with_media(self, path: str, media_type: MediaType, mime: str | None = None) -> "ExportMessage":
+    def with_media(self, path: str, media_type: MediaType, mime: str | None = None) -> ExportMessage:
         """Возвращает новый экземпляр с заполненными медиа-полями."""
         import dataclasses
         return dataclasses.replace(self, media_path=path, media_type=media_type, media_mime=mime)
 
-    def with_transcription(self, text: str) -> "ExportMessage":
+    def with_transcription(self, text: str) -> ExportMessage:
         """Возвращает новый экземпляр с транскрипцией."""
         import dataclasses
         return dataclasses.replace(self, transcription=text)

@@ -8,7 +8,8 @@ import os
 import shutil
 import tempfile
 import time
-from typing import Callable, Optional, Any
+from typing import Optional, Any
+from collections.abc import Callable
 
 from ...utils.logger import logger
 from .base import BaseTranscriber, TranscriptionError

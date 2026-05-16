@@ -1,7 +1,8 @@
 """Утилита для запуска async-функций из синхронного кода CLI."""
 from __future__ import annotations
 import asyncio
-from typing import TypeVar, Coroutine
+from typing import TypeVar
+from collections.abc import Coroutine
 
 T = TypeVar("T")
 

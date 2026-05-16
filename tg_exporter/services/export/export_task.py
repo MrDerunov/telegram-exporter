@@ -69,7 +69,7 @@ class ExportTask:
     # Настройки Markdown
     words_per_file: int = 50_000
 
-    def with_last_id(self, last_id: int) -> "ExportTask":
+    def with_last_id(self, last_id: int) -> ExportTask:
         return dataclasses.replace(self, last_exported_id=last_id)
 
     @property

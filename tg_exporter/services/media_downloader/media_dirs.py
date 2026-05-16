@@ -20,7 +20,7 @@ class MediaDirs:
     documents: str
 
     @classmethod
-    def create(cls, base: str) -> "MediaDirs":
+    def create(cls, base: str) -> MediaDirs:
         dirs = cls(
             photo=os.path.join(base, "photo"),
             video=os.path.join(base, "video"),

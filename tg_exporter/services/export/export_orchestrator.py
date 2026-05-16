@@ -13,7 +13,8 @@ import asyncio
 import datetime
 import os
 import shutil
-from typing import Callable, Optional
+from typing import Optional
+from collections.abc import Callable
 
 from ...telegram.telegram_client_manager_interface import ITelegramClientManager
 from ...telegram.converter import message_to_export

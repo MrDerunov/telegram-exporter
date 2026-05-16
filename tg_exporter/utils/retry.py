@@ -3,7 +3,8 @@ from __future__ import annotations
 
 import asyncio
 import random
-from typing import Any, Callable, Coroutine, TypeVar
+from typing import Any, TypeVar
+from collections.abc import Callable, Coroutine
 
 T = TypeVar("T")
 

@@ -39,6 +39,6 @@ class MarkdownSettings:
         return asdict(self)
 
     @classmethod
-    def from_dict(cls, data: dict) -> "MarkdownSettings":
-        known = {f for f in cls.__dataclass_fields__}
+    def from_dict(cls, data: dict) -> MarkdownSettings:
+        known = set(cls.__dataclass_fields__)
         return cls(**{k: v for k, v in data.items() if k in known})

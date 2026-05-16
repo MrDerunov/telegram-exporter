@@ -57,6 +57,7 @@ class BaseTranscriber(ABC):
             TranscriptionError: Если провайдер недоступен (не установлен и т.д.)
         """
 
+    @abstractmethod
     def unload(self) -> None:
         """Освобождает кешированную модель из памяти."""
         pass

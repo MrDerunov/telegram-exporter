@@ -5,7 +5,7 @@ AnalyticsCollector — накапливает аналитику по сообщ
 from __future__ import annotations
 
 from collections import deque
-from typing import Deque, Optional
+from typing import Optional
 
 from .author_stats import AuthorStats, _MAX_ENTRY_CHARS, _MAX_MESSAGES_PER_AUTHOR
 from .analytics_result import AnalyticsResult
@@ -30,7 +30,7 @@ class AnalyticsCollector:
     ) -> None:
         self._author_counts: dict[int, int] = {}
         # deque с maxlen сохраняет только последние N сообщений автора — защита от OOM
-        self._author_messages: dict[int, Deque[str]] = {}
+        self._author_messages: dict[int, deque[str]] = {}
         self._author_meta: dict[int, dict] = {}
         self._activity: dict[str, int] = {}
         self._max_entry_chars = max_entry_chars

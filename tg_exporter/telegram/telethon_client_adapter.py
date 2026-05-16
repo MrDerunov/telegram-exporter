@@ -4,7 +4,8 @@ from __future__ import annotations
 import asyncio
 import threading
 from pathlib import Path
-from typing import Any, AsyncIterator, Optional
+from typing import Any, Optional
+from collections.abc import AsyncIterator
 from datetime import datetime
 
 from telethon import TelegramClient

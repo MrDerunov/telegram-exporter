@@ -60,11 +60,12 @@ class BaseExporter(ABC):
         Возвращает список созданных файлов.
         """
 
+    @abstractmethod
     def close(self) -> None:
         """Освобождает ресурсы без финализации (например при отмене)."""
         pass
 
-    def __enter__(self) -> "BaseExporter":
+    def __enter__(self) -> BaseExporter:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:

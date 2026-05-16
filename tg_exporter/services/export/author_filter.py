@@ -14,7 +14,7 @@ class AuthorFilter:
     user_ids: frozenset[int] = field(default_factory=frozenset)
 
     @classmethod
-    def from_ids(cls, ids: list[int]) -> "AuthorFilter":
+    def from_ids(cls, ids: list[int]) -> AuthorFilter:
         return cls(user_ids=frozenset(ids))
 
     def is_empty(self) -> bool:

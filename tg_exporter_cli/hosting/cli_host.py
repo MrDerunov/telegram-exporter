@@ -1,6 +1,7 @@
 """CliHost — хост CLI-приложения. Владеет DI-контейнером и управляет жизненным циклом."""
 from __future__ import annotations
-from typing import Any, Callable
+from typing import Any
+from collections.abc import Callable
 
 from .container import Container
 from tg_exporter.hosting.configuration_provider import (

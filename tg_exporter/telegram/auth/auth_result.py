@@ -12,17 +12,17 @@ class AuthResult:
     error: str | None = None
 
     @classmethod
-    def ok(cls) -> "AuthResult":
+    def ok(cls) -> AuthResult:
         return cls(step=AuthStep.SUCCESS)
 
     @classmethod
-    def code_sent(cls) -> "AuthResult":
+    def code_sent(cls) -> AuthResult:
         return cls(step=AuthStep.CODE_SENT)
 
     @classmethod
-    def password_required(cls) -> "AuthResult":
+    def password_required(cls) -> AuthResult:
         return cls(step=AuthStep.PASSWORD_REQUIRED)
 
     @classmethod
-    def error(cls, msg: str) -> "AuthResult":
+    def error(cls, msg: str) -> AuthResult:
         return cls(step=AuthStep.ERROR, error=msg)
