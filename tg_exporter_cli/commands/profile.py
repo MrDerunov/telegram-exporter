@@ -2,7 +2,7 @@
 from __future__ import annotations
 import click
 
-from tg_exporter.telegram.profiles.profile_manager import ProfileManager
+from tg_exporter.services.telegram.profiles.profile_manager import ProfileManager
 from ..hosting import get_host
 
 

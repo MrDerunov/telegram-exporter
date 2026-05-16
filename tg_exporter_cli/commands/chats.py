@@ -3,9 +3,9 @@ from __future__ import annotations
 import click
 import dataclasses
 
-from tg_exporter.telegram.telegram_client_manager_interface import ITelegramClientManager
-from tg_exporter.hosting.state_model import StateModel, ChatEntry
-from tg_exporter.hosting.settings_store import ISettingsStore
+from tg_exporter.services.telegram import ITelegramClientManager
+from tg_exporter.configs.state_model import StateModel, ChatEntry
+from tg_exporter.configs.settings_store import ISettingsStore
 from tg_exporter_cli.utils.async_runner import run_async
 from ..hosting import get_host
 

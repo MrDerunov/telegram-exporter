@@ -8,11 +8,10 @@ JsonExporter — потоковая запись сообщений в JSON.
 from __future__ import annotations
 
 import json
-import os
-from typing import Optional, IO
+from typing import IO
 
 from .base_exporter import BaseExporter
-from ..export_message import ExportMessage
+from tg_exporter.services.export.models.export_message import ExportMessage
 
 
 class JsonExporter(BaseExporter):

@@ -10,7 +10,7 @@ import time
 import unittest
 from pathlib import Path
 
-from tg_exporter.services.export.export_message import ExportMessage
+from tg_exporter.services.export.models.export_message import ExportMessage
 
 
 def _msg(**kw) -> ExportMessage:
@@ -26,7 +26,7 @@ def _msg(**kw) -> ExportMessage:
 class TestAnalyticsCollector(unittest.TestCase):
 
     def setUp(self):
-        from tg_exporter.services.analytics import AnalyticsCollector
+        from tg_exporter.services.export.analytics import AnalyticsCollector
         self.AnalyticsCollector = AnalyticsCollector
 
     def _collect(self, items):
@@ -98,7 +98,7 @@ class TestAnalyticsCollector(unittest.TestCase):
 class TestRenderTopAuthors(unittest.TestCase):
 
     def setUp(self):
-        from tg_exporter.services.analytics import AnalyticsCollector, render_top_authors
+        from tg_exporter.services.export.analytics import AnalyticsCollector, render_top_authors
         self._make = AnalyticsCollector
         self.render = render_top_authors
 
@@ -130,7 +130,7 @@ class TestRenderTopAuthors(unittest.TestCase):
         self.assertIn("3", combined)
 
     def test_empty_result_returns_empty_list(self):
-        from tg_exporter.services.analytics import AnalyticsResult
+        from tg_exporter.services.export.analytics import AnalyticsResult
         parts = self.render(AnalyticsResult())
         self.assertEqual(parts, [])
 
@@ -147,7 +147,7 @@ class TestRenderTopAuthors(unittest.TestCase):
 class TestRenderActivity(unittest.TestCase):
 
     def setUp(self):
-        from tg_exporter.services.analytics import render_activity, AnalyticsResult
+        from tg_exporter.services.export.analytics import render_activity, AnalyticsResult
         self.render = render_activity
         self.AnalyticsResult = AnalyticsResult
 

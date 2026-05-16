@@ -10,10 +10,9 @@ from __future__ import annotations
 import dataclasses
 import datetime
 from dataclasses import dataclass, field
-from typing import Optional
 
-from .author_filter import AuthorFilter
-from .export_format import ExportFormat
+from tg_exporter.services.export.models.author_filter import AuthorFilter
+from tg_exporter.services.export.models.export_format import ExportFormat
 
 
 @dataclass(frozen=True)

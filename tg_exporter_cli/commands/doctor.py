@@ -4,8 +4,8 @@ import click
 import shutil
 from pathlib import Path
 
-from tg_exporter.hosting.configuration_provider import resolve_config_dir
-from tg_exporter.telegram.auth.auth_service import AuthService
+from tg_exporter.configs.configuration_provider import resolve_config_dir
+from tg_exporter.services.telegram import AuthService
 from ..hosting import get_host
 from tg_exporter_cli.utils.async_runner import run_async
 

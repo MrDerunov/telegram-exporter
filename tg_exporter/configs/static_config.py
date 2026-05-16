@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from tg_exporter.services.export.markdown_settings import MarkdownSettings
+from tg_exporter.services.export.exporters.markdown_settings import MarkdownSettings
 
 
 @dataclass(frozen=True)

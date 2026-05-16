@@ -21,9 +21,9 @@ import threading
 from typing import Optional
 
 from tg_exporter.secrets.secret_store import ISecretStore
-from tg_exporter.hosting.settings_store import ISettingsStore
-from tg_exporter.hosting.state_model import StateModel, ProfileEntry
-from ...utils.logger import logger
+from tg_exporter.configs.settings_store import ISettingsStore
+from tg_exporter.configs.state_model import StateModel, ProfileEntry
+from tg_exporter.utils.logger import logger
 from .profile import Profile, _session_key, _normalize_phone
 
 

@@ -7,15 +7,13 @@
 
 from __future__ import annotations
 
-from typing import Optional, TYPE_CHECKING
+from telethon.utils import get_display_name
 
-from telethon.utils import get_display_name, get_peer_id
-
-from ..services.export.export_message import ExportMessage
-from ..services.export.link_item import LinkItem
-from ..services.export.reaction_item import ReactionItem
-from ..services.export.poll_data import PollAnswer, PollData
-from ..services.export.media_type import MediaType
+from tg_exporter.services.export.models.export_message import ExportMessage
+from tg_exporter.services.export.models.link_item import LinkItem
+from tg_exporter.services.export.models.reaction_item import ReactionItem
+from tg_exporter.services.export.models.poll_data import PollAnswer, PollData
+from tg_exporter.services.export.models.media_type import MediaType
 
 
 def message_to_export(message) -> ExportMessage:

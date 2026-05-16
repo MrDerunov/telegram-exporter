@@ -6,10 +6,10 @@ from __future__ import annotations
 import os
 import pytest
 
-from tg_exporter.services.export.export_message import ExportMessage
-from tg_exporter.services.export.reaction_item import ReactionItem
-from tg_exporter.services.export.poll_data import PollData, PollAnswer
-from tg_exporter.services.export.markdown_settings import MarkdownSettings
+from tg_exporter.services.export.models.export_message import ExportMessage
+from tg_exporter.services.export.models.reaction_item import ReactionItem
+from tg_exporter.services.export.models.poll_data import PollData, PollAnswer
+from tg_exporter.services.export.exporters.markdown_settings import MarkdownSettings
 from tg_exporter.services.export.exporters.markdown_exporter import MarkdownExporter, _format_message
 
 

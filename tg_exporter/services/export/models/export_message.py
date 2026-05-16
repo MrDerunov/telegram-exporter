@@ -8,12 +8,11 @@ ExportMessage — иммутабельное представление одно
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Optional
 
-from .link_item import LinkItem
-from .media_type import MediaType
-from .poll_data import PollAnswer, PollData
-from .reaction_item import ReactionItem
+from tg_exporter.services.export.models.link_item import LinkItem
+from tg_exporter.services.export.models.media_type import MediaType
+from tg_exporter.services.export.models.poll_data import PollData
+from tg_exporter.services.export.models.reaction_item import ReactionItem
 
 
 @dataclass(frozen=True)

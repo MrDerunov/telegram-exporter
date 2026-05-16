@@ -4,14 +4,14 @@ import click
 import datetime
 from pathlib import Path
 
-from tg_exporter.services.export.export_task import ExportTask
-from tg_exporter.services.export.export_format import ExportFormat
-from tg_exporter.services.export.export_progress import ExportProgress
+from tg_exporter.services.export.models.export_task import ExportTask
+from tg_exporter.services.export.models.export_format import ExportFormat
+from tg_exporter.services.export.models.export_progress import ExportProgress
 from tg_exporter.services.export.export_orchestrator import ExportOrchestrator
 from tg_exporter.services.export_history import ExportHistory
-from tg_exporter.telegram.telegram_client_manager_interface import ITelegramClientManager
+from tg_exporter.services.telegram import ITelegramClientManager
 from tg_exporter.utils.cancellation import CancellationToken
-from tg_exporter.hosting.state_model import StateModel
+from tg_exporter.configs.state_model import StateModel
 from tg_exporter_cli.utils.async_runner import run_async
 from ..hosting import get_host
 

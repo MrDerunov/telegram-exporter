@@ -4,22 +4,22 @@ from typing import Any
 from collections.abc import Callable
 
 from .container import Container
-from tg_exporter.hosting.configuration_provider import (
+from tg_exporter.configs.configuration_provider import (
     ConfigurationProvider,
     ConfigurationResult,
     resolve_config_dir,
 )
-from tg_exporter.hosting.static_config import StaticConfig
-from tg_exporter.hosting.state_model import StateModel
-from tg_exporter.hosting.settings_store import ISettingsStore
-from tg_exporter.hosting.json_settings_store import JsonSettingsStore
+from tg_exporter.configs.static_config import StaticConfig
+from tg_exporter.configs.state_model import StateModel
+from tg_exporter.configs.settings_store import ISettingsStore
+from tg_exporter.configs.json_settings_store import JsonSettingsStore
 from tg_exporter.secrets.secret_store import ISecretStore
 from tg_exporter.secrets.keyring_secret_store import KeyringSecretStore
 from tg_exporter.secrets.json_secret_store import JsonSecretStore
-from tg_exporter.telegram.profiles.profile_manager import ProfileManager
-from tg_exporter.telegram.telegram_client_manager import TelethonClientManager
-from tg_exporter.telegram.telegram_client_manager_interface import ITelegramClientManager
-from tg_exporter.telegram.auth.auth_service import AuthService
+from tg_exporter.services.telegram.profiles.profile_manager import ProfileManager
+from tg_exporter.services.telegram.telegram_client_manager import TelethonClientManager
+from tg_exporter.services.telegram import ITelegramClientManager
+from tg_exporter.services.telegram import AuthService
 from tg_exporter.services.export_history import ExportHistory
 from tg_exporter.services.export.export_orchestrator import ExportOrchestrator
 

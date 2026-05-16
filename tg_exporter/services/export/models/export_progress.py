@@ -6,9 +6,8 @@ from __future__ import annotations
 
 import datetime
 from dataclasses import dataclass, field
-from typing import Optional
 
-from .export_format import ExportStatus
+from tg_exporter.services.export.models.export_format import ExportStatus
 
 
 @dataclass

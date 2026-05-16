@@ -1,8 +1,8 @@
 """FakeTelegramClientManager — фейковая фабрика клиентов для тестов."""
 from __future__ import annotations
 
-from tg_exporter.telegram.telegram_client_manager_interface import ITelegramClientManager
-from tg_exporter.telegram.telegram_client_interface import TelegramClientInterface
+from tg_exporter.services.telegram import ITelegramClientManager
+from tg_exporter.services.telegram import TelegramClientInterface
 from .fake_telegram_client import FakeTelegramClient
 
 

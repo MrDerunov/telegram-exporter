@@ -4,10 +4,10 @@
 from __future__ import annotations
 from pathlib import Path
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 from collections.abc import AsyncIterator
 
-from tg_exporter.telegram.telegram_client_interface import TelegramClientInterface
+from tg_exporter.services.telegram import TelegramClientInterface
 
 
 class FakeTelegramClient(TelegramClientInterface):

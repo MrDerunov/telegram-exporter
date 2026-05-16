@@ -5,7 +5,7 @@
 from __future__ import annotations
 
 from .base import BaseTranscriber, TranscriptionError
-from ...hosting.static_config import StaticConfig
+from ...configs.static_config import StaticConfig
 
 
 def create_transcriber(config: StaticConfig) -> BaseTranscriber:

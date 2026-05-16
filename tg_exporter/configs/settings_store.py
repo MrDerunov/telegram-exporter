@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from tg_exporter.hosting.state_model import StateModel
+from tg_exporter.configs.state_model import StateModel
 
 
 class ISettingsStore(ABC):

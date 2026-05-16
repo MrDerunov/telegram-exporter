@@ -7,8 +7,8 @@ import json
 import os
 import pytest
 
-from tg_exporter.services.export.export_message import ExportMessage
-from tg_exporter.services.export.reaction_item import ReactionItem
+from tg_exporter.services.export.models.export_message import ExportMessage
+from tg_exporter.services.export.models.reaction_item import ReactionItem
 from tg_exporter.services.export.exporters.json_exporter import JsonExporter
 
 

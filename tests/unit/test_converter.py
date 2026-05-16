@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 from datetime import datetime, timezone
 
-from tg_exporter.telegram.converter import (
+from tg_exporter.services.telegram import (
     message_to_export,
     _normalize,
     _build_forwarded_from,
@@ -14,11 +14,8 @@ from tg_exporter.telegram.converter import (
     _extract_links,
     _detect_media_type,
 )
-from tg_exporter.services.export.export_message import ExportMessage
-from tg_exporter.services.export.reaction_item import ReactionItem
-from tg_exporter.services.export.link_item import LinkItem
-from tg_exporter.services.export.poll_data import PollData, PollAnswer
-from tg_exporter.services.export.media_type import MediaType
+from tg_exporter.services.export.models.export_message import ExportMessage
+from tg_exporter.services.export.models.media_type import MediaType
 from tests.fakes.factories import generate_messages
 
 

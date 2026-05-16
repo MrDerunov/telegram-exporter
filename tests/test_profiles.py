@@ -2,14 +2,11 @@
 
 from __future__ import annotations
 
-import json
 import unittest
-from pathlib import Path
-from typing import Optional
 
 from tg_exporter.secrets.secret_store import ISecretStore
-from tg_exporter.hosting.settings_store import ISettingsStore
-from tg_exporter.hosting.state_model import StateModel
+from tg_exporter.configs.settings_store import ISettingsStore
+from tg_exporter.configs.state_model import StateModel
 
 
 class _FakeSecretStore(ISecretStore):
@@ -46,7 +43,7 @@ class TestProfileManager(unittest.TestCase):
     def setUp(self):
         self._secrets = _FakeSecretStore()
         self._settings = _FakeSettingsStore()
-        from tg_exporter.telegram.profiles import ProfileManager
+        from tg_exporter.services.telegram import ProfileManager
         self.pm = ProfileManager(self._secrets, self._settings)
 
     def test_empty_initial_state(self):
@@ -138,7 +135,7 @@ class TestProfileManager(unittest.TestCase):
         )
         self.pm.set_active("+72222222222")
 
-        from tg_exporter.telegram.profiles import ProfileManager
+        from tg_exporter.services.telegram import ProfileManager
         pm2 = ProfileManager(self._secrets, self._settings)
         self.assertEqual(pm2.active_phone(), "+72222222222")
         self.assertEqual(len(pm2.list()), 2)
@@ -183,7 +180,7 @@ class TestProfileManager(unittest.TestCase):
         self.assertEqual(state.profiles[0].phone, "+71111111111")
 
     def test_chats_preserved_in_state(self):
-        from tg_exporter.hosting.state_model import ChatEntry
+        from tg_exporter.configs.state_model import ChatEntry
         # Предустановка чатов через settings
         self._settings.save(StateModel(
             chats=(ChatEntry(name="Test", id=123),),

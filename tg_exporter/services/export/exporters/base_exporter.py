@@ -14,9 +14,8 @@ from __future__ import annotations
 
 import os
 from abc import ABC, abstractmethod
-from typing import Optional
 
-from ..export_message import ExportMessage
+from tg_exporter.services.export.models.export_message import ExportMessage
 from .sanitize import sanitize_filename  # noqa: F401 — re-export for backwards compat
 
 

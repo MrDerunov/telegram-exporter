@@ -6,12 +6,11 @@ from pathlib import Path
 from ..hosting import get_host
 from tg_exporter_cli.utils.async_runner import run_async
 from tg_exporter_cli.cli_constants import DEFAULT_SECRETS_EXPORTED_ENV_FILENAME
-from tg_exporter.telegram.auth.auth_service import AuthService
-from tg_exporter.telegram.telegram_client_manager_interface import ITelegramClientManager
+from tg_exporter.services.telegram import AuthService
+from tg_exporter.services.telegram import ITelegramClientManager
 from tg_exporter.secrets.secret_store import ISecretStore
 from tg_exporter.secrets.secret_keys import API_HASH, API_ID, SESSION, API_HASH_ENV, API_ID_ENV, SESSION_ENV
-from tg_exporter.hosting.configuration_provider import ConfigurationResult
-from tg_exporter.hosting.static_config import StaticConfig
+from tg_exporter.configs.static_config import StaticConfig
 from tg_exporter.utils.file_utils import secure_permissions
 
 

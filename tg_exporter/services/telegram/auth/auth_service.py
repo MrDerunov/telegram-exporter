@@ -25,7 +25,7 @@ from telethon.errors import (
 )
 
 from ..telegram_client_manager_interface import ITelegramClientManager
-from ...utils.logger import logger
+from tg_exporter.utils.logger import logger
 from .auth_result import AuthResult
 from .auth_step import AuthStep
 

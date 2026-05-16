@@ -10,15 +10,13 @@ MarkdownExporter — запись сообщений в Markdown с разбив
 
 from __future__ import annotations
 
-import os
 import re
 import datetime
-from typing import Optional
 
 from .base_exporter import BaseExporter
 from .sanitize import sanitize_filename
-from ..export_message import ExportMessage
-from ..markdown_settings import MarkdownSettings
+from tg_exporter.services.export.models.export_message import ExportMessage
+from tg_exporter.services.export.exporters.markdown_settings import MarkdownSettings
 
 
 class MarkdownExporter(BaseExporter):
