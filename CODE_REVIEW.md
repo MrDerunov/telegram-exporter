@@ -5,7 +5,7 @@
 | Инструмент | Результат |
 |---|---|
 | **Ruff** | 19 ошибок |
-| **Pytest** | 7 failed / 181 passed (96.1%) |
+| **Pytest** | 7 failed / 175 passed (96.0%) |
 
 ### Упавшие тесты (pytest)
 1. `test_secrets_source_defaults_to_keyring` — AssertionError: 'file' != 'keyring'
@@ -105,7 +105,7 @@
 11. **`MediaDirs.for_media_type()` — zombie code** — `tg_exporter/services/media_downloader/media_dirs.py:34-43`
 12. **Отсутствуют тесты на транскрипцию и медиа-загрузку** — `transcription/`, `media_downloader/` не покрыты
 13. **Зависимость тестов от `time.sleep()`** — `tests/test_models.py:181,219`, `tests/test_services.py:277` — флапает на перегруженном CI
-14. **Дублирование тестов ExportHistory** — `tests/test_services.py` и `tests/unit/test_export_history.py`
+14. ~~Дублирование тестов ExportHistory~~ ✅ исправлено — `test_models.py` и `test_services.py` разделены на отдельные файлы
 15. **`_interface_map` / `register_interface` — мёртвый код** — `tg_exporter_cli/hosting/container.py:15,25-27`
 16. **`asyncio.get_event_loop()` — deprecated** — `tg_exporter_cli/utils/async_runner.py:12`
 17. **`requirements.txt` дублирует `pyproject.toml`** — источники рассинхронизации зависимостей
