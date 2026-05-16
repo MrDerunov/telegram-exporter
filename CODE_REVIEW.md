@@ -31,7 +31,7 @@
 
 ---
 
-## CRITICAL (12 проблем, 3 исправлено)
+## CRITICAL (12 проблем, 4 исправлено)
 
 ### ~~1. `StaticConfig(frozen=True)` с мутабельным `MarkdownSettings`~~ ✅ исправлено
 - **Файл:** `tg_exporter/services/export/markdown_settings.py:18`
@@ -45,10 +45,9 @@
 - **Файл:** `tg_exporter/telegram/telegram_client_manager.py:84`
 - **Исправление:** в метод `destroy()` добавлен `self._secrets.delete(SESSION)`.
 
-### 4. `get_raw_telegram_client()` отсутствует в интерфейсе — нарушение LSP
-- **Файл:** `tg_exporter/telegram/telegram_client_interface.py`
-- **Описание:** Метод определён только в `TelethonClientAdapter:132`. `ExportOrchestrator:104` вызывает `client.get_raw_telegram_client()` — грубое нарушение принципа подстановки Лисков. `FakeTelegramClient` не имеет этого метода → тест падает.
-- **Исправление:** добавить метод в `TelegramClientInterface` или убрать вызов сырого клиента из `ExportOrchestrator`.
+### ~~4. `get_raw_telegram_client()` отсутствует в интерфейсе — нарушение LSP~~ ✅ исправлено
+- **Файл:** `tg_exporter/telegram/telethon_client_adapter.py:133`
+- **Исправление:** метод удалён. Добавлены `log_out()` и `count_messages()` в `TelegramClientInterface`. `ExportOrchestrator._do_run()` стал асинхронным, использует только интерфейс.
 
 ### 5. `FakeTelegramClient` не соответствует `TelegramClientInterface`
 - **Файл:** `tests/fakes/fake_telegram_client.py:98`

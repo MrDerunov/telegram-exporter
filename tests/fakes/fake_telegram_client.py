@@ -145,3 +145,17 @@ class FakeTelegramClient(TelegramClientInterface):
 
     async def destroy(self) -> None:
         self._connected = False
+
+    async def log_out(self) -> None:
+        self.call_log.append("log_out")
+        self._authorized = False
+
+    async def count_messages(
+        self,
+        peer_id: int,
+        min_id: int = 0,
+        offset_date: datetime | None = None,
+        reply_to: int | None = None,
+    ) -> int | None:
+        self.call_log.append(f"count_messages(peer={peer_id})")
+        return len(self._messages.get(peer_id, []))

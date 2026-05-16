@@ -69,7 +69,14 @@ class ExportOrchestrator:
                             export_done, export_error, export_cancelled.
         """
         try:
-            self._do_run(dialog, task, token, progress, send)
+            try:
+                loop = asyncio.get_event_loop()
+                if loop.is_closed():
+                    raise RuntimeError("closed")
+            except RuntimeError:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+            loop.run_until_complete(self._do_run_async(dialog, task, token, progress, send))
         except CancelledError:
             progress.cancel()
             send("export_cancelled", None)
@@ -81,7 +88,7 @@ class ExportOrchestrator:
 
     # ---- Internal ----
 
-    def _do_run(
+    async def _do_run_async(
         self,
         dialog,
         task: ExportTask,
@@ -93,16 +100,7 @@ class ExportOrchestrator:
         client = self._manager.create_client()
 
         # Подключение клиента
-        try:
-            loop = asyncio.get_event_loop()
-            if loop.is_closed():
-                raise RuntimeError("closed")
-        except RuntimeError:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-        loop.run_until_complete(client.connect())
-
-        c = client.get_raw_telegram_client()
+        await client.connect()
 
         # --- Подготовка директории ---
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
@@ -113,7 +111,7 @@ class ExportOrchestrator:
         os.makedirs(export_dir, exist_ok=True)
 
         # --- Подсчёт сообщений ---
-        total = self._count_messages(c, dialog, task)
+        total = await self._count_messages(client, dialog.id, task)
         export_label = dialog.name or "Чат"
         if task.topic_title:
             export_label = f"{export_label} → {task.topic_title}"
@@ -204,7 +202,7 @@ class ExportOrchestrator:
         transcribe_warned = False
         video_note_saved_ids: set[int] = set()
 
-        for msg in c.iter_messages(dialog, **iter_kwargs):
+        async for msg in client.iter_messages(dialog.id, **iter_kwargs):
             token.raise_if_cancelled()
 
             if date_to_end and hasattr(msg, "date") and msg.date and msg.date >= date_to_end:
@@ -342,27 +340,27 @@ class ExportOrchestrator:
 
     # ---- Helpers ----
 
-    def _count_messages(self, c, dialog, task: ExportTask) -> int | None:
+    async def _count_messages(self, client, peer_id: int, task: ExportTask) -> int | None:
         try:
-            kwargs: dict = {"limit": 0}
+            count_kwargs: dict = {}
             if task.topic_id is not None:
-                kwargs["reply_to"] = task.topic_id
+                count_kwargs["reply_to"] = task.topic_id
             if task.is_incremental_with_offset:
-                kwargs["min_id"] = task.last_exported_id
+                count_kwargs["min_id"] = task.last_exported_id
 
-            total_all = getattr(c.get_messages(dialog, **kwargs), "total", None)
+            total_all = await client.count_messages(peer_id, **count_kwargs)
             if total_all is None:
                 return None
 
             if task.date_from is not None:
-                before_from = getattr(c.get_messages(dialog, offset_date=task.date_from, **kwargs), "total", 0) or 0
+                before_from = await client.count_messages(peer_id, offset_date=task.date_from, **count_kwargs) or 0
                 total = max(0, total_all - before_from)
             else:
                 total = total_all
 
             if task.date_to is not None:
                 after_to = task.date_to + datetime.timedelta(days=1)
-                before_to = getattr(c.get_messages(dialog, offset_date=after_to, **kwargs), "total", 0) or 0
+                before_to = await client.count_messages(peer_id, offset_date=after_to, **count_kwargs) or 0
                 if task.date_from is not None:
                     total = max(0, total - (total_all - before_to))
                 else:

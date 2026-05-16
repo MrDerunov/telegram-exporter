@@ -58,3 +58,19 @@ class TelegramClientInterface(ABC):
     async def destroy(self) -> None:
         """Уничтожить клиент (для logout)."""
         ...
+
+    @abstractmethod
+    async def log_out(self) -> None:
+        """Выход из аккаунта на сервере Telegram."""
+        ...
+
+    @abstractmethod
+    async def count_messages(
+        self,
+        peer_id: int,
+        min_id: int = 0,
+        offset_date: datetime | None = None,
+        reply_to: int | None = None,
+    ) -> int | None:
+        """Вернуть количество сообщений в чате (или None если не удалось)."""
+        ...

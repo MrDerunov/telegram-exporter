@@ -128,14 +128,6 @@ class TelethonClientAdapter(TelegramClientInterface):
                     pass
             self._client = None
 
-    # ---- Compatibility ----
-
-    def get_raw_telegram_client(self) -> TelegramClient:
-        """Временный bridge к сырому telethon-клиенту."""
-        if self._client is None:
-            raise RuntimeError("Клиент не создан. Вызовите connect() сначала.")
-        return self._client
-
     async def destroy(self) -> None:
         """Уничтожает клиент (для logout)."""
         with self._lock:
@@ -145,3 +137,29 @@ class TelethonClientAdapter(TelegramClientInterface):
                 except Exception:
                     pass
                 self._client = None
+
+    async def log_out(self) -> None:
+        """Выход из аккаунта на сервере Telegram."""
+        if self._client is not None:
+            await self._client.log_out()
+
+    async def count_messages(
+        self,
+        peer_id: int,
+        min_id: int = 0,
+        offset_date: datetime | None = None,
+        reply_to: int | None = None,
+    ) -> int | None:
+        if self._client is None:
+            await self.connect()
+        kwargs: dict = {"limit": 0}
+        if min_id:
+            kwargs["min_id"] = min_id
+        if offset_date:
+            kwargs["offset_date"] = offset_date
+        if reply_to is not None:
+            kwargs["reply_to"] = reply_to
+        try:
+            return getattr(self._client.get_messages(peer_id, **kwargs), "total", None)
+        except Exception:
+            return None
