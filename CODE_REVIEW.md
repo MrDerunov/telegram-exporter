@@ -31,7 +31,7 @@
 
 ---
 
-## CRITICAL (12 проблем, 7 исправлено)
+## CRITICAL (12 проблем, 9 исправлено)
 
 ### ~~1. `StaticConfig(frozen=True)` с мутабельным `MarkdownSettings`~~ ✅ исправлено
 - **Файл:** `tg_exporter/services/export/markdown_settings.py:18`
@@ -61,15 +61,12 @@
 - **Файл:** `.github/workflows/build_release.yml:98-103`
 - **Исправление:** сборки зависят от `test`, релиз зависит от всех сборок. Добавлен `if: success()` на шаги тега и релиза.
 
-### 8. `secrets.json` содержит реальные ключи в рабочей копии
+### ~~8. `secrets.json` содержит реальные ключи в рабочей копии~~ ✅ исправлено (удалён, сессия отозвана)
 - **Файл:** `secrets.json`
-- **Описание:** Файл содержит валидные API_ID, API_HASH и SESSION. Файл не в git, но лежит в дереве исходников — бекапы IDE, копирование директории = утечка.
-- **Исправление:** переместить `secrets.json` за пределы репозитория, отозвать сессию в Telegram.
 
-### 9. `secrets.env` не в `.gitignore`
-- **Файл:** `.gitignore`
-- **Описание:** Команда `export-session` создаёт `secrets.env` с API_HASH, API_ID, SESSION. Файла нет в `.gitignore`. Случайный `git add .` = компрометация.
-- **Исправление:** добавить `*.env` в `.gitignore`.
+### ~~9. `secrets.exported.env` не в `.gitignore`~~ ✅ исправлено
+- **Файл:** `.gitignore`, `tg_exporter_cli/cli_constants.py`
+- **Исправление:** `*.env` добавлен в `.gitignore`. Файл переименован в `secrets.exported.env`.
 
 ### 10. `auth_service.py` напрямую зависит от Telethon (нарушение архитектуры)
 - **Файл:** `tg_exporter/telegram/auth/auth_service.py:12`

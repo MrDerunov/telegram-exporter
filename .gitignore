@@ -27,7 +27,7 @@ telegram_session.session-journal
 .vscode/
 tg_exporter.egg-info/
 
-.env
+*.env
 secrets.json
 config.json
 state.json
