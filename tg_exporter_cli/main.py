@@ -3,13 +3,13 @@ from __future__ import annotations
 import click
 
 from tg_exporter_cli.cli_constants import VERSION
-from .commands.auth import auth_group
-from .commands.export import export_group
-from .commands.chats import chats_group
-from .commands.profile import profile_group
-from .commands.config_cmd import config_group
-from .commands.version import version_command
-from .commands.doctor import doctor_command
+from tg_exporter_cli.commands.auth import auth_group
+from tg_exporter_cli.commands.export import export_group
+from tg_exporter_cli.commands.chats import chats_group
+from tg_exporter_cli.commands.profile import profile_group
+from tg_exporter_cli.commands.config_cmd import config_group
+from tg_exporter_cli.commands.version import version_command
+from tg_exporter_cli.commands.doctor import doctor_command
 
 
 @click.group()

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Linux build: PyInstaller --onefile --console → tar.gz.
-# Консольное приложение tg-exporter (Click CLI), entry point: tg_exporter_cli.main.
+# Консольное приложение tg-exporter (Click CLI), entry point: tg_exporter_cli/main.py.
 
 set -euo pipefail
 
@@ -26,7 +26,7 @@ pyinstaller --onefile --console --name tg-exporter \
   --collect-all imageio_ffmpeg \
   --collect-all tg_exporter \
   --hidden-import tg_exporter.services.transcription.factory \
-  tg_exporter_cli.main
+  tg_exporter_cli/main.py
 
 EXE_PATH="dist/tg-exporter"
 ARCHIVE_NAME="${ARCHIVE_NAME:-tg-exporter-linux-x86_64.tar.gz}"

@@ -1,5 +1,5 @@
 # Windows build: PyInstaller --onefile --console → zip.
-# Консольное приложение tg-exporter (Click CLI), entry point: tg_exporter_cli.main.
+# Консольное приложение tg-exporter (Click CLI), entry point: tg_exporter_cli/main.py.
 
 $ErrorActionPreference = "Stop"
 $env:PYTHONUTF8 = "1"
@@ -36,7 +36,7 @@ $pyinstallerArgs = @(
     "--collect-all", "imageio_ffmpeg",
     "--collect-all", "tg_exporter",
     "--hidden-import", "tg_exporter.services.transcription.factory",
-    "tg_exporter_cli.main"
+    "tg_exporter_cli/main.py"
 )
 
 if (Test-Path $iconPng) {
