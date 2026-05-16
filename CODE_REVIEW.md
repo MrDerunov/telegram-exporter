@@ -4,79 +4,20 @@
 
 | Инструмент | Результат |
 |---|---|
-| **Ruff** | 264 ошибки (217 автофиксимы) |
-| **Pytest** | 8 failed / 181 passed (95.6%) |
+| **Ruff** | 19 ошибок |
+| **Pytest** | 7 failed / 181 passed (96.1%) |
 
 ### Упавшие тесты (pytest)
-1. `test_full_flow_auth_and_export` — AttributeError: 'FakeTelegramClient' object has no attribute 'get_raw_telegram_client'
-2. `test_secrets_source_defaults_to_keyring` — AssertionError: 'file' != 'keyring'
-3. `test_message_entity_text_url` — assert 0 == 1 (links пуст)
-4. `test_message_entity_text_url_label_equals_url` — IndexError: list index out of range
-5. `test_message_entity_url` — IndexError: list index out of range
-6. `test_deduplicate_by_url` — assert 0 == 1 (links пуст)
-7. `test_from_name_and_username` — from_name = None вместо "John"
-8. `test_links_extraction` — assert 0 == 1 (links пуст)
+1. `test_secrets_source_defaults_to_keyring` — AssertionError: 'file' != 'keyring'
+2. `test_message_entity_text_url` — assert 0 == 1 (links пуст)
+3. `test_message_entity_text_url_label_equals_url` — IndexError: list index out of range
+4. `test_message_entity_url` — IndexError: list index out of range
+5. `test_deduplicate_by_url` — assert 0 == 1 (links пуст)
+6. `test_from_name_and_username` — from_name = None вместо "John"
+7. `test_links_extraction` — assert 0 == 1 (links пуст)
 
-### Типовые ошибки Ruff
-- ~~**UP045** — `Optional[X]` вместо `X | None`~~ ✅ исправлено (109 ошибок, `ruff check --fix --select UP045`)
-- ~~**I001** — несортированные импорты~~ ✅ замьючены в `pyproject.toml`
-- ~~**B904** — `raise` без `from err` в except-блоках~~ ✅ исправлено (10 шт.)
-- ~~**E501** — строки длиннее 120 символов~~ ✅ исправлено (4 шт.)
-- ~~**F401** — неиспользуемые импорты~~ ✅ замьючены в `pyproject.toml`
-- ~~**UP035** — импорт типов из `typing` вместо `collections.abc`~~ ✅ исправлено (6 шт.)
-- ~~**UP037** — кавычки в forward-reference аннотациях~~ ✅ исправлено (11 шт.)
-- ~~**C416** — избыточное set-comprehension~~ ✅ исправлено (2 шт.)
-- ~~**B027** — пустой метод в ABC без @abstractmethod~~ ✅ исправлено (2 шт., добавлен @abstractmethod)
-- ~~**W292** — нет перевода строки в конце файла~~ ✅ исправлено (1 шт.)
-
----
-
-## CRITICAL (12 проблем, все исправлены)
-
-### ~~1. `StaticConfig(frozen=True)` с мутабельным `MarkdownSettings`~~ ✅ исправлено
-- **Файл:** `tg_exporter/services/export/markdown_settings.py:18`
-- **Исправление:** `@dataclass` → `@dataclass(frozen=True)`. Свойства нигде не мутировались, изменение безопасно.
-
-### ~~2. `disconnect()` без `await` — утечка TCP-соединений~~ ✅ исправлено
-- **Файл:** `tg_exporter/telegram/telethon_client_adapter.py:125,143`
-- **Исправление:** `destroy()` и `save_session()` сделаны асинхронными в обоих интерфейсах и всех реализациях. `destroy()` теперь `await self._client.disconnect()`.
-
-### ~~3. Сессия не удаляется из `ISecretStore` при logout~~ ✅ исправлено
-- **Файл:** `tg_exporter/telegram/telegram_client_manager.py:84`
-- **Исправление:** в метод `destroy()` добавлен `self._secrets.delete(SESSION)`.
-
-### ~~4. `get_raw_telegram_client()` отсутствует в интерфейсе — нарушение LSP~~ ✅ исправлено
-- **Файл:** `tg_exporter/telegram/telethon_client_adapter.py:133`
-- **Исправление:** метод удалён. Добавлены `log_out()` и `count_messages()` в `TelegramClientInterface`. `ExportOrchestrator._do_run()` стал асинхронным, использует только интерфейс.
-
-### ~~5. `FakeTelegramClient` не соответствует `TelegramClientInterface`~~ ✅ исправлено
-- **Файл:** `tests/fakes/fake_telegram_client.py:98`
-- **Исправление:** `iter_messages` стал асинхронным с сигнатурой интерфейса (`peer_id: int, ...`). Удалены `_FakeMessageIter`, `load_session`, `get_messages`. Добавлен `reply_to` в интерфейс.
-
-### ~~6. CI/CD не запускает тесты~~ ✅ исправлено
-- **Файл:** `.github/workflows/build_release.yml`
-- **Исправление:** добавлен job `test` (ruff + pytest) перед сборками.
-
-### ~~7. CI создаёт тег при любом результате~~ ✅ исправлено
-- **Файл:** `.github/workflows/build_release.yml:98-103`
-- **Исправление:** сборки зависят от `test`, релиз зависит от всех сборок. Добавлен `if: success()` на шаги тега и релиза.
-
-### ~~8. `secrets.json` содержит реальные ключи в рабочей копии~~ ✅ исправлено (удалён, сессия отозвана)
-- **Файл:** `secrets.json`
-
-### ~~9. `secrets.exported.env` не в `.gitignore`~~ ✅ исправлено
-- **Файл:** `.gitignore`, `tg_exporter_cli/cli_constants.py`
-- **Исправление:** `*.env` добавлен в `.gitignore`. Файл переименован в `secrets.exported.env`.
-
-### ~~10. `auth_service.py` напрямую зависит от Telethon (нарушение архитектуры)~~ — не ошибка, принято
-
-### ~~11. Глобальный синглтон `AppLogger` (нарушение DI)~~ ✅ исправлено
-- **Файл:** `tg_exporter/utils/logger.py`
-- **Исправление:** Singleton допустим для логгера. Путь по умолчанию — `./app.log` (CWD). Убрана `LOG_PATH`.
-
-### ~~12. Утечка Telethon-клиентов в CLI-командах~~ ✅ исправлено
-- **Файлы:** `tg_exporter_cli/commands/chats.py`, `tg_exporter_cli/commands/export.py`
-- **Исправление:** `create_client()` переименован в `create_connected_client()` (async, авто-connect). Клиент создаётся внутри `_fetch()` и освобождается при выходе.
+### Оставшиеся ошибки Ruff (19)
+- UP017 (6), C408 (6), E741 (3), UP047 (2), F541, F811, UP041, W293 — по 1 шт.
 
 ---
 
@@ -157,8 +98,8 @@
 4. **Конвертер не обрабатывает 7+ типов медиа** — `tg_exporter/telegram/converter.py:199-215` — contact, geo, dice, game, web_page, invoice теряются
 5. **Сервисные сообщения теряют данные** — `tg_exporter/telegram/converter.py:27,57-58` — кроме названия топика, всё теряется
 6. **Нет обработки `FloodWaitError` в экспорте** — `tg_exporter/telegram/telethon_client_adapter.py:91-101` — длительный экспорт может прерваться
-7. **Не-frozen dataclasses** — `MarkdownSettings`, `AuthResult`, `AudioPrepResult`, `MediaDirs`, `Profile`, `AnalyticsResult`, `AuthorStats`
-8. **Несколько классов в одном файле** — `configuration_provider.py`, `state_model.py`, `export_format.py`, `poll_data.py`, `markdown_settings.py`, `telegram_client_manager.py`, `cancellation.py`
+7. **Не-frozen dataclasses** — `AuthResult`, `AudioPrepResult`, `MediaDirs`, `Profile`, `AnalyticsResult`, `AuthorStats`
+8. **Несколько классов в одном файле** — `configuration_provider.py`, `state_model.py`, `export_format.py`, `poll_data.py`, `telegram_client_manager.py`, `cancellation.py`
 9. **Дублирование логики event loop** — 4 места: `export_orchestrator.py`, `async_runner.py`, `telethon_client_adapter.py`, `media_downloader.py`
 10. **Дублирование `_run_download` в media_downloader.py** — строки 79-84 и 238-245
 11. **`MediaDirs.for_media_type()` — zombie code** — `tg_exporter/services/media_downloader/media_dirs.py:34-43`
@@ -185,17 +126,3 @@
 - `WhisperTranscriber._download_model_with_progress` — мутабельный `shared` dict без блокировки
 - `ExportTask.deepgram_api_key` — zombie field, нигде не читается
 - `JsonSecretStore._write` — временный `.tmp` файл не чистится при ошибке `os.replace()`
-
----
-
-## Вердикт
-
-### ❌ Код НЕ готов к публикации
-
-**Блокирующие проблемы:** ✅ все 12 исправлены
-
-**Рекомендуемый порядок исправления:**
-1. CRITICAL (архитектура, утечки, секреты, CI)
-2. HIGH (нерабочие фичи, несогласованность имён, безопасность)
-3. `ruff check --fix` + `ruff format` (автофикс 217 ошибок)
-4. MEDIUM (техдолг)
