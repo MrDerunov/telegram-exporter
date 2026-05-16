@@ -70,15 +70,20 @@ tg-exporter doctor
 
 ## Где хранятся файлы
 
+Директория конфигов определяется переменной окружения `TELEGRAM_EXPORTER_CONFIG_DIR`. Если переменная не задана — используется текущая рабочая директория.
+
 ```
-~/.tg-exporter/
-├── config.yaml           # настройки (без секретов)
-├── secrets.json          # api_hash, сессия, ключи (0o600)
-├── profiles.json         # список аккаунтов
+<config_dir>/
+├── config.json           # настройки (без секретов)
+├── state.json            # состояние, профили, список чатов
+├── secrets.json          # api_hash, сессия, ключи (если secrets_source=file)
+├── .env                  # переменные окружения (опционально)
 └── app.log               # лог
 ```
 
-Секреты также можно хранить в переменных окружения (`TG_EXPORTER_*`) или `.env`-файле — приоритет: env vars > secrets.json.
+Секреты также можно хранить в keyring системы или в переменных окружения (`TG_EXPORTER_*`) — приоритет: env vars > .env > secrets.json.
+
+Создать config.json с дефолтными значениями: `tg-exporter config init`.
 
 ## Примеры
 
