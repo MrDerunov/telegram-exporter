@@ -33,10 +33,9 @@
 
 ## CRITICAL (12 проблем)
 
-### 1. `StaticConfig(frozen=True)` с мутабельным `MarkdownSettings`
-- **Файл:** `tg_exporter/hosting/static_config.py:34`
-- **Описание:** `MarkdownSettings` — не-frozen `@dataclass`. Поле `markdown` в `StaticConfig` — ссылка на мутабельный объект. Любой потребитель может изменить `config.markdown.words_per_file`, нарушив контракт иммутабельности.
-- **Исправление:** сделать `MarkdownSettings` frozen.
+### ~~1. `StaticConfig(frozen=True)` с мутабельным `MarkdownSettings`~~ ✅ исправлено
+- **Файл:** `tg_exporter/services/export/markdown_settings.py:18`
+- **Исправление:** `@dataclass` → `@dataclass(frozen=True)`. Свойства нигде не мутировались, изменение безопасно.
 
 ### 2. `disconnect()` без `await` — утечка TCP-соединений
 - **Файл:** `tg_exporter/telegram/telethon_client_adapter.py:125,143`

@@ -15,7 +15,7 @@ class ConfigValidationError(ValueError):
 DATE_FORMATS = ("DD.MM.YYYY", "YYYY-MM-DD", "MM/DD/YYYY")
 
 
-@dataclass
+@dataclass(frozen=True)
 class MarkdownSettings:
     words_per_file: int = 50_000
     date_format: str = "DD.MM.YYYY"
