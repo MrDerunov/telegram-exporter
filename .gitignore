@@ -29,6 +29,8 @@ tg_exporter.egg-info/
 
 .env
 secrets.json
+config.json
+state.json
 app.log
 
 # Generated version file (created by build scripts / CI)
