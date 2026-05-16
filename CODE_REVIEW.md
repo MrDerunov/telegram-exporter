@@ -31,7 +31,7 @@
 
 ---
 
-## CRITICAL (12 проблем)
+## CRITICAL (12 проблем, 3 исправлено)
 
 ### ~~1. `StaticConfig(frozen=True)` с мутабельным `MarkdownSettings`~~ ✅ исправлено
 - **Файл:** `tg_exporter/services/export/markdown_settings.py:18`
@@ -41,10 +41,9 @@
 - **Файл:** `tg_exporter/telegram/telethon_client_adapter.py:125,143`
 - **Исправление:** `destroy()` и `save_session()` сделаны асинхронными в обоих интерфейсах и всех реализациях. `destroy()` теперь `await self._client.disconnect()`.
 
-### 3. Сессия не удаляется из `ISecretStore` при logout
-- **Файл:** `tg_exporter/telegram/auth/auth_service.py:154-165`
-- **Описание:** `logout()` инвалидирует сессию на сервере и вызывает `manager.destroy()`, но **не удаляет** session string из `ISecretStore`. При следующем запуске невалидная сессия вызывает повторные ошибки.
-- **Исправление:** добавить удаление сессии из secret store в `logout()`.
+### ~~3. Сессия не удаляется из `ISecretStore` при logout~~ ✅ исправлено
+- **Файл:** `tg_exporter/telegram/telegram_client_manager.py:84`
+- **Исправление:** в метод `destroy()` добавлен `self._secrets.delete(SESSION)`.
 
 ### 4. `get_raw_telegram_client()` отсутствует в интерфейсе — нарушение LSP
 - **Файл:** `tg_exporter/telegram/telegram_client_interface.py`

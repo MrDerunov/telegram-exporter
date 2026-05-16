@@ -81,8 +81,9 @@ class TelethonClientManager(ITelegramClientManager):
                 pass
 
     async def destroy(self) -> None:
-        """Уничтожить клиент."""
+        """Уничтожить клиент и удалить сессию."""
         with self._lock:
             if self._current_client is not None:
                 await self._current_client.destroy()
                 self._current_client = None
+            self._secrets.delete(SESSION)
