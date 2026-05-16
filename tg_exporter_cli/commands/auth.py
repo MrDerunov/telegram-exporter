@@ -5,7 +5,7 @@ from pathlib import Path
 
 from ..hosting import get_host
 from tg_exporter_cli.utils.async_runner import run_async
-from tg_exporter_cli.cli_constants import DEFAULT_SECRETS_ENV_FILENAME
+from tg_exporter_cli.cli_constants import DEFAULT_SECRETS_EXPORTED_ENV_FILENAME
 from tg_exporter.telegram.auth.auth_service import AuthService
 from tg_exporter.telegram.telegram_client_manager_interface import ITelegramClientManager
 from tg_exporter.secrets.secret_store import ISecretStore
@@ -103,7 +103,7 @@ def auth_logout(profile):
 
 
 @auth_group.command("export-session")
-@click.option("--output", default=DEFAULT_SECRETS_ENV_FILENAME, help="Путь к выходному файлу")
+@click.option("--output", default=DEFAULT_SECRETS_EXPORTED_ENV_FILENAME, help="Путь к выходному файлу")
 def auth_export_session(output):
     """Экспортировать сессию в secrets.env для CI/CD."""
     host = get_host()
