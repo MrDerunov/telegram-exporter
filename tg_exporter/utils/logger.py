@@ -1,9 +1,11 @@
 """
 AppLogger — логгер приложения с автоматическим редактированием секретов.
 
-Пишет в файл ~/.tg-exporter/app.log.
 Чувствительные данные (api_hash, session, номера телефонов) автоматически
 заменяются на <redacted> перед записью.
+
+По умолчанию пишет в app.log в текущей рабочей директории.
+Если вызвана init_logger(config_dir), путь обновляется на config_dir/app.log.
 """
 
 from __future__ import annotations
@@ -17,7 +19,6 @@ from pathlib import Path
 from typing import Optional
 
 
-LOG_PATH: Path = Path(os.path.expanduser("~/.tg-exporter/app.log"))
 MAX_LOG_SIZE = 5 * 1024 * 1024  # 5 MB — ротация
 
 
@@ -53,8 +54,8 @@ class AppLogger:
         logger.error("Ошибка подключения", exc=e)
     """
 
-    def __init__(self, path: Path = LOG_PATH) -> None:
-        self._path = path
+    def __init__(self, path: Path | None = None) -> None:
+        self._path = path or Path("app.log")
 
     def _write(self, level: str, message: str, exc: BaseException | None = None) -> None:
         try:
@@ -97,16 +98,13 @@ class AppLogger:
         self._write("FATAL", message, exc)
 
 
-# Глобальный экземпляр для удобства импорта
+# Глобальный экземпляр для удобства импорта (Singleton — допустим для логгера).
+# По умолчанию пишет в app.log в CWD.
 logger = AppLogger()
 
 
 def init_logger(config_dir: Path) -> None:
-    """Инициализирует логгер с путём на основе config_dir.
+    """Переключает логгер на запись в config_dir/app.log.
     Вызывается из CliHost.run() ПОСЛЕ build().
-    Обновляет _path существующего экземпляра AppLogger.
     """
-    global LOG_PATH
-    LOG_PATH = config_dir / "app.log"
-    # Обновляем путь в существующем экземпляре — все модули уже импортировали его
-    logger._path = LOG_PATH
+    logger._path = config_dir / "app.log"

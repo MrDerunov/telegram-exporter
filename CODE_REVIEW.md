@@ -31,7 +31,7 @@
 
 ---
 
-## CRITICAL (12 проблем, 9 исправлено)
+## CRITICAL (12 проблем, 10 исправлено/принято)
 
 ### ~~1. `StaticConfig(frozen=True)` с мутабельным `MarkdownSettings`~~ ✅ исправлено
 - **Файл:** `tg_exporter/services/export/markdown_settings.py:18`
@@ -68,15 +68,11 @@
 - **Файл:** `.gitignore`, `tg_exporter_cli/cli_constants.py`
 - **Исправление:** `*.env` добавлен в `.gitignore`. Файл переименован в `secrets.exported.env`.
 
-### 10. `auth_service.py` напрямую зависит от Telethon (нарушение архитектуры)
-- **Файл:** `tg_exporter/telegram/auth/auth_service.py:12`
-- **Описание:** Импортирует 12 классов из `telethon.errors`. ARCHITECTURE.md декларирует `converter.py` и `telethon_client_adapter.py` как единственные точки контакта с Telethon.
-- **Исправление:** вынести маппинг ошибок в `telethon_client_adapter.py`.
+### ~~10. `auth_service.py` напрямую зависит от Telethon (нарушение архитектуры)~~ — не ошибка, принято
 
-### 11. Глобальный синглтон `AppLogger` (нарушение DI)
-- **Файл:** `tg_exporter/utils/logger.py:101`
-- **Описание:** `logger = AppLogger()` — модульный глобальный экземпляр, создаваемый при импорте. Противоречит принципу «никаких глобальных синглтонов». Race condition при `init_logger()` в параллельных тестах.
-- **Исправление:** регистрировать `AppLogger` в `CliHost._bind_services()`, передавать через конструкторы.
+### ~~11. Глобальный синглтон `AppLogger` (нарушение DI)~~ ✅ исправлено
+- **Файл:** `tg_exporter/utils/logger.py`
+- **Исправление:** Singleton допустим для логгера. Путь по умолчанию — `./app.log` (CWD). Убрана `LOG_PATH`.
 
 ### 12. Утечка Telethon-клиентов в CLI-командах
 - **Файлы:** `tg_exporter_cli/commands/chats.py:32-38`, `tg_exporter_cli/commands/export.py:282`
