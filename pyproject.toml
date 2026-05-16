@@ -78,6 +78,10 @@ select = [
     "C4",  # flake8-comprehensions
     "UP",  # pyupgrade
 ]
+ignore = [
+    "I001",  # несортированные импорты — ok
+    "F401",  # неиспользуемые импорты — ok
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
