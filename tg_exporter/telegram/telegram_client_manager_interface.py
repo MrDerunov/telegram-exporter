@@ -14,8 +14,8 @@ class ITelegramClientManager(ABC):
     """Контракт для фабрики клиентов Telegram."""
 
     @abstractmethod
-    def create_client(self) -> TelegramClientInterface:
-        """Создать или вернуть готовый клиент."""
+    async def create_connected_client(self) -> TelegramClientInterface:
+        """Создать и подключить клиент."""
         ...
 
     @abstractmethod

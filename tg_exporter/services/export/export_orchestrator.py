@@ -89,10 +89,7 @@ class ExportOrchestrator:
         send: EventCallback,
     ) -> None:
         token.raise_if_cancelled()
-        client = self._manager.create_client()
-
-        # Подключение клиента
-        await client.connect()
+        client = await self._manager.create_connected_client()
 
         # --- Подготовка директории ---
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")

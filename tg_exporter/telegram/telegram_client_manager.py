@@ -34,8 +34,8 @@ class TelethonClientManager(ITelegramClientManager):
             if self._current_client is not None:
                 self._current_client = None
 
-    def create_client(self) -> TelegramClientInterface:
-        """Создать и вернуть TelethonClientAdapter."""
+    async def create_connected_client(self) -> TelegramClientInterface:
+        """Создать, подключить и вернуть TelethonClientAdapter."""
         with self._lock:
             if self._current_client is not None:
                 return self._current_client
@@ -66,7 +66,8 @@ class TelethonClientManager(ITelegramClientManager):
                 api_hash=api_hash,
                 session_str=session_str,
             )
-            return self._current_client
+        await self._current_client.connect()
+        return self._current_client
 
     async def save_session(self) -> None:
         """Сохранить сессию в SecretProvider."""

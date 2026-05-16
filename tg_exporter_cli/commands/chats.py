@@ -29,10 +29,8 @@ def chats_list(
     client_manager = host.get(ITelegramClientManager)
 
     try:
-        client = client_manager.create_client()
-
         async def _fetch():
-            await client.connect()
+            client = await client_manager.create_connected_client()
             return await client.get_dialogs()
 
         dialogs = run_async(_fetch())
@@ -91,10 +89,8 @@ def chats_show(chat_id: str):
     client_manager = host.get(ITelegramClientManager)
 
     try:
-        client = client_manager.create_client()
-
         async def _fetch():
-            await client.connect()
+            client = await client_manager.create_connected_client()
             dialogs = await client.get_dialogs()
             for d in dialogs:
                 if str(d.id) == chat_id:
@@ -133,10 +129,8 @@ def chats_add(chat_id: str | None, folder: str | None):
         raise click.UsageError("Укажите --chat ID или --folder NAME")
 
     try:
-        client = client_manager.create_client()
-
         async def _fetch():
-            await client.connect()
+            client = await client_manager.create_connected_client()
             return await client.get_dialogs()
 
         dialogs = run_async(_fetch())

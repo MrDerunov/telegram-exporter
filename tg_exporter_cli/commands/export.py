@@ -256,10 +256,8 @@ def _run_export(
                 click.echo(f"\n  ℹ {data}")
 
         # Получаем диалог
-        client = client_manager.create_client()
-
         async def _get_dialog():
-            await client.connect()
+            client = await client_manager.create_connected_client()
             dialogs = await client.get_dialogs()
             # Поиск по точному ID или username
             if chat_id is not None:

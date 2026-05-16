@@ -12,7 +12,8 @@ class FakeTelegramClientManager(ITelegramClientManager):
     def __init__(self, client: FakeTelegramClient | None = None):
         self._client = client or FakeTelegramClient()
 
-    def create_client(self) -> TelegramClientInterface:
+    async def create_connected_client(self) -> TelegramClientInterface:
+        await self._client.connect()
         return self._client
 
     async def save_session(self) -> None:

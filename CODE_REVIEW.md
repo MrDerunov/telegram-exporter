@@ -31,7 +31,7 @@
 
 ---
 
-## CRITICAL (12 проблем, 10 исправлено/принято)
+## CRITICAL (12 проблем, все исправлены)
 
 ### ~~1. `StaticConfig(frozen=True)` с мутабельным `MarkdownSettings`~~ ✅ исправлено
 - **Файл:** `tg_exporter/services/export/markdown_settings.py:18`
@@ -74,10 +74,9 @@
 - **Файл:** `tg_exporter/utils/logger.py`
 - **Исправление:** Singleton допустим для логгера. Путь по умолчанию — `./app.log` (CWD). Убрана `LOG_PATH`.
 
-### 12. Утечка Telethon-клиентов в CLI-командах
-- **Файлы:** `tg_exporter_cli/commands/chats.py:32-38`, `tg_exporter_cli/commands/export.py:282`
-- **Описание:** `create_client()` + `connect()` без `disconnect()`. В режиме `--all` каждый чат оставляет открытое соединение.
-- **Исправление:** обернуть в `try/finally` с `disconnect()`.
+### ~~12. Утечка Telethon-клиентов в CLI-командах~~ ✅ исправлено
+- **Файлы:** `tg_exporter_cli/commands/chats.py`, `tg_exporter_cli/commands/export.py`
+- **Исправление:** `create_client()` переименован в `create_connected_client()` (async, авто-connect). Клиент создаётся внутри `_fetch()` и освобождается при выходе.
 
 ---
 
@@ -193,13 +192,7 @@
 
 ### ❌ Код НЕ готов к публикации
 
-**Блокирующие проблемы (9 CRITICAL, 3 исправлено):**
-- Архитектурные нарушения (Telethon в auth_service, глобальный синглтон logger)
-- Нарушение абстракций (get_raw_telegram_client в обход интерфейса, FakeTelegramClient не соответствует интерфейсу)
-- Падающие тесты (FakeTelegramClient не реализует get_raw_telegram_client)
-- CI не тестирует код перед релизом
-- Реальные секреты в рабочей копии (secrets.json)
-- `.gitignore` пропускает `*.env`
+**Блокирующие проблемы:** ✅ все 12 исправлены
 
 **Рекомендуемый порядок исправления:**
 1. CRITICAL (архитектура, утечки, секреты, CI)

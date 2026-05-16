@@ -51,8 +51,7 @@ class AuthService:
         Вызывать при старте приложения.
         """
         try:
-            client = self._manager.create_client()
-            await client.connect()
+            client = await self._manager.create_connected_client()
             if await client.is_authorized():
                 await self._manager.save_session()
                 return AuthResult.ok()
@@ -74,8 +73,7 @@ class AuthService:
         if not phone:
             return AuthResult.error("Введите номер телефона.")
         try:
-            client = self._manager.create_client()
-            await client.connect()
+            client = await self._manager.create_connected_client()
             if await client.is_authorized():
                 await self._manager.save_session()
                 return AuthResult.ok()
@@ -113,8 +111,7 @@ class AuthService:
         if not phone:
             return AuthResult.error("Введите номер телефона.")
         try:
-            client = self._manager.create_client()
-            await client.connect()
+            client = await self._manager.create_connected_client()
             await client.sign_in(phone=phone, code=code)
             self._manager.save_session()
             return AuthResult.ok()
@@ -138,8 +135,7 @@ class AuthService:
         if not password:
             return AuthResult.error("Нужен пароль 2FA.")
         try:
-            client = self._manager.create_client()
-            await client.connect()
+            client = await self._manager.create_connected_client()
             await client.sign_in_password(password)
             self._manager.save_session()
             return AuthResult.ok()
@@ -154,8 +150,7 @@ class AuthService:
     async def logout(self) -> None:
         """Выходит из аккаунта и уничтожает клиент."""
         try:
-            client = self._manager.create_client()
-            await client.connect()
+            client = await self._manager.create_connected_client()
             await client.log_out()
         except Exception:
             pass
