@@ -93,11 +93,13 @@ class TelethonClientAdapter(TelegramClientInterface):
         self, peer_id: int, min_id: int = 0,
         offset_date: datetime | None = None,
         limit: int | None = None,
+        reply_to: int | None = None,
     ) -> AsyncIterator[Any]:
         if self._client is None:
             await self.connect()
         async for msg in self._client.iter_messages(
-            peer_id, min_id=min_id, offset_date=offset_date, limit=limit
+            peer_id, min_id=min_id, offset_date=offset_date, limit=limit,
+            reverse=True, reply_to=reply_to,
         ):
             yield msg
 

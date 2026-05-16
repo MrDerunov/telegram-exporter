@@ -176,13 +176,9 @@ class ExportOrchestrator:
         analytics = AnalyticsCollector() if task.collect_analytics else None
 
         # --- Параметры итерации ---
-        iter_kwargs: dict = {"reverse": True}
-        if task.topic_id is not None:
-            iter_kwargs["reply_to"] = task.topic_id
-        if task.date_from is not None:
-            iter_kwargs["offset_date"] = task.date_from
-        if task.is_incremental_with_offset:
-            iter_kwargs["min_id"] = task.last_exported_id
+        iter_min_id = task.last_exported_id if task.is_incremental_with_offset else 0
+        iter_offset_date = task.date_from or None
+        iter_reply_to = task.topic_id if task.topic_id is not None else None
 
         date_to_end = (
             (task.date_to + datetime.timedelta(days=1)) if task.date_to else None
@@ -194,7 +190,12 @@ class ExportOrchestrator:
         transcribe_warned = False
         video_note_saved_ids: set[int] = set()
 
-        async for msg in client.iter_messages(dialog.id, **iter_kwargs):
+        async for msg in client.iter_messages(
+            dialog.id,
+            min_id=iter_min_id,
+            offset_date=iter_offset_date,
+            reply_to=iter_reply_to,
+        ):
             token.raise_if_cancelled()
 
             if date_to_end and hasattr(msg, "date") and msg.date and msg.date >= date_to_end:

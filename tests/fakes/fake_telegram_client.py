@@ -5,27 +5,14 @@ from __future__ import annotations
 from pathlib import Path
 from datetime import datetime
 from typing import Any, Optional
+from collections.abc import AsyncIterator
 
 from tg_exporter.telegram.telegram_client_interface import TelegramClientInterface
 
 
-class _FakeMessageIter:
-    """Sync-iterable wrapper для списка сообщений (эмулирует Telethon _MessagesIter)."""
-
-    def __init__(self, messages: list[Any]) -> None:
-        self._messages = messages
-        self.total = len(messages)
-
-    def __iter__(self):
-        return iter(self._messages)
-
-    def __len__(self) -> int:
-        return len(self._messages)
-
-
 class FakeTelegramClient(TelegramClientInterface):
     """Фейковый клиент для unit-тестов.
-    
+
     Позволяет:
     - Предзагружать диалоги и сообщения
     - Симулировать авторизацию/неавторизацию
@@ -95,31 +82,26 @@ class FakeTelegramClient(TelegramClientInterface):
             dialogs = dialogs[:limit]
         return dialogs
 
-    def iter_messages(
-        self, entity, min_id: int = 0,
+    async def iter_messages(
+        self,
+        peer_id: int,
+        min_id: int = 0,
         offset_date: datetime | None = None,
         limit: int | None = None,
-        reverse: bool = False,
         reply_to: int | None = None,
-    ):
-        """Синхронный итератор (как в Telethon). Эмулирует telethon.client.messages.MessageMethods.iter_messages."""
-        # Поддержка как int peer_id, так и entity с .id
-        peer_id = entity if isinstance(entity, int) else getattr(entity, 'id', 0)
+    ) -> AsyncIterator[Any]:
         self.call_log.append(f"iter_messages(peer={peer_id}, min_id={min_id}, limit={limit})")
         messages = self._messages.get(peer_id, [])
         # Фильтр по min_id
         filtered = [m for m in messages if getattr(m, 'id', 0) > min_id]
         # Фильтр по offset_date
         if offset_date is not None:
-            filtered = [m for m in filtered if getattr(m, 'date', datetime.min) >= offset_date]
-        # reverse
-        if reverse:
-            filtered = list(reversed(filtered))
+            filtered = [m for m in filtered if getattr(m, 'date', datetime.min) > offset_date]
         # Лимит
         if limit is not None and limit > 0:
             filtered = filtered[:limit]
-        # Возвращаем sync-iterable (как Telethon)
-        return _FakeMessageIter(filtered)
+        for msg in filtered:
+            yield msg
 
     async def download_media(self, message: Any, path: Path) -> Path | None:
         self.call_log.append(f"download_media({getattr(message, 'id', '?')}, {path})")
@@ -131,17 +113,6 @@ class FakeTelegramClient(TelegramClientInterface):
     async def save_session(self) -> str:
         self.call_log.append("save_session")
         return self._session_str
-
-    def load_session(self, session_str: str) -> None:
-        self.call_log.append(f"load_session(...)")
-        self._session_str = session_str
-
-    def get_messages(self, entity, **kwargs) -> Any:
-        """Эмуляция telethon.client.messages.MessageMethods.get_messages."""
-        peer_id = entity if isinstance(entity, int) else getattr(entity, 'id', 0)
-        messages = self._messages.get(peer_id, [])
-        total = len(messages)
-        return type("TotalList", (), {"total": total, "__len__": lambda s: total})()
 
     async def destroy(self) -> None:
         self._connected = False

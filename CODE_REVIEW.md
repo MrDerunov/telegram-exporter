@@ -31,7 +31,7 @@
 
 ---
 
-## CRITICAL (12 проблем, 4 исправлено)
+## CRITICAL (12 проблем, 5 исправлено)
 
 ### ~~1. `StaticConfig(frozen=True)` с мутабельным `MarkdownSettings`~~ ✅ исправлено
 - **Файл:** `tg_exporter/services/export/markdown_settings.py:18`
@@ -49,10 +49,9 @@
 - **Файл:** `tg_exporter/telegram/telethon_client_adapter.py:133`
 - **Исправление:** метод удалён. Добавлены `log_out()` и `count_messages()` в `TelegramClientInterface`. `ExportOrchestrator._do_run()` стал асинхронным, использует только интерфейс.
 
-### 5. `FakeTelegramClient` не соответствует `TelegramClientInterface`
+### ~~5. `FakeTelegramClient` не соответствует `TelegramClientInterface`~~ ✅ исправлено
 - **Файл:** `tests/fakes/fake_telegram_client.py:98`
-- **Описание:** `iter_messages` — синхронный (должен быть `async`), первый параметр `entity` вместо `peer_id: int`, лишние параметры `reverse`, `reply_to`.
-- **Исправление:** привести сигнатуру к интерфейсу.
+- **Исправление:** `iter_messages` стал асинхронным с сигнатурой интерфейса (`peer_id: int, ...`). Удалены `_FakeMessageIter`, `load_session`, `get_messages`. Добавлен `reply_to` в интерфейс.
 
 ### 6. CI/CD не запускает тесты
 - **Файл:** `.github/workflows/build_release.yml`

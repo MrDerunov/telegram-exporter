@@ -47,6 +47,7 @@ class TelegramClientInterface(ABC):
         min_id: int = 0,
         offset_date: datetime | None = None,
         limit: int | None = None,
+        reply_to: int | None = None,
     ) -> AsyncIterator[Any]: ...
 
     @abstractmethod
