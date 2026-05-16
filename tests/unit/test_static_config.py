@@ -59,9 +59,9 @@ class TestStaticConfig(unittest.TestCase):
         self.assertEqual(cfg.log_level, "DEBUG")
         self.assertEqual(cfg.retry_max_attempts, 5)
 
-    def test_secrets_source_defaults_to_keyring(self):
+    def test_secrets_source_defaults_to_file(self):
         cfg = StaticConfig()
-        self.assertEqual(cfg.secrets_source, "keyring")
+        self.assertEqual(cfg.secrets_source, "file")
 
     def test_markdown_settings_roundtrip(self):
         s = MarkdownSettings(words_per_file=30_000, date_format="YYYY-MM-DD", plain_text=False)
