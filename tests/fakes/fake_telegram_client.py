@@ -143,9 +143,5 @@ class FakeTelegramClient(TelegramClientInterface):
         total = len(messages)
         return type("TotalList", (), {"total": total, "__len__": lambda s: total})()
 
-    def get_client(self) -> Any:
-        """Возвращает self — фейковый клиент сам себе клиент."""
-        return self
-
     def destroy(self) -> None:
         self._connected = False

@@ -45,7 +45,7 @@ class CliHost:
         # ConfigurationResult — для доступа к config_dir и сырым данным
         c.register_instance(ConfigurationResult, result)
 
-        # Маппинг сырого словаря в типизированные конфиги (делает хост)
+        # Маппинг сырого словаря в типизированные конфиги
         static_config = StaticConfig.from_raw(result.raw)
         state_model = StateModel.from_dict(result.raw)
 

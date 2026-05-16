@@ -129,7 +129,7 @@ class TelethonClientAdapter(TelegramClientInterface):
 
     # ---- Compatibility ----
 
-    def get_client(self) -> TelegramClient:
+    def get_raw_telegram_client(self) -> TelegramClient:
         """Временный bridge к сырому telethon-клиенту."""
         if self._client is None:
             raise RuntimeError("Клиент не создан. Вызовите connect() сначала.")

@@ -156,7 +156,7 @@ class AuthService:
         try:
             client = self._manager.create_client()
             await client.connect()
-            await client.get_client().log_out()
+            await client.get_raw_telegram_client().log_out()
         except Exception:
             pass
         finally:

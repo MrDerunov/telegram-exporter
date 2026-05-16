@@ -10,6 +10,9 @@ from pathlib import Path
 
 from tg_exporter.secrets.secret_keys import _ENV_PREFIX
 
+# Имя переменной окружения для определения директории конфигов
+_CONFIG_DIR_ENV = "TELEGRAM_EXPORTER_CONFIG_DIR"
+
 
 def resolve_config_dir() -> Path:
     """Определяет директорию конфигов.
@@ -17,7 +20,7 @@ def resolve_config_dir() -> Path:
     1. TELEGRAM_EXPORTER_CONFIG_DIR (переменная среды)
     2. ./ (текущая рабочая директория)
     """
-    env_dir = os.environ.get("TELEGRAM_EXPORTER_CONFIG_DIR")
+    env_dir = os.environ.get(_CONFIG_DIR_ENV)
     if env_dir:
         return Path(env_dir).expanduser().resolve()
     return Path.cwd()

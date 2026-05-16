@@ -101,7 +101,7 @@ class ExportOrchestrator:
             asyncio.set_event_loop(loop)
         loop.run_until_complete(client.connect())
 
-        c = client.get_client()
+        c = client.get_raw_telegram_client()
 
         # --- Подготовка директории ---
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
