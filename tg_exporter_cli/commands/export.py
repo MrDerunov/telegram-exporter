@@ -285,7 +285,7 @@ def _run_export(
             click.echo(f"❌ Чат «{chat}» не найден. Проверьте ID или username.", err=True)
             raise SystemExit(1)
 
-        orchestrator.run(dialog, task, token, progress, _send)
+        run_async(orchestrator.run(dialog, task, token, progress, _send))
 
     except Exception as e:
         click.echo(f"❌ Ошибка экспорта: {e}", err=True)

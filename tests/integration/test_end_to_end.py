@@ -76,7 +76,8 @@ def test_full_flow_auth_and_export(tmp_path: Path) -> None:
     def collect_events(event_type: str, data: object) -> None:
         events.append((event_type, data))
 
-    orchestrator.run(dialog, task, token, progress, collect_events)
+    import asyncio
+    asyncio.run(orchestrator.run(dialog, task, token, progress, collect_events))
 
     # ---- Проверка результата ----
     error_events = [e for e in events if e[0] == "export_error"]

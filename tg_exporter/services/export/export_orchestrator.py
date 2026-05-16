@@ -9,7 +9,6 @@ ExportOrchestrator — выполняет одну задачу экспорта
 
 from __future__ import annotations
 
-import asyncio
 import datetime
 import os
 import shutil
@@ -55,7 +54,7 @@ class ExportOrchestrator:
         self._history = history
         self._media = MediaDownloader()
 
-    def run(
+    async def run(
         self,
         dialog,
         task: ExportTask,
@@ -69,14 +68,7 @@ class ExportOrchestrator:
                             export_done, export_error, export_cancelled.
         """
         try:
-            try:
-                loop = asyncio.get_event_loop()
-                if loop.is_closed():
-                    raise RuntimeError("closed")
-            except RuntimeError:
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-            loop.run_until_complete(self._do_run_async(dialog, task, token, progress, send))
+            await self._do_run_async(dialog, task, token, progress, send)
         except CancelledError:
             progress.cancel()
             send("export_cancelled", None)
