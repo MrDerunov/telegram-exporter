@@ -14,9 +14,11 @@ if (!$version) { $version = "0.0.0" }
 "VERSION = `"$version`"" | Out-File -Encoding utf8 -FilePath tg_exporter_cli\_version.py
 Write-Host "Build version: $version"
 
-# Установка PyInstaller (CI ставит deps, этот шаг — подстраховка)
+# Установка PyInstaller и зависимостей проекта
 python -m pip install pyinstaller
 if ($LASTEXITCODE -ne 0) { throw "pip install pyinstaller failed" }
+python -m pip install -e .
+if ($LASTEXITCODE -ne 0) { throw "pip install -e . failed" }
 
 # Генерация .ico иконки (опционально, если есть assets/app_icon.png)
 $iconPng = Join-Path (Get-Location) "assets\app_icon.png"
