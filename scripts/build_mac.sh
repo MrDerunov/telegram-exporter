@@ -37,6 +37,7 @@ echo "VERSION = \"$VERSION\"" > tg_exporter_cli/_version.py
 echo "Версия сборки: $VERSION"
 
 pip install pyinstaller &>/dev/null || { echo "Ошибка: не удалось установить pyinstaller" >&2; exit 1; }
+pip install -e . &>/dev/null || { echo "Ошибка: не удалось установить проект" >&2; exit 1; }
 
 pyinstaller --onefile --console --name tg-exporter \
   --target-arch "$TARGET_ARCH" \
