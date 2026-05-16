@@ -1,11 +1,33 @@
-"""Команды управления конфигурацией: show, set, path."""
+"""Команды управления конфигурацией: show, set, path, init."""
 from __future__ import annotations
-import click
-import dataclasses
 
+import json
+
+import click
+
+from tg_exporter.hosting.configuration_provider import ConfigurationResult, resolve_config_dir
 from tg_exporter.hosting.static_config import StaticConfig
-from tg_exporter.hosting.configuration_provider import ConfigurationResult
+
 from ..hosting import get_host
+
+# Дефолтный config.json — генерируется из StaticConfig, чтобы не дублировать значения
+_DEFAULT_CONFIG: dict = StaticConfig().to_dict()
+
+
+def _merge_defaults(existing: dict, defaults: dict, prefix: str = "") -> list[str]:
+    """Рекурсивно добавляет в existing отсутствующие ключи из defaults.
+    Возвращает список добавленных путей (например, ['api_id', 'transcription.provider']).
+    Существующие значения не перезаписывает.
+    """
+    added: list[str] = []
+    for key, default_value in defaults.items():
+        path = f"{prefix}.{key}" if prefix else key
+        if key not in existing:
+            existing[key] = default_value
+            added.append(path)
+        elif isinstance(default_value, dict) and isinstance(existing[key], dict):
+            added.extend(_merge_defaults(existing[key], default_value, path))
+    return added
 
 
 @click.group("config")
@@ -62,7 +84,7 @@ _SIMPLE_FIELDS = {
 def config_set(key: str, value: str):
     """Установить значение в конфиге. Пример: config set api_id 12345"""
     host = get_host()
-    config = host.get(StaticConfig)
+    host.get(StaticConfig)
 
     if key not in _SIMPLE_FIELDS:
         valid = ", ".join(sorted(_SIMPLE_FIELDS.keys()))
@@ -91,3 +113,33 @@ def config_path():
     host = get_host()
     result = host.get(ConfigurationResult)
     click.echo(str(result.config_dir / "config.json"))
+
+
+@config_group.command("init")
+@click.option("--force", "-f", is_flag=True, help="Подтвердить обновление существующего конфига.")
+def config_init(force: bool):
+    """Создать config.json. Если файл уже есть — добавить недостающие поля (требуется --force)."""
+    config_dir = resolve_config_dir()
+    config_path = config_dir / "config.json"
+
+    if config_path.exists():
+        if not force:
+            click.echo(
+                f"❌ Конфиг уже существует: {config_path}\n"
+                f"   Используйте --force чтобы добавить недостающие поля.",
+                err=True,
+            )
+            raise SystemExit(1)
+
+        existing = json.loads(config_path.read_text(encoding="utf-8"))
+        added = _merge_defaults(existing, _DEFAULT_CONFIG)
+        if not added:
+            click.echo(f"✅ Конфиг уже полный, нечего добавлять: {config_path}")
+            return
+        config_path.write_text(json.dumps(existing, indent=2, ensure_ascii=False), encoding="utf-8")
+        click.echo(f"✅ Конфиг обновлён: {config_path}")
+        click.echo(f"   Добавлены поля: {', '.join(added)}")
+    else:
+        config_dir.mkdir(parents=True, exist_ok=True)
+        config_path.write_text(json.dumps(_DEFAULT_CONFIG, indent=2, ensure_ascii=False), encoding="utf-8")
+        click.echo(f"✅ Конфиг создан: {config_path}")

@@ -54,6 +54,45 @@ class StaticConfig:
         digits = "".join(c for c in self.api_id if c.isdigit())
         return int(digits) if digits else None
 
+    def to_dict(self) -> dict:
+        """Сериализует в словарь того же формата, что читает from_raw().
+        Используется для генерации config.json с дефолтными значениями.
+        """
+        return {
+            "version": self.version,
+            "api_id": self.api_id,
+            "api_hash": self.api_hash,
+            "deepgram_api_key": self.deepgram_api_key,
+            "transcription": {
+                "provider": self.transcription_provider,
+                "model": self.transcription_model,
+                "language": self.transcription_language,
+            },
+            "defaults": {
+                "format": self.default_format,
+                "words_per_file": self.default_words_per_file,
+                "download_media": self.default_download_media,
+                "transcribe": self.default_transcribe,
+                "analytics": self.default_analytics,
+            },
+            "include_private_chats": self.include_private_chats,
+            "default_profile": self.default_profile,
+            "markdown": self.markdown.to_dict(),
+            "secrets_source": self.secrets_source,
+            "logging": {
+                "level": self.log_level,
+            },
+            "retry": {
+                "max_attempts": self.retry_max_attempts,
+                "delay_seconds": self.retry_delay_seconds,
+                "max_delay_seconds": self.retry_max_delay_seconds,
+            },
+            "rate_limit": {
+                "media_download_delay_ms": self.rate_limit_media_download_delay_ms,
+                "message_fetch_delay_ms": self.rate_limit_message_fetch_delay_ms,
+            },
+        }
+
     @classmethod
     def from_raw(cls, data: dict) -> StaticConfig:
         """Собирает StaticConfig из словаря (плоского или с вложенными ключами)."""

@@ -27,15 +27,6 @@ class TelethonClientManager(ITelegramClientManager):
         self._current_client: Optional[TelethonClientAdapter] = None
         self._lock = threading.Lock()
 
-    def update_config(self, config: StaticConfig) -> None:
-        """Обновляет конфиг. Если api_id изменился — сбрасывает клиент."""
-        with self._lock:
-            if self._config.api_id != config.api_id:
-                if self._current_client is not None:
-                    self._current_client.destroy()
-                    self._current_client = None
-            self._config = config
-
     def use_session(self, session_string: Optional[str]) -> None:
         """Указать конкретную сессию (для профилей)."""
         with self._lock:
