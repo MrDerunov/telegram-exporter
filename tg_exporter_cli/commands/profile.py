@@ -34,7 +34,7 @@ def profile_list():
 
     except Exception as e:
         click.echo(f"❌ Ошибка: {e}", err=True)
-        raise SystemExit(1)
+        raise SystemExit(1) from e
 
 
 @profile_group.command("add")
@@ -55,7 +55,7 @@ def profile_add(phone: str, api_id: str, api_hash: str, name: str | None):
 
     except Exception as e:
         click.echo(f"❌ Ошибка добавления профиля: {e}", err=True)
-        raise SystemExit(1)
+        raise SystemExit(1) from e
 
 
 @profile_group.command("remove")
@@ -73,7 +73,7 @@ def profile_remove(phone: str):
             raise SystemExit(1)
     except Exception as e:
         click.echo(f"❌ Ошибка: {e}", err=True)
-        raise SystemExit(1)
+        raise SystemExit(1) from e
 
 
 @profile_group.command("switch")
@@ -92,4 +92,4 @@ def profile_switch(phone: str):
         click.echo(f"✅ Переключено на профиль {phone}")
     except Exception as e:
         click.echo(f"❌ Ошибка переключения: {e}", err=True)
-        raise SystemExit(1)
+        raise SystemExit(1) from e

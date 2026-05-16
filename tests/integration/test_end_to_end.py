@@ -81,7 +81,10 @@ def test_full_flow_auth_and_export(tmp_path: Path) -> None:
     # ---- Проверка результата ----
     error_events = [e for e in events if e[0] == "export_error"]
     error_msg = error_events[0][1] if error_events else progress.error
-    assert progress.status.name == "DONE", f"Expected DONE, got {progress.status.name}. Error: {error_msg}. Events: {[e[0] for e in events]}"
+    assert progress.status.name == "DONE", (
+        f"Expected DONE, got {progress.status.name}. "
+        f"Error: {error_msg}. Events: {[e[0] for e in events]}"
+    )
     assert len(progress.output_files) > 0
 
     json_files = [f for f in progress.output_files if f.endswith("result.json")]

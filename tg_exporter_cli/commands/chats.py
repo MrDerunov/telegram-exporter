@@ -66,7 +66,9 @@ def chats_list(
             results.append((d.id, name, d_type, d_folder))
 
         if not results:
-            msg = f"Чаты не найдены{f' по запросу «{search}»' if search else ''}{f' в папке «{folder}»' if folder else ''}."
+            part1 = f" по запросу «{search}»" if search else ""
+            part2 = f" в папке «{folder}»" if folder else ""
+            msg = f"Чаты не найдены{part1}{part2}."
             click.echo(msg)
             return
 
@@ -78,7 +80,7 @@ def chats_list(
 
     except Exception as e:
         click.echo(f"❌ Ошибка получения чатов: {e}", err=True)
-        raise SystemExit(1)
+        raise SystemExit(1) from e
 
 
 @chats_group.command("show")
@@ -114,7 +116,7 @@ def chats_show(chat_id: str):
 
     except Exception as e:
         click.echo(f"❌ Ошибка: {e}", err=True)
-        raise SystemExit(1)
+        raise SystemExit(1) from e
 
 
 @chats_group.command("add")
@@ -180,7 +182,7 @@ def chats_add(chat_id: str | None, folder: str | None):
 
     except Exception as e:
         click.echo(f"❌ Ошибка: {e}", err=True)
-        raise SystemExit(1)
+        raise SystemExit(1) from e
 
 
 @chats_group.command("remove")

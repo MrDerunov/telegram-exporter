@@ -31,8 +31,8 @@ def _parse_date(value: str | None) -> datetime.datetime | None:
         return None
     try:
         return datetime.datetime.fromisoformat(value)
-    except ValueError:
-        raise click.BadParameter(f"Неверный формат даты: {value}. Используйте YYYY-MM-DD.")
+    except ValueError as e:
+        raise click.BadParameter(f"Неверный формат даты: {value}. Используйте YYYY-MM-DD.") from e
 
 
 def _validate_flags(date_from, date_to, days, last):
@@ -289,4 +289,4 @@ def _run_export(
 
     except Exception as e:
         click.echo(f"❌ Ошибка экспорта: {e}", err=True)
-        raise SystemExit(1)
+        raise SystemExit(1) from e

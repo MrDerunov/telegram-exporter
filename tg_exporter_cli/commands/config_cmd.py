@@ -53,8 +53,14 @@ def config_show():
     click.echo(f"Аналитика:   {'да' if config.default_analytics else 'нет'}")
     click.echo(f"Источник секретов: {config.secrets_source}")
     click.echo(f"Логи:        {config.log_level}")
-    click.echo(f"Retry:       {config.retry_max_attempts} попыток, {config.retry_delay_seconds}s–{config.retry_max_delay_seconds}s")
-    click.echo(f"Rate limit:  media {config.rate_limit_media_download_delay_ms}ms, msg {config.rate_limit_message_fetch_delay_ms}ms")
+    click.echo(
+        f"Retry:       {config.retry_max_attempts} попыток, "
+        f"{config.retry_delay_seconds}s–{config.retry_max_delay_seconds}s"
+    )
+    click.echo(
+        f"Rate limit:  media {config.rate_limit_media_download_delay_ms}ms, "
+        f"msg {config.rate_limit_message_fetch_delay_ms}ms"
+    )
 
 
 _SIMPLE_FIELDS = {
@@ -99,9 +105,9 @@ def config_set(key: str, value: str):
             parsed = int(value)
         else:
             parsed = value
-    except ValueError:
+    except ValueError as e:
         click.echo(f"❌ Неверное значение для {key}: {value}", err=True)
-        raise SystemExit(1)
+        raise SystemExit(1) from e
 
     click.echo(f"✅ {key} = {parsed}")
     click.echo("⚠ Установка через config set временно не сохраняется в файл. Отредактируйте config.json вручную.")
