@@ -18,7 +18,7 @@
 8. `test_links_extraction` — assert 0 == 1 (links пуст)
 
 ### Типовые ошибки Ruff
-- **UP045** — `Optional[X]` вместо `X | None` (~40 шт.)
+- ~~**UP045** — `Optional[X]` вместо `X | None`~~ ✅ исправлено (109 ошибок, `ruff check --fix --select UP045`)
 - **I001** — несортированные импорты (~25 шт.)
 - **B904** — `raise` без `from err` в except-блоках (~10 шт.)
 - **E501** — строки длиннее 120 символов (3 шт.)

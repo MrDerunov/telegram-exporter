@@ -24,39 +24,39 @@ class ExportMessage:
     date: str                       # ISO 8601
 
     # Отправитель
-    from_name: Optional[str] = None
-    from_username: Optional[str] = None
-    from_id: Optional[int] = None
+    from_name: str | None = None
+    from_username: str | None = None
+    from_id: int | None = None
 
     # Контент
     text: str = ""
 
     # Метаданные
     links: tuple[LinkItem, ...] = field(default_factory=tuple)
-    views: Optional[int] = None
-    forwards: Optional[int] = None
+    views: int | None = None
+    forwards: int | None = None
 
     # Треды и топики
-    reply_to_message_id: Optional[int] = None
-    topic_id: Optional[int] = None
+    reply_to_message_id: int | None = None
+    topic_id: int | None = None
     is_topic_message: bool = False
-    is_forum_topic: Optional[bool] = None
-    topic_title: Optional[str] = None
+    is_forum_topic: bool | None = None
+    topic_title: str | None = None
 
     # Форвард
-    forwarded_from: Optional[str] = None
+    forwarded_from: str | None = None
 
     # Реакции и опросы
     reactions: tuple[ReactionItem, ...] = field(default_factory=tuple)
-    poll: Optional[PollData] = None
+    poll: PollData | None = None
 
     # Медиа (заполняется после загрузки)
-    media_type: Optional[MediaType] = None
-    media_path: Optional[str] = None   # локальный путь после скачивания
-    media_mime: Optional[str] = None
+    media_type: MediaType | None = None
+    media_path: str | None = None   # локальный путь после скачивания
+    media_mime: str | None = None
 
     # Транскрипция (заполняется после обработки)
-    transcription: Optional[str] = None
+    transcription: str | None = None
 
     def to_dict(self) -> dict:
         """Сериализует в dict, совместимый с текущим JSON-форматом экспорта."""
@@ -106,7 +106,7 @@ class ExportMessage:
 
         return d
 
-    def with_media(self, path: str, media_type: MediaType, mime: Optional[str] = None) -> "ExportMessage":
+    def with_media(self, path: str, media_type: MediaType, mime: str | None = None) -> "ExportMessage":
         """Возвращает новый экземпляр с заполненными медиа-полями."""
         import dataclasses
         return dataclasses.replace(self, media_path=path, media_type=media_type, media_mime=mime)

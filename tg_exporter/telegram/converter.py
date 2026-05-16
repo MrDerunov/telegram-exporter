@@ -26,8 +26,8 @@ def message_to_export(message) -> ExportMessage:
     """
     msg_type = "service" if getattr(message, "action", None) else "message"
 
-    from_name: Optional[str] = None
-    from_username: Optional[str] = None
+    from_name: str | None = None
+    from_username: str | None = None
     if getattr(message, "sender", None):
         from_name = get_display_name(message.sender) or None
         from_username = getattr(message.sender, "username", None)
@@ -37,9 +37,9 @@ def message_to_export(message) -> ExportMessage:
     text = _normalize(text_value)
 
     # Топик/форум
-    topic_id: Optional[int] = None
+    topic_id: int | None = None
     is_topic_message = False
-    is_forum_topic: Optional[bool] = None
+    is_forum_topic: bool | None = None
     reply_to = getattr(message, "reply_to", None)
     if reply_to:
         top_id = (
@@ -53,7 +53,7 @@ def message_to_export(message) -> ExportMessage:
         if forum_flag is not None:
             is_forum_topic = bool(forum_flag)
 
-    topic_title: Optional[str] = None
+    topic_title: str | None = None
     if getattr(message, "action", None) and hasattr(message.action, "title"):
         topic_title = _normalize(getattr(message.action, "title", "")) or None
 
@@ -109,7 +109,7 @@ def _normalize(value) -> str:
     return str(value)
 
 
-def _build_forwarded_from(fwd_from) -> Optional[str]:
+def _build_forwarded_from(fwd_from) -> str | None:
     if not fwd_from:
         return None
     if getattr(fwd_from, "from_name", None):
@@ -133,7 +133,7 @@ def _build_reactions(message) -> list[ReactionItem]:
     return items
 
 
-def _build_poll(message) -> Optional[PollData]:
+def _build_poll(message) -> PollData | None:
     media_poll = getattr(message, "poll", None)
     if not media_poll:
         return None
@@ -144,7 +144,7 @@ def _build_poll(message) -> Optional[PollData]:
     results_obj = getattr(media_poll, "results", None)
     answers = []
     for answer in getattr(poll, "answers", []) or []:
-        count: Optional[int] = None
+        count: int | None = None
         if results_obj and getattr(results_obj, "results", None):
             for res in results_obj.results:
                 if res.option == answer.option:
@@ -152,7 +152,7 @@ def _build_poll(message) -> Optional[PollData]:
                     break
         answers.append(PollAnswer(text=_normalize(answer.text), voters=count))
 
-    total_voters: Optional[int] = None
+    total_voters: int | None = None
     if results_obj and getattr(results_obj, "total_voters", None) is not None:
         total_voters = results_obj.total_voters
 
@@ -196,7 +196,7 @@ def _extract_links(message) -> list[LinkItem]:
     return links
 
 
-def _detect_media_type(message) -> Optional[MediaType]:
+def _detect_media_type(message) -> MediaType | None:
     if getattr(message, "sticker", None):
         return MediaType.STICKER
     if getattr(message, "photo", None):

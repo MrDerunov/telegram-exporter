@@ -14,7 +14,7 @@ _SERVICE = "tg-exporter"
 class KeyringSecretStore(ISecretStore):
     """Провайдер секретов через системный keyring."""
 
-    def get(self, key: str) -> Optional[str]:
+    def get(self, key: str) -> str | None:
         try:
             import keyring
             return keyring.get_password(_SERVICE, key)

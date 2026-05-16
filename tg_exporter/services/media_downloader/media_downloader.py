@@ -37,9 +37,9 @@ class MediaDownloader:
         self,
         msg,  # Telethon Message
         media_dirs: MediaDirs,
-        token: Optional[CancellationToken] = None,
-        skip_msg_ids: Optional[set] = None,
-    ) -> Optional[str]:
+        token: CancellationToken | None = None,
+        skip_msg_ids: set | None = None,
+    ) -> str | None:
         """
         Скачивает медиа из сообщения в нужную поддиректорию.
 
@@ -101,8 +101,8 @@ class MediaDownloader:
     def prepare_audio(
         self,
         msg,  # Telethon Message
-        token: Optional[CancellationToken] = None,
-    ) -> Optional[AudioPrepResult]:
+        token: CancellationToken | None = None,
+    ) -> AudioPrepResult | None:
         """
         Скачивает и подготавливает аудио из голосового сообщения или видеокружка.
 
@@ -137,8 +137,8 @@ class MediaDownloader:
     # ---- Internal ----
 
     def _prepare_voice(
-        self, msg, token: Optional[CancellationToken]
-    ) -> Optional[AudioPrepResult]:
+        self, msg, token: CancellationToken | None
+    ) -> AudioPrepResult | None:
         tmp_path = None
         msg_id = getattr(msg, "id", "?")
         try:
@@ -164,8 +164,8 @@ class MediaDownloader:
             _try_remove(tmp_path)
 
     def _prepare_video_note(
-        self, msg, token: Optional[CancellationToken]
-    ) -> Optional[AudioPrepResult]:
+        self, msg, token: CancellationToken | None
+    ) -> AudioPrepResult | None:
         ffmpeg = _get_ffmpeg()
         if not ffmpeg:
             logger.error("video_note: ffmpeg not found")
@@ -223,7 +223,7 @@ class MediaDownloader:
 
 # ---- Helpers ----
 
-def _make_progress_cb(token: Optional[CancellationToken]):
+def _make_progress_cb(token: CancellationToken | None):
     """Возвращает progress_callback для download_media, который проверяет токен."""
     if token is None:
         return None
@@ -245,7 +245,7 @@ def _run_download(result) -> None:
             loop.close()
 
 
-def _get_ffmpeg() -> Optional[str]:
+def _get_ffmpeg() -> str | None:
     try:
         import imageio_ffmpeg
         return imageio_ffmpeg.get_ffmpeg_exe()
@@ -254,7 +254,7 @@ def _get_ffmpeg() -> Optional[str]:
     return shutil.which("ffmpeg")
 
 
-def _extract_audio_to_wav(ffmpeg: str, video_path: str) -> Optional[str]:
+def _extract_audio_to_wav(ffmpeg: str, video_path: str) -> str | None:
     try:
         fd, wav_path = tempfile.mkstemp(suffix=".wav", prefix="tg_audio_")
         os.close(fd)
@@ -273,7 +273,7 @@ def _extract_audio_to_wav(ffmpeg: str, video_path: str) -> Optional[str]:
         return None
 
 
-def _try_remove(path: Optional[str]) -> None:
+def _try_remove(path: str | None) -> None:
     if path and os.path.exists(path):
         try:
             os.remove(path)

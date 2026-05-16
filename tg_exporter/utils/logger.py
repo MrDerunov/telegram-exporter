@@ -56,7 +56,7 @@ class AppLogger:
     def __init__(self, path: Path = LOG_PATH) -> None:
         self._path = path
 
-    def _write(self, level: str, message: str, exc: Optional[BaseException] = None) -> None:
+    def _write(self, level: str, message: str, exc: BaseException | None = None) -> None:
         try:
             self._path.parent.mkdir(parents=True, exist_ok=True)
             timestamp = datetime.datetime.now().isoformat(timespec="seconds")
@@ -81,19 +81,19 @@ class AppLogger:
         except Exception:
             pass
 
-    def debug(self, message: str, exc: Optional[BaseException] = None) -> None:
+    def debug(self, message: str, exc: BaseException | None = None) -> None:
         self._write("DEBUG", message, exc)
 
-    def info(self, message: str, exc: Optional[BaseException] = None) -> None:
+    def info(self, message: str, exc: BaseException | None = None) -> None:
         self._write("INFO", message, exc)
 
-    def warning(self, message: str, exc: Optional[BaseException] = None) -> None:
+    def warning(self, message: str, exc: BaseException | None = None) -> None:
         self._write("WARN", message, exc)
 
-    def error(self, message: str, exc: Optional[BaseException] = None) -> None:
+    def error(self, message: str, exc: BaseException | None = None) -> None:
         self._write("ERROR", message, exc)
 
-    def fatal(self, message: str, exc: Optional[BaseException] = None) -> None:
+    def fatal(self, message: str, exc: BaseException | None = None) -> None:
         self._write("FATAL", message, exc)
 
 

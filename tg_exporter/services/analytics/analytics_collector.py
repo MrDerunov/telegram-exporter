@@ -94,7 +94,7 @@ class AnalyticsCollector:
 
 # ---- Helpers ----
 
-def _date_key(value: Optional[str]) -> Optional[str]:
+def _date_key(value: str | None) -> str | None:
     if not value:
         return None
     if "T" in value:

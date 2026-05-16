@@ -31,7 +31,7 @@ class MediaDirs:
             os.makedirs(d, exist_ok=True)
         return dirs
 
-    def for_media_type(self, media_type: Optional[MediaType]) -> Optional[str]:
+    def for_media_type(self, media_type: MediaType | None) -> str | None:
         if media_type == MediaType.PHOTO:
             return self.photo
         if media_type in (MediaType.VIDEO, MediaType.VIDEO_NOTE, MediaType.ANIMATION):

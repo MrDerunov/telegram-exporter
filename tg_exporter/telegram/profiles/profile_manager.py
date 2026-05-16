@@ -41,7 +41,7 @@ class ProfileManager:
         self._settings = settings
         self._lock = threading.Lock()
         self._profiles: list[Profile] = []
-        self._active_phone: Optional[str] = None
+        self._active_phone: str | None = None
         self._load()
 
     # ---------------------------------------------------------- persistence
@@ -73,17 +73,17 @@ class ProfileManager:
         with self._lock:
             return list(self._profiles)
 
-    def active(self) -> Optional[Profile]:
+    def active(self) -> Profile | None:
         with self._lock:
             if not self._active_phone:
                 return None
             return next((p for p in self._profiles if p.phone == self._active_phone), None)
 
-    def active_phone(self) -> Optional[str]:
+    def active_phone(self) -> str | None:
         with self._lock:
             return self._active_phone
 
-    def get(self, phone: str) -> Optional[Profile]:
+    def get(self, phone: str) -> Profile | None:
         phone = _normalize_phone(phone)
         with self._lock:
             return next((p for p in self._profiles if p.phone == phone), None)
@@ -125,7 +125,7 @@ class ProfileManager:
             self._save()
             return profile
 
-    def set_active(self, phone: str) -> Optional[Profile]:
+    def set_active(self, phone: str) -> Profile | None:
         phone = _normalize_phone(phone)
         with self._lock:
             profile = next((p for p in self._profiles if p.phone == phone), None)
@@ -162,7 +162,7 @@ class ProfileManager:
 
     # ---------------------------------------------------------- session I/O
 
-    def load_session(self, profile: Profile) -> Optional[str]:
+    def load_session(self, profile: Profile) -> str | None:
         if not profile.api_id or not profile.phone:
             return None
         return self._secrets.get(_session_key(profile.api_id, profile.phone))

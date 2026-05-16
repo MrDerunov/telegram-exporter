@@ -36,12 +36,12 @@ class ExportTask:
     format: ExportFormat = ExportFormat.BOTH
 
     # Фильтрация по дате
-    date_from: Optional[datetime.datetime] = None
-    date_to: Optional[datetime.datetime] = None
+    date_from: datetime.datetime | None = None
+    date_to: datetime.datetime | None = None
 
     # Топик (для форумов)
-    topic_id: Optional[int] = None
-    topic_title: Optional[str] = None
+    topic_id: int | None = None
+    topic_title: str | None = None
 
     # Медиа
     download_media: bool = False
@@ -61,7 +61,7 @@ class ExportTask:
 
     # Инкрементальный экспорт (только новые сообщения)
     incremental: bool = False
-    last_exported_id: Optional[int] = None  # для инкрементального
+    last_exported_id: int | None = None  # для инкрементального
 
     # Лимит сообщений (0 = без лимита)
     message_limit: int = 0

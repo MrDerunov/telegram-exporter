@@ -31,9 +31,9 @@ class JsonExporter(BaseExporter):
     def __init__(self, include_views: bool = True) -> None:
         super().__init__()
         self._include_views = include_views
-        self._file: Optional[IO[str]] = None
+        self._file: IO[str] | None = None
         self._first = True
-        self._output_path: Optional[str] = None
+        self._output_path: str | None = None
 
     def _open(self) -> None:
         self._output_path = self._path("result.json")

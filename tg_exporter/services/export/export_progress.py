@@ -33,12 +33,12 @@ class ExportProgress:
     output_files: list[str] = field(default_factory=list)
 
     # Ошибки
-    error: Optional[str] = None
+    error: str | None = None
     warnings: list[str] = field(default_factory=list)
 
     # Время
-    started_at: Optional[datetime.datetime] = None
-    finished_at: Optional[datetime.datetime] = None
+    started_at: datetime.datetime | None = None
+    finished_at: datetime.datetime | None = None
 
     def start(self) -> None:
         self.status = ExportStatus.RUNNING
@@ -65,28 +65,28 @@ class ExportProgress:
             self.output_files.append(path)
 
     @property
-    def elapsed_seconds(self) -> Optional[float]:
+    def elapsed_seconds(self) -> float | None:
         if self.started_at is None:
             return None
         end = self.finished_at or datetime.datetime.now()
         return (end - self.started_at).total_seconds()
 
     @property
-    def progress_ratio(self) -> Optional[float]:
+    def progress_ratio(self) -> float | None:
         """0.0–1.0, или None если total неизвестен."""
         if self.total_messages <= 0:
             return None
         return min(self.processed_messages / self.total_messages, 1.0)
 
     @property
-    def messages_per_second(self) -> Optional[float]:
+    def messages_per_second(self) -> float | None:
         elapsed = self.elapsed_seconds
         if not elapsed or self.processed_messages == 0:
             return None
         return self.processed_messages / elapsed
 
     @property
-    def eta_seconds(self) -> Optional[float]:
+    def eta_seconds(self) -> float | None:
         """Оценка оставшегося времени в секундах."""
         ratio = self.progress_ratio
         elapsed = self.elapsed_seconds

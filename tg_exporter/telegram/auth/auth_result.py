@@ -9,7 +9,7 @@ from .auth_step import AuthStep
 @dataclass
 class AuthResult:
     step: AuthStep
-    error: Optional[str] = None
+    error: str | None = None
 
     @classmethod
     def ok(cls) -> "AuthResult":

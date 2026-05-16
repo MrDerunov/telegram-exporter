@@ -23,11 +23,11 @@ class TelethonClientManager(ITelegramClientManager):
     def __init__(self, config: StaticConfig, secrets: ISecretStore) -> None:
         self._config = config
         self._secrets = secrets
-        self._session_override: Optional[str] = None
-        self._current_client: Optional[TelethonClientAdapter] = None
+        self._session_override: str | None = None
+        self._current_client: TelethonClientAdapter | None = None
         self._lock = threading.Lock()
 
-    def use_session(self, session_string: Optional[str]) -> None:
+    def use_session(self, session_string: str | None) -> None:
         """Указать конкретную сессию (для профилей)."""
         with self._lock:
             self._session_override = session_string

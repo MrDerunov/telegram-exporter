@@ -32,7 +32,7 @@ class JsonSecretStore(ISecretStore):
             self._cache = self._read()
         return self._cache
 
-    def get(self, key: str) -> Optional[str]:
+    def get(self, key: str) -> str | None:
         return self._load_cache().get(key)
 
     def set(self, key: str, value: str) -> None:

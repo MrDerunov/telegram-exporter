@@ -25,7 +25,7 @@ class ExportHistory:
         pass
 
     @staticmethod
-    def load(output_dir: Path) -> Optional[dict]:
+    def load(output_dir: Path) -> dict | None:
         """Загружает историю экспорта из папки чата. Возвращает None если файла нет."""
         hist_path = output_dir / _HISTORY_FILENAME
         if not hist_path.exists():

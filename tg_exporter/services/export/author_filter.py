@@ -20,7 +20,7 @@ class AuthorFilter:
     def is_empty(self) -> bool:
         return len(self.user_ids) == 0
 
-    def matches(self, user_id: Optional[int]) -> bool:
+    def matches(self, user_id: int | None) -> bool:
         if self.is_empty():
             return True
         return user_id in self.user_ids

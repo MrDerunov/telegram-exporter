@@ -11,7 +11,7 @@ from typing import Optional
 @dataclass(frozen=True)
 class LinkItem:
     url: str
-    text: Optional[str] = None
+    text: str | None = None
 
     def to_dict(self) -> dict:
         d: dict = {"url": self.url}

@@ -25,9 +25,9 @@ class TelethonClientAdapter(TelegramClientInterface):
         self._api_id = api_id
         self._api_hash = api_hash
         self._session_str = session_str
-        self._client: Optional[TelegramClient] = None
+        self._client: TelegramClient | None = None
         self._lock = threading.Lock()
-        self._loop: Optional[asyncio.AbstractEventLoop] = None
+        self._loop: asyncio.AbstractEventLoop | None = None
 
     # ---- Event loop ----
 

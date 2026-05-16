@@ -41,7 +41,7 @@ class BaseTranscriber(ABC):
         audio_data: bytes,
         content_type: str,
         language: str = "multi",
-    ) -> Optional[str]:
+    ) -> str | None:
         """
         Транскрибирует аудио.
 

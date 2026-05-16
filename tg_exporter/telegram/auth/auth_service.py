@@ -40,8 +40,8 @@ class AuthService:
 
     def __init__(self, manager: ITelegramClientManager) -> None:
         self._manager = manager
-        self._phone_number: Optional[str] = None
-        self._phone_hash: Optional[str] = None
+        self._phone_number: str | None = None
+        self._phone_hash: str | None = None
 
     # ---- Public API ----
 

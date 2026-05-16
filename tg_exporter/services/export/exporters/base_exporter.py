@@ -32,12 +32,12 @@ class BaseExporter(ABC):
     """
 
     def __init__(self) -> None:
-        self._export_dir: Optional[str] = None
+        self._export_dir: str | None = None
         self._chat_name: str = ""
-        self._topic_title: Optional[str] = None
+        self._topic_title: str | None = None
         self.output_files: list[str] = []
 
-    def open(self, export_dir: str, chat_name: str, topic_title: Optional[str] = None) -> None:
+    def open(self, export_dir: str, chat_name: str, topic_title: str | None = None) -> None:
         """Инициализирует экспортёр для конкретной директории."""
         self._export_dir = export_dir
         self._chat_name = chat_name

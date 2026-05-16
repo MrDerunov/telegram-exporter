@@ -51,7 +51,7 @@ class DeepgramTranscriber(BaseTranscriber):
         audio_data: bytes,
         content_type: str,
         language: str = "multi",
-    ) -> Optional[str]:
+    ) -> str | None:
         if not audio_data:
             return None
 
@@ -78,8 +78,8 @@ class DeepgramTranscriber(BaseTranscriber):
                 "Content-Type": ct,
             },
         )
-        raw: Optional[str] = None
-        last_exc: Optional[BaseException] = None
+        raw: str | None = None
+        last_exc: BaseException | None = None
         for attempt in range(1, _MAX_ATTEMPTS + 1):
             try:
                 with urllib.request.urlopen(req, timeout=_REQUEST_TIMEOUT) as resp:

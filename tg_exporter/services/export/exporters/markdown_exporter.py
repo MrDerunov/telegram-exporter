@@ -31,7 +31,7 @@ class MarkdownExporter(BaseExporter):
 
     def __init__(
         self,
-        settings: Optional[MarkdownSettings] = None,
+        settings: MarkdownSettings | None = None,
         popular_min_reactions: int = 0,  # 0 = отключено
     ) -> None:
         super().__init__()
@@ -161,7 +161,7 @@ class MarkdownExporter(BaseExporter):
             f.write(content.replace("\r\n", "\n").replace("\r", "\n"))
         self._register(path)
 
-    def _resolve_topic_id(self, msg: ExportMessage) -> Optional[str]:
+    def _resolve_topic_id(self, msg: ExportMessage) -> str | None:
         raw = msg.topic_id
         if raw is None and msg.reply_to_message_id in self._service_topic_by_id:
             raw = msg.reply_to_message_id

@@ -11,7 +11,7 @@ from typing import Optional
 @dataclass(frozen=True)
 class PollAnswer:
     text: str
-    voters: Optional[int]
+    voters: int | None
 
     def to_dict(self) -> dict:
         return {"text": self.text, "voters": self.voters}
@@ -21,7 +21,7 @@ class PollAnswer:
 class PollData:
     question: str
     answers: tuple[PollAnswer, ...]
-    total_voters: Optional[int]
+    total_voters: int | None
 
     def to_dict(self) -> dict:
         return {

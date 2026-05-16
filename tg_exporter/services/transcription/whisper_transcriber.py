@@ -53,19 +53,19 @@ class WhisperTranscriber(BaseTranscriber):
     def __init__(
         self,
         model_size: str = "base",
-        status_cb: Optional[StatusCallback] = None,
-        progress_cb: Optional[ProgressCallback] = None,
+        status_cb: StatusCallback | None = None,
+        progress_cb: ProgressCallback | None = None,
     ) -> None:
         self._model_size = model_size or "base"
-        self._model: Optional[Any] = None
+        self._model: Any | None = None
         self._status_cb = status_cb
         self._progress_cb = progress_cb
 
-    def set_status_callback(self, cb: Optional[StatusCallback]) -> None:
+    def set_status_callback(self, cb: StatusCallback | None) -> None:
         """Колбэк для промежуточных сообщений пользователю (из orchestrator)."""
         self._status_cb = cb
 
-    def set_progress_callback(self, cb: Optional[ProgressCallback]) -> None:
+    def set_progress_callback(self, cb: ProgressCallback | None) -> None:
         """Колбэк для прогресса скачивания модели (0..1, текст)."""
         self._progress_cb = cb
 
@@ -77,7 +77,7 @@ class WhisperTranscriber(BaseTranscriber):
         audio_data: bytes,
         content_type: str,
         language: str = "multi",
-    ) -> Optional[str]:
+    ) -> str | None:
         if not audio_data:
             return None
 
@@ -292,7 +292,7 @@ def _whisper_cache_exists(model_size: str) -> bool:
 
 
 def _make_progress_tqdm(
-    progress_cb: Optional[ProgressCallback],
+    progress_cb: ProgressCallback | None,
     model_size: str,
     size_mb: int,
 ):

@@ -13,4 +13,4 @@ class AudioPrepResult:
     """Результат подготовки аудио к транскрипции."""
     audio_data: bytes
     content_type: str
-    saved_path: Optional[str] = None  # путь куда сохранено (для video_note)
+    saved_path: str | None = None  # путь куда сохранено (для video_note)

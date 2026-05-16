@@ -12,7 +12,7 @@ class ISecretStore(ABC):
     """
 
     @abstractmethod
-    def get(self, key: str) -> Optional[str]:
+    def get(self, key: str) -> str | None:
         """Прочитать секрет. Возвращает None если не найден."""
         ...
 

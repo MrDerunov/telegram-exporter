@@ -159,7 +159,7 @@ class ExportOrchestrator:
                 transcribe_failed = True
 
         # --- Медиа-директории ---
-        media_dirs: Optional[MediaDirs] = None
+        media_dirs: MediaDirs | None = None
         if task.download_media:
             try:
                 media_dirs = MediaDirs.create(os.path.join(export_dir, "media"))
@@ -167,8 +167,8 @@ class ExportOrchestrator:
                 media_dirs = None
 
         # --- Создаём экспортёры ---
-        json_exp: Optional[JsonExporter] = None
-        md_exp: Optional[MarkdownExporter] = None
+        json_exp: JsonExporter | None = None
+        md_exp: MarkdownExporter | None = None
 
         if task.format in (ExportFormat.JSON, ExportFormat.BOTH):
             json_exp = JsonExporter(include_views=True)
@@ -233,7 +233,7 @@ class ExportOrchestrator:
                 token.raise_if_cancelled()
                 try:
                     send("export_status", "Скачивание голосового сообщения...")
-                    prep: Optional[AudioPrepResult] = self._media.prepare_audio(msg, token)
+                    prep: AudioPrepResult | None = self._media.prepare_audio(msg, token)
                     send("export_status", "")
 
                     if prep is not None:
@@ -341,7 +341,7 @@ class ExportOrchestrator:
 
     # ---- Helpers ----
 
-    def _count_messages(self, c, dialog, task: ExportTask) -> Optional[int]:
+    def _count_messages(self, c, dialog, task: ExportTask) -> int | None:
         try:
             kwargs: dict = {"limit": 0}
             if task.topic_id is not None:
@@ -383,7 +383,7 @@ def _safe_name(name: str, max_len: int) -> str:
     return name or "chat"
 
 
-def _maybe_send_progress(send: EventCallback, count: int, total: Optional[int]) -> None:
+def _maybe_send_progress(send: EventCallback, count: int, total: int | None) -> None:
     if total and (count <= 1 or count % 20 == 0):
         send("export_progress", (count, total))
     elif not total and (count <= 1 or count % 50 == 0):
