@@ -104,7 +104,7 @@ def auth_logout(profile):
 @auth_group.command("export-session")
 @click.option("--output", default=DEFAULT_SECRETS_EXPORTED_ENV_FILENAME, help="Путь к выходному файлу")
 def auth_export_session(output):
-    """Экспортировать сессию в secrets.env для CI/CD."""
+    """Экспортировать сессию в secrets.exported.env для CI/CD."""
     host = get_host()
     config = host.get(StaticConfig)
     secret_store = host.get(ISecretStore)
