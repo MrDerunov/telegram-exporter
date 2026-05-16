@@ -107,7 +107,7 @@ class TelethonClientAdapter(TelegramClientInterface):
         result = await self._client.download_media(message, str(path))
         return Path(result) if result else None
 
-    def save_session(self) -> str:
+    async def save_session(self) -> str:
         """Сохраняет и возвращает текущую сессию."""
         with self._lock:
             if self._client is None:
@@ -136,12 +136,12 @@ class TelethonClientAdapter(TelegramClientInterface):
             raise RuntimeError("Клиент не создан. Вызовите connect() сначала.")
         return self._client
 
-    def destroy(self) -> None:
+    async def destroy(self) -> None:
         """Уничтожает клиент (для logout)."""
         with self._lock:
             if self._client is not None:
                 try:
-                    self._client.disconnect()
+                    await self._client.disconnect()
                 except Exception:
                     pass
                 self._client = None

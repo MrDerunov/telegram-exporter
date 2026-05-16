@@ -37,10 +37,9 @@
 - **Файл:** `tg_exporter/services/export/markdown_settings.py:18`
 - **Исправление:** `@dataclass` → `@dataclass(frozen=True)`. Свойства нигде не мутировались, изменение безопасно.
 
-### 2. `disconnect()` без `await` — утечка TCP-соединений
+### ~~2. `disconnect()` без `await` — утечка TCP-соединений~~ ✅ исправлено
 - **Файл:** `tg_exporter/telegram/telethon_client_adapter.py:125,143`
-- **Описание:** `load_session()` и `destroy()` — синхронные, вызывают `self._client.disconnect()` без `await`. Telethon-метод `disconnect()` — асинхронный, без `await` возвращает корутину, реального закрытия не происходит.
-- **Исправление:** использовать `asyncio.run_coroutine_threadsafe(self._client.disconnect(), self._loop)`.
+- **Исправление:** `destroy()` и `save_session()` сделаны асинхронными в обоих интерфейсах и всех реализациях. `destroy()` теперь `await self._client.disconnect()`.
 
 ### 3. Сессия не удаляется из `ISecretStore` при logout
 - **Файл:** `tg_exporter/telegram/auth/auth_service.py:154-165`

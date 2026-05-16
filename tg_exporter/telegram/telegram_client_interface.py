@@ -55,6 +55,6 @@ class TelegramClientInterface(ABC):
     ) -> Path | None: ...
 
     @abstractmethod
-    def destroy(self) -> None:
+    async def destroy(self) -> None:
         """Уничтожить клиент (для logout)."""
         ...

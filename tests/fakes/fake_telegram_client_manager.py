@@ -15,8 +15,8 @@ class FakeTelegramClientManager(ITelegramClientManager):
     def create_client(self) -> TelegramClientInterface:
         return self._client
 
-    def save_session(self) -> None:
+    async def save_session(self) -> None:
         pass
 
-    def destroy(self) -> None:
-        self._client.destroy()
+    async def destroy(self) -> None:
+        await self._client.destroy()

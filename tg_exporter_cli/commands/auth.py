@@ -75,7 +75,7 @@ def auth_login(
         raise SystemExit(1)
 
     # Save session
-    client_manager.save_session()
+    run_async(client_manager.save_session())
     click.echo("✅ Авторизован успешно")
 
 

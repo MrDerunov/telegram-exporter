@@ -19,11 +19,11 @@ class ITelegramClientManager(ABC):
         ...
 
     @abstractmethod
-    def save_session(self) -> None:
+    async def save_session(self) -> None:
         """Сохранить текущую сессию."""
         ...
 
     @abstractmethod
-    def destroy(self) -> None:
+    async def destroy(self) -> None:
         """Уничтожить клиент."""
         ...

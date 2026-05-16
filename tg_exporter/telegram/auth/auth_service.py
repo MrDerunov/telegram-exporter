@@ -54,7 +54,7 @@ class AuthService:
             client = self._manager.create_client()
             await client.connect()
             if await client.is_authorized():
-                self._manager.save_session()
+                await self._manager.save_session()
                 return AuthResult.ok()
             return AuthResult.error("Требуется вход")
         except (AuthKeyInvalidError, AuthKeyUnregisteredError):
@@ -77,7 +77,7 @@ class AuthService:
             client = self._manager.create_client()
             await client.connect()
             if await client.is_authorized():
-                self._manager.save_session()
+                await self._manager.save_session()
                 return AuthResult.ok()
             sent = await client.send_code_request(phone)
             self._phone_number = phone
@@ -160,7 +160,7 @@ class AuthService:
         except Exception:
             pass
         finally:
-            self._manager.destroy()
+            await self._manager.destroy()
             self._phone_number = None
             self._phone_hash = None
 

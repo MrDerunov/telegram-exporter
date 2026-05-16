@@ -128,7 +128,7 @@ class FakeTelegramClient(TelegramClientInterface):
         path.touch()
         return path
 
-    def save_session(self) -> str:
+    async def save_session(self) -> str:
         self.call_log.append("save_session")
         return self._session_str
 
@@ -143,5 +143,5 @@ class FakeTelegramClient(TelegramClientInterface):
         total = len(messages)
         return type("TotalList", (), {"total": total, "__len__": lambda s: total})()
 
-    def destroy(self) -> None:
+    async def destroy(self) -> None:
         self._connected = False

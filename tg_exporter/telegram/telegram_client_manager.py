@@ -32,7 +32,6 @@ class TelethonClientManager(ITelegramClientManager):
         with self._lock:
             self._session_override = session_string
             if self._current_client is not None:
-                self._current_client.destroy()
                 self._current_client = None
 
     def create_client(self) -> TelegramClientInterface:
@@ -69,21 +68,21 @@ class TelethonClientManager(ITelegramClientManager):
             )
             return self._current_client
 
-    def save_session(self) -> None:
+    async def save_session(self) -> None:
         """Сохранить сессию в SecretProvider."""
         with self._lock:
             if self._current_client is None:
                 return
             try:
-                session_str = self._current_client.save_session()
+                session_str = await self._current_client.save_session()
                 if session_str:
                     self._secrets.set(SESSION, session_str)
             except Exception:
                 pass
 
-    def destroy(self) -> None:
+    async def destroy(self) -> None:
         """Уничтожить клиент."""
         with self._lock:
             if self._current_client is not None:
-                self._current_client.destroy()
+                await self._current_client.destroy()
                 self._current_client = None
