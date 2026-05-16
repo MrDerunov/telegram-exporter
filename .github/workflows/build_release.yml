@@ -33,8 +33,22 @@ jobs:
           echo "tag=v$NEW_VERSION" >> $GITHUB_OUTPUT
           echo "Next version: v$NEW_VERSION"
 
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install -e ".[dev]"
+      - name: Lint (ruff)
+        run: ruff check .
+      - name: Test (pytest)
+        run: python -m pytest
+
   build-linux:
-    needs: version
+    needs: [version, test]
     runs-on: ubuntu-22.04
     env:
       TG_EXPORTER_VERSION: ${{ needs.version.outputs.version }}
@@ -51,7 +65,7 @@ jobs:
           path: dist/tg-exporter-linux-x86_64.tar.gz
 
   build-macos-arm64:
-    needs: version
+    needs: [version, test]
     runs-on: macos-14
     env:
       TG_EXPORTER_VERSION: ${{ needs.version.outputs.version }}
@@ -69,7 +83,7 @@ jobs:
           path: dist/tg-exporter-mac-arm64.tar.gz
 
   build-windows:
-    needs: version
+    needs: [version, test]
     runs-on: windows-latest
     env:
       TG_EXPORTER_VERSION: ${{ needs.version.outputs.version }}
@@ -86,7 +100,7 @@ jobs:
           path: dist/tg-exporter-windows-x86_64.zip
 
   release:
-    needs: [version, build-linux, build-macos-arm64, build-windows]
+    needs: [version, test, build-linux, build-macos-arm64, build-windows]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -96,12 +110,14 @@ jobs:
           path: dist
           merge-multiple: true
       - name: Create and push tag
+        if: success()
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git tag ${{ needs.version.outputs.tag }}
           git push origin ${{ needs.version.outputs.tag }}
       - name: Create GitHub Release
+        if: success()
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.version.outputs.tag }}
