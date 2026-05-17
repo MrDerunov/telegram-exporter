@@ -53,10 +53,6 @@ class CancellationToken:
         if self._cancelled.is_set():
             raise CancelledError("Операция отменена пользователем")
 
-    def reset(self) -> None:
-        """Сбрасывает состояние отмены. Используется для повторного запуска."""
-        self._cancelled.clear()
-
     def wait_for_cancel(self, timeout: float) -> bool:
         """
         Ожидает отмены в течение timeout секунд.
