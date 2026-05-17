@@ -162,6 +162,7 @@ class TelethonClientAdapter(TelegramClientInterface):
         if reply_to is not None:
             kwargs["reply_to"] = reply_to
         try:
-            return getattr(self._client.get_messages(peer_id, **kwargs), "total", None)
+            messages = await self._client.get_messages(peer_id, **kwargs)
+            return messages.total
         except Exception:
             return None
