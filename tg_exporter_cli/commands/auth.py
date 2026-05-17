@@ -6,7 +6,7 @@ from pathlib import Path
 from ..hosting import get_host
 from tg_exporter_cli.utils.async_runner import run_async
 from tg_exporter_cli.cli_constants import DEFAULT_SECRETS_EXPORTED_ENV_FILENAME
-from tg_exporter.services.telegram import AuthService, SendCodeParams, VerifyCodeParams, ExportSessionParams
+from tg_exporter.services.telegram import AuthService, AuthResult, SendCodeParams, VerifyCodeParams, ExportSessionParams
 from tg_exporter.services.telegram import ITelegramClientManager
 from tg_exporter.secrets.secret_store import ISecretStore
 from tg_exporter.secrets.secret_keys import API_HASH, API_ID, SESSION
@@ -54,13 +54,12 @@ def auth_login(phone, api_id, api_hash, profile):
         click.echo(f"❌ {result.error}", err=True)
         raise SystemExit(1)
 
-    phone_hash = result.data["phone_code_hash"] if result.data else None
     click.echo("📱 Код отправлен в Telegram")
 
     # Verify code
     code = click.prompt("Код из Telegram")
     result = run_async(auth_service.verify_code(
-        VerifyCodeParams(phone=phone, phone_hash=phone_hash, code=code)
+        VerifyCodeParams(phone=phone, phone_hash=result.phone_code_hash, code=code)
     ))
 
     if result.step.name == "PASSWORD_REQUIRED":

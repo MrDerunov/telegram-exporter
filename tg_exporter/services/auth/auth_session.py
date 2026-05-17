@@ -23,7 +23,7 @@ from telethon.errors import (
 
 from tg_exporter.services.telegram.telegram_client_manager_interface import ITelegramClientManager
 from tg_exporter.utils.logger import logger
-from .auth_result import AuthResult
+from .auth_result import AuthResult, SendCodeResult
 from .auth_step import AuthStep
 
 
@@ -57,35 +57,35 @@ class AuthSession:
             logger.error("check_session failed", exc=exc)
             return AuthResult.error(_friendly(exc))
 
-    async def send_code(self, phone: str) -> AuthResult:
-        """Отправляет код подтверждения. Сохраняет phone_hash."""
+    async def send_code(self, phone: str) -> SendCodeResult:
+        """Отправляет код подтверждения. Возвращает SendCodeResult с phone_code_hash или ошибкой."""
         phone = (phone or "").strip()
         if not phone:
-            return AuthResult.error("Введите номер телефона.")
+            return SendCodeResult.error("Введите номер телефона.")
         try:
             client = await self._manager.create_connected_client()
             if await client.is_authorized():
                 await self._manager.save_session()
-                return AuthResult.ok()
+                return SendCodeResult(step=AuthStep.SUCCESS, phone_code_hash="")
             sent = await client.send_code_request(phone)
             self._phone_number = phone
             self._phone_hash = sent.phone_code_hash
-            return AuthResult.code_sent(phone_code_hash=sent.phone_code_hash)
+            return SendCodeResult.ok(phone_code_hash=sent.phone_code_hash)
         except PhoneNumberInvalidError:
-            return AuthResult.error("Неверный номер телефона.")
+            return SendCodeResult.error("Неверный номер телефона.")
         except PhoneNumberBannedError:
-            return AuthResult.error("Этот номер заблокирован в Telegram.")
+            return SendCodeResult.error("Этот номер заблокирован в Telegram.")
         except PhoneNumberFloodError:
-            return AuthResult.error("Слишком много попыток. Попробуйте позже.")
+            return SendCodeResult.error("Слишком много попыток. Попробуйте позже.")
         except SendCodeUnavailableError:
-            return AuthResult.error("Не удалось отправить код. Попробуйте другой способ.")
+            return SendCodeResult.error("Не удалось отправить код. Попробуйте другой способ.")
         except FloodWaitError as exc:
-            return AuthResult.error(f"Слишком много запросов. Подождите {exc.seconds} сек.")
+            return SendCodeResult.error(f"Слишком много запросов. Подождите {exc.seconds} сек.")
         except ApiIdInvalidError:
-            return AuthResult.error("Неверный API ID или API Hash. Проверьте настройки.")
+            return SendCodeResult.error("Неверный API ID или API Hash. Проверьте настройки.")
         except Exception as exc:
             logger.error("send_code failed", exc=exc)
-            return AuthResult.error(_friendly(exc))
+            return SendCodeResult.error(_friendly(exc))
 
     async def verify_code(self, code: str, password: str = "") -> AuthResult:
         """Верифицирует код. Если 2FA — пробует password."""

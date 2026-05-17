@@ -10,16 +10,10 @@ from .auth_step import AuthStep
 class AuthResult:
     step: AuthStep
     error: str | None = None
-    data: dict | None = None
 
     @classmethod
     def ok(cls) -> AuthResult:
         return cls(step=AuthStep.SUCCESS)
-
-    @classmethod
-    def code_sent(cls, phone_code_hash: str | None = None) -> AuthResult:
-        data = {"phone_code_hash": phone_code_hash} if phone_code_hash else None
-        return cls(step=AuthStep.CODE_SENT, data=data)
 
     @classmethod
     def password_required(cls) -> AuthResult:
@@ -28,3 +22,17 @@ class AuthResult:
     @classmethod
     def error(cls, msg: str) -> AuthResult:
         return cls(step=AuthStep.ERROR, error=msg)
+
+
+@dataclass
+class SendCodeResult(AuthResult):
+    """Результат send_code. Наследует step/error от AuthResult, добавляет phone_code_hash."""
+    phone_code_hash: str = ""
+
+    @classmethod
+    def ok(cls, phone_code_hash: str) -> SendCodeResult:
+        return cls(step=AuthStep.CODE_SENT, phone_code_hash=phone_code_hash)
+
+    @classmethod
+    def error(cls, msg: str) -> SendCodeResult:
+        return cls(step=AuthStep.ERROR, error=msg, phone_code_hash="")

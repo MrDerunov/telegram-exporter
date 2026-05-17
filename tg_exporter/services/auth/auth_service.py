@@ -11,7 +11,7 @@ from pathlib import Path
 from tg_exporter.services.telegram.telegram_client_manager_interface import ITelegramClientManager
 from tg_exporter.utils.file_utils import secure_permissions
 from .auth_session import AuthSession
-from .auth_result import AuthResult
+from .auth_result import AuthResult, SendCodeResult
 from .auth_models import SendCodeParams, VerifyCodeParams, ExportSessionParams
 
 
@@ -30,8 +30,8 @@ class AuthService:
         session = AuthSession(self._manager)
         return await session.check_session()
 
-    async def send_code(self, params: SendCodeParams) -> AuthResult:
-        """Отправляет код подтверждения на номер телефона."""
+    async def send_code(self, params: SendCodeParams) -> SendCodeResult:
+        """Отправляет код подтверждения. Возвращает SendCodeResult с phone_code_hash."""
         session = AuthSession(self._manager)
         return await session.send_code(params.phone)
 
