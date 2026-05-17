@@ -85,4 +85,7 @@ ignore = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+python_files = ["test_*.py", "*_tests.py"]
+python_classes = ["Test*"]
+python_functions = ["should_*", "test_*"]
 asyncio_mode = "strict"

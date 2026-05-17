@@ -15,7 +15,7 @@ class TestExportMessage(unittest.TestCase):
         defaults.update(kw)
         return ExportMessage(**defaults)
 
-    def test_to_dict_minimal(self):
+    def should_convert_to_dict_with_minimal_fields(self):
         msg = self._make()
         d = msg.to_dict()
         self.assertEqual(d["id"], 1)
@@ -24,37 +24,37 @@ class TestExportMessage(unittest.TestCase):
         self.assertNotIn("links", d)
         self.assertNotIn("reactions", d)
 
-    def test_to_dict_omits_none_fields(self):
+    def should_omit_none_fields_in_to_dict(self):
         msg = self._make(views=None, forwards=None)
         d = msg.to_dict()
         self.assertNotIn("views", d)
         self.assertNotIn("forwards", d)
 
-    def test_to_dict_includes_views_when_set(self):
+    def should_include_views_when_set(self):
         msg = self._make(views=500, forwards=10)
         d = msg.to_dict()
         self.assertEqual(d["views"], 500)
         self.assertEqual(d["forwards"], 10)
 
-    def test_with_transcription_immutable(self):
+    def should_return_new_instance_with_transcription(self):
         msg = self._make()
         msg2 = msg.with_transcription("Привет мир")
         self.assertIsNone(msg.transcription)
         self.assertEqual(msg2.transcription, "Привет мир")
 
-    def test_with_media_immutable(self):
+    def should_return_new_instance_with_media(self):
         msg = self._make()
         msg2 = msg.with_media("/path/file.ogg", MediaType.VOICE, "audio/ogg")
         self.assertIsNone(msg.media_path)
         self.assertEqual(msg2.media_path, "/path/file.ogg")
         self.assertEqual(msg2.media_type, MediaType.VOICE)
 
-    def test_frozen_prevents_mutation(self):
+    def should_prevent_mutation_as_frozen(self):
         msg = self._make()
         with self.assertRaises((dataclasses.FrozenInstanceError, TypeError, AttributeError)):
             msg.text = "modified"  # type: ignore[misc]
 
-    def test_reactions_in_to_dict(self):
+    def should_serialize_reactions_in_to_dict(self):
         msg = ExportMessage(
             id=2, type="message", date="2024-01-01T00:00:00",
             reactions=(ReactionItem(emoji="👍", count=5),),
@@ -62,7 +62,7 @@ class TestExportMessage(unittest.TestCase):
         d = msg.to_dict()
         self.assertEqual(d["reactions"], [{"emoji": "👍", "count": 5}])
 
-    def test_poll_in_to_dict(self):
+    def should_serialize_poll_in_to_dict(self):
         poll = PollData(
             question="Что лучше?",
             answers=(PollAnswer(text="A", voters=10), PollAnswer(text="B", voters=5)),

@@ -8,39 +8,39 @@ from tg_exporter.utils.cancellation import CancellationToken, CancelledError
 
 class TestCancellationToken(unittest.TestCase):
 
-    def test_not_cancelled_by_default(self):
+    def should_not_be_cancelled_by_default(self):
         t = CancellationToken()
         self.assertFalse(t.is_cancelled)
 
-    def test_cancel_sets_flag(self):
+    def should_set_flag_on_cancel(self):
         t = CancellationToken()
         t.cancel()
         self.assertTrue(t.is_cancelled)
 
-    def test_raise_if_cancelled_raises(self):
+    def should_raise_when_cancelled(self):
         t = CancellationToken()
         t.cancel()
         with self.assertRaises(CancelledError):
             t.raise_if_cancelled()
 
-    def test_raise_if_cancelled_no_raise_when_active(self):
+    def should_not_raise_when_active(self):
         t = CancellationToken()
         t.raise_if_cancelled()  # no raise
 
-    def test_cancel_is_idempotent(self):
+    def should_be_idempotent_on_cancel(self):
         t = CancellationToken()
         t.cancel()
         t.cancel()  # no raise, no error
         self.assertTrue(t.is_cancelled)
 
-    def test_reset_clears_flag(self):
+    def should_clear_flag_on_reset(self):
         t = CancellationToken()
         t.cancel()
         t.reset()
         self.assertFalse(t.is_cancelled)
         t.raise_if_cancelled()  # should not raise
 
-    def test_thread_safety(self):
+    def should_propagate_cancel_to_main_thread(self):
         """Cancel from another thread should be visible in main thread."""
         t = CancellationToken()
 
@@ -53,13 +53,13 @@ class TestCancellationToken(unittest.TestCase):
         th.join(timeout=1.0)
         self.assertTrue(t.is_cancelled)
 
-    def test_wait_for_cancel_returns_true_when_cancelled(self):
+    def should_return_true_when_cancelled_on_wait(self):
         t = CancellationToken()
         t.cancel()
         result = t.wait_for_cancel(timeout=0.1)
         self.assertTrue(result)
 
-    def test_wait_for_cancel_returns_false_on_timeout(self):
+    def should_return_false_on_timeout(self):
         t = CancellationToken()
         result = t.wait_for_cancel(timeout=0.01)
         self.assertFalse(result)

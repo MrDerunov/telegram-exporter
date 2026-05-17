@@ -13,13 +13,13 @@ def cli_runner():
     return CliRunner()
 
 
-def test_export_missing_chat(cli_runner):
+def should_fail_when_chat_is_missing(cli_runner):
     """export без --chat должен упасть."""
     result = cli_runner.invoke(cli, ["export", "run"])
     assert result.exit_code != 0
 
 
-def test_export_with_chat_and_last(cli_runner, tmp_path):
+def should_run_without_stack_trace_when_chat_and_last_specified(cli_runner, tmp_path):
     """export с --chat и --last запускается без stack trace."""
     result = cli_runner.invoke(cli, [
         "export", "run", "--chat", "-1001234", "--last", "10",

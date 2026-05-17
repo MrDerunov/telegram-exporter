@@ -10,19 +10,19 @@ from tg_exporter.services.export.models.export_task import ExportTask
 
 class TestExportTask(unittest.TestCase):
 
-    def test_author_filter_empty_matches_all(self):
+    def should_match_all_when_author_filter_is_empty(self):
         af = AuthorFilter()
         self.assertTrue(af.matches(123))
         self.assertTrue(af.matches(None))
         self.assertTrue(af.is_empty())
 
-    def test_author_filter_with_ids(self):
+    def should_match_only_specified_ids(self):
         af = AuthorFilter.from_ids([10, 20, 30])
         self.assertTrue(af.matches(10))
         self.assertFalse(af.matches(99))
         self.assertFalse(af.is_empty())
 
-    def test_export_progress_lifecycle(self):
+    def should_transition_through_lifecycle(self):
         p = ExportProgress()
         self.assertEqual(p.status, ExportStatus.PENDING)
         self.assertIsNone(p.progress_ratio)
@@ -43,26 +43,26 @@ class TestExportTask(unittest.TestCase):
         self.assertEqual(p.status, ExportStatus.DONE)
         self.assertIsNotNone(p.finished_at)
 
-    def test_export_progress_cancel(self):
+    def should_set_status_to_cancelled_on_cancel(self):
         p = ExportProgress()
         p.start()
         p.cancel()
         self.assertEqual(p.status, ExportStatus.CANCELLED)
 
-    def test_export_progress_fail(self):
+    def should_set_status_to_error_on_fail(self):
         p = ExportProgress()
         p.start()
         p.fail("network error")
         self.assertEqual(p.status, ExportStatus.ERROR)
         self.assertEqual(p.error, "network error")
 
-    def test_export_progress_ratio_capped_at_1(self):
+    def should_cap_progress_ratio_at_1(self):
         p = ExportProgress()
         p.total_messages = 10
         p.processed_messages = 15  # больше total
         self.assertEqual(p.progress_ratio, 1.0)
 
-    def test_export_progress_eta(self):
+    def should_calculate_eta(self):
         p = ExportProgress()
         p.start()
         p.total_messages = 100
@@ -72,13 +72,13 @@ class TestExportTask(unittest.TestCase):
         self.assertIsNotNone(eta)
         self.assertGreater(eta, 0)
 
-    def test_export_task_immutable(self):
+    def should_return_new_instance_with_last_id(self):
         task = ExportTask(chat_id=1, chat_name="Test", output_path="/tmp")
         task2 = task.with_last_id(500)
         self.assertIsNone(task.last_exported_id)
         self.assertEqual(task2.last_exported_id, 500)
 
-    def test_export_task_incremental_flag(self):
+    def should_detect_incremental_with_offset(self):
         t1 = ExportTask(chat_id=1, chat_name="C", output_path="/tmp", incremental=True)
         self.assertFalse(t1.is_incremental_with_offset)  # нет last_id
 

@@ -46,12 +46,14 @@ class TestProfileManager(unittest.TestCase):
         from tg_exporter.services.telegram import ProfileManager
         self.pm = ProfileManager(self._secrets, self._settings)
 
-    def test_empty_initial_state(self):
+    def should_have_empty_state_initially(self):
+        """ProfileManager при создании не содержит профилей."""
         self.assertTrue(self.pm.is_empty())
         self.assertIsNone(self.pm.active())
         self.assertEqual(self.pm.list(), [])
 
-    def test_add_and_list(self):
+    def should_add_profile_and_list_it(self):
+        """Добавленный профиль появляется в списке и становится активным."""
         p = self.pm.add_or_update(
             phone="+79991112233", api_id="42",
             session_string="session-A", display_name="Max",
@@ -62,7 +64,8 @@ class TestProfileManager(unittest.TestCase):
         self.assertEqual(self.pm.active_phone(), "+79991112233")
         self.assertEqual(len(self.pm.list()), 1)
 
-    def test_session_stored_in_secret_store(self):
+    def should_store_session_in_secret_store(self):
+        """Сессия сохраняется в ISecretStore."""
         self.pm.add_or_update(
             phone="+79991112233", api_id="42",
             session_string="session-A",
@@ -70,7 +73,8 @@ class TestProfileManager(unittest.TestCase):
         key = "42:session:+79991112233"
         self.assertEqual(self._secrets.store.get(key), "session-A")
 
-    def test_add_second_profile_preserves_active(self):
+    def should_preserve_active_profile_when_adding_second(self):
+        """Добавление второго профиля без set_active не меняет активный."""
         self.pm.add_or_update(phone="+71111111111", api_id="42", session_string="s1")
         self.pm.add_or_update(
             phone="+72222222222", api_id="42",
@@ -79,7 +83,8 @@ class TestProfileManager(unittest.TestCase):
         self.assertEqual(len(self.pm.list()), 2)
         self.assertEqual(self.pm.active_phone(), "+71111111111")
 
-    def test_set_active_switches(self):
+    def should_switch_active_profile(self):
+        """set_active переключает активный профиль."""
         self.pm.add_or_update(phone="+71111111111", api_id="42", session_string="s1")
         self.pm.add_or_update(
             phone="+72222222222", api_id="42",
@@ -89,12 +94,14 @@ class TestProfileManager(unittest.TestCase):
         self.assertIsNotNone(result)
         self.assertEqual(self.pm.active_phone(), "+72222222222")
 
-    def test_set_active_unknown_returns_none(self):
+    def should_return_none_when_setting_active_for_unknown_phone(self):
+        """set_active для неизвестного телефона возвращает None."""
         self.pm.add_or_update(phone="+71111111111", api_id="42", session_string="s1")
         self.assertIsNone(self.pm.set_active("+70000000000"))
         self.assertEqual(self.pm.active_phone(), "+71111111111")
 
-    def test_remove_deletes_session(self):
+    def should_delete_session_on_remove(self):
+        """Удаление профиля удаляет его сессию из SecretStore."""
         self.pm.add_or_update(phone="+71111111111", api_id="42", session_string="s1")
         self.pm.add_or_update(
             phone="+72222222222", api_id="42",
@@ -106,28 +113,33 @@ class TestProfileManager(unittest.TestCase):
         # Сессия удалена из SecretStore
         self.assertNotIn("42:session:+71111111111", self._secrets.store)
 
-    def test_remove_last_clears_active(self):
+    def should_clear_active_when_removing_last_profile(self):
+        """Удаление последнего профиля сбрасывает активный."""
         self.pm.add_or_update(phone="+71111111111", api_id="42", session_string="s1")
         self.pm.remove("+71111111111")
         self.assertIsNone(self.pm.active_phone())
         self.assertTrue(self.pm.is_empty())
 
-    def test_remove_unknown_returns_false(self):
+    def should_return_false_when_removing_unknown_profile(self):
+        """Удаление несуществующего профиля возвращает False."""
         self.assertFalse(self.pm.remove("+70000000000"))
 
-    def test_rename(self):
+    def should_rename_profile(self):
+        """Переименование профиля меняет display_name."""
         self.pm.add_or_update(phone="+71111111111", api_id="42", session_string="s1")
         self.assertTrue(self.pm.rename("+71111111111", "Работа"))
         self.assertEqual(self.pm.get("+71111111111").display_name, "Работа")
 
-    def test_load_session_roundtrip(self):
+    def should_load_session_roundtrip(self):
+        """Сохранённая сессия корректно загружается."""
         p = self.pm.add_or_update(
             phone="+71111111111", api_id="42",
             session_string="my-session-string",
         )
         self.assertEqual(self.pm.load_session(p), "my-session-string")
 
-    def test_persistence_across_instances(self):
+    def should_persist_state_across_instances(self):
+        """Состояние сохраняется при создании нового экземпляра ProfileManager."""
         self.pm.add_or_update(phone="+71111111111", api_id="42", session_string="s1")
         self.pm.add_or_update(
             phone="+72222222222", api_id="42",
@@ -140,21 +152,25 @@ class TestProfileManager(unittest.TestCase):
         self.assertEqual(pm2.active_phone(), "+72222222222")
         self.assertEqual(len(pm2.list()), 2)
 
-    def test_phone_normalization(self):
+    def should_normalize_phone(self):
+        """Телефон нормализуется (удаляются пробелы и спецсимволы)."""
         p = self.pm.add_or_update(
             phone="7 999 111-22-33", api_id="42", session_string="s",
         )
         self.assertEqual(p.phone, "79991112233")
 
-    def test_empty_phone_raises(self):
+    def should_throw_when_phone_is_empty(self):
+        """Пустой телефон вызывает ValueError."""
         with self.assertRaises(ValueError):
             self.pm.add_or_update(phone="   ", api_id="42", session_string="s")
 
-    def test_empty_api_id_raises(self):
+    def should_throw_when_api_id_is_empty(self):
+        """Пустой api_id вызывает ValueError."""
         with self.assertRaises(ValueError):
             self.pm.add_or_update(phone="+71111111111", api_id="", session_string="s")
 
-    def test_update_existing_keeps_phone(self):
+    def should_update_existing_profile(self):
+        """Обновление существующего профиля меняет данные и сессию."""
         self.pm.add_or_update(
             phone="+71111111111", api_id="42",
             session_string="v1", display_name="Old",
@@ -168,7 +184,8 @@ class TestProfileManager(unittest.TestCase):
         key = "42:session:+71111111111"
         self.assertEqual(self._secrets.store.get(key), "v2")
 
-    def test_state_has_no_session_secrets(self):
+    def should_not_store_session_in_state_model(self):
+        """Сессии не должны храниться в StateModel (только в SecretStore)."""
         self.pm.add_or_update(
             phone="+71111111111", api_id="42",
             session_string="super-secret-session",
@@ -179,7 +196,8 @@ class TestProfileManager(unittest.TestCase):
         self.assertEqual(len(state.profiles), 1)
         self.assertEqual(state.profiles[0].phone, "+71111111111")
 
-    def test_chats_preserved_in_state(self):
+    def should_preserve_chats_when_adding_profile(self):
+        """Добавление профиля не затрагивает существующие чаты в StateModel."""
         from tg_exporter.configs.state_model import ChatEntry
         # Предустановка чатов через settings
         self._settings.save(StateModel(

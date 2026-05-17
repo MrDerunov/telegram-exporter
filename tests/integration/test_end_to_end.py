@@ -21,7 +21,7 @@ from tg_exporter.services.export.models.export_progress import ExportProgress
 from tg_exporter.utils.cancellation import CancellationToken
 
 
-def test_full_flow_auth_and_export(tmp_path: Path) -> None:
+def should_complete_full_flow_auth_and_export(tmp_path: Path) -> None:
     """Полный цикл: проверка авторизации → экспорт через фейкового клиента."""
     # ---- Setup: фейковый клиент с авторизацией и сообщениями ----
     fake_client = FakeTelegramClient()

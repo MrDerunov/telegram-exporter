@@ -21,30 +21,30 @@ class TestRenderTopAuthors(unittest.TestCase):
                 c.add(msg, text)
         return c.result()
 
-    def test_returns_list_of_strings(self):
+    def should_return_list_of_strings(self):
         result = self._result({1: ("Alice", ["msg1", "msg2"])})
         parts = render_top_authors(result)
         self.assertIsInstance(parts, list)
         self.assertGreater(len(parts), 0)
         self.assertIsInstance(parts[0], str)
 
-    def test_contains_author_name(self):
+    def should_contain_author_name(self):
         result = self._result({1: ("Alice", ["hi"])})
         parts = render_top_authors(result)
         combined = "".join(parts)
         self.assertIn("Alice", combined)
 
-    def test_contains_message_count(self):
+    def should_contain_message_count(self):
         result = self._result({1: ("Alice", ["a", "b", "c"])})
         parts = render_top_authors(result)
         combined = "".join(parts)
         self.assertIn("3", combined)
 
-    def test_empty_result_returns_empty_list(self):
+    def should_return_empty_list_for_empty_result(self):
         parts = render_top_authors(AnalyticsResult())
         self.assertEqual(parts, [])
 
-    def test_word_limit_splits_into_multiple_parts(self):
+    def should_split_into_multiple_parts_when_exceeding_word_limit(self):
         """With tiny word limit, multiple authors should produce multiple parts."""
         result = self._result({
             1: ("Alice", ["word " * 20] * 5),
@@ -56,27 +56,27 @@ class TestRenderTopAuthors(unittest.TestCase):
 
 class TestRenderActivity(unittest.TestCase):
 
-    def test_empty_returns_empty_string(self):
+    def should_return_empty_string_for_empty_result(self):
         result = AnalyticsResult()
         self.assertEqual(render_activity(result), "")
 
-    def test_contains_date(self):
+    def should_contain_date_and_count(self):
         result = AnalyticsResult(activity={"2024-06-15": 5})
         out = render_activity(result)
         self.assertIn("2024-06-15", out)
         self.assertIn("5", out)
 
-    def test_sorted_dates(self):
+    def should_sort_dates(self):
         result = AnalyticsResult(activity={"2024-06-20": 2, "2024-06-10": 7})
         out = render_activity(result)
         self.assertLess(out.index("2024-06-10"), out.index("2024-06-20"))
 
-    def test_contains_weekday_name(self):
+    def should_contain_weekday_name(self):
         result = AnalyticsResult(activity={"2024-06-17": 3})  # Monday
         out = render_activity(result)
         self.assertIn("Понедельник", out)
 
-    def test_hot_days_section(self):
+    def should_contain_hot_days_section(self):
         result = AnalyticsResult(activity={"2024-06-15": 100, "2024-06-16": 5})
         out = render_activity(result)
         self.assertIn("горячие", out.lower())
