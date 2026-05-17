@@ -198,9 +198,9 @@ def _run_export(
     last_exported_id: int | None = None
     if resume and output_dir.exists():
         hist_data = history.load(output_dir)
-        if hist_data and hist_data.get("last_message_id"):
+        if hist_data and hist_data.last_message_id:
             incremental = True
-            last_exported_id = hist_data["last_message_id"]
+            last_exported_id = hist_data.last_message_id
             click.echo(f"📋 Продолжение экспорта с сообщения #{last_exported_id}")
 
     try:
