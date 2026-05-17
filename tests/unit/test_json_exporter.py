@@ -33,50 +33,50 @@ class TestJsonExporter:
         with open(files[0], encoding="utf-8") as f:
             return json.load(f)
 
-    def should_produce_valid_json_with_empty_messages(self):
+    def test_produce_valid_json_with_empty_messages(self):
         """Пустой список сообщений — валидный JSON с полем messages."""
         data = self._run([])
         assert data["name"] == "Test Chat"
         assert data["messages"] == []
 
-    def should_write_single_message_to_json(self):
+    def test_write_single_message_to_json(self):
         """Одно сообщение корректно записывается в JSON."""
         data = self._run([_msg(id=42, text="Привет")])
         assert len(data["messages"]) == 1
         assert data["messages"][0]["id"] == 42
         assert data["messages"][0]["text"] == "Привет"
 
-    def should_preserve_message_order(self):
+    def test_preserve_message_order(self):
         """Сообщения в JSON сохраняют порядок добавления."""
         msgs = [_msg(id=i, text=f"msg{i}") for i in range(1, 6)]
         data = self._run(msgs)
         ids = [m["id"] for m in data["messages"]]
         assert ids == [1, 2, 3, 4, 5]
 
-    def should_include_topic_title_in_json_header(self):
+    def test_include_topic_title_in_json_header(self):
         """Если передан topic_title — он попадает в JSON."""
         data = self._run([_msg(id=1)], topic_title="General")
         assert data["topic"] == "General"
 
-    def should_include_author_name_in_json(self):
+    def test_include_author_name_in_json(self):
         """Имя автора сохраняется в поле from."""
         data = self._run([_msg(id=1, from_name="Serge", from_username="serge")])
         assert data["messages"][0]["from"] == "Serge"
         assert data["messages"][0]["from_username"] == "serge"
 
-    def should_include_views_when_enabled(self):
+    def test_include_views_when_enabled(self):
         """include_views=True сохраняет views и forwards."""
         data = self._run([_msg(id=1, views=100, forwards=5)], include_views=True)
         assert data["messages"][0]["views"] == 100
         assert data["messages"][0]["forwards"] == 5
 
-    def should_strip_stats_when_include_views_is_false(self):
+    def test_strip_stats_when_include_views_is_false(self):
         """include_views=False удаляет views и forwards."""
         data = self._run([_msg(id=1, views=100, forwards=5)], include_views=False)
         assert "views" not in data["messages"][0]
         assert "forwards" not in data["messages"][0]
 
-    def should_not_have_utf8_bom(self):
+    def test_not_have_utf8_bom(self):
         """В начале JSON-файла нет BOM."""
         exp = JsonExporter()
         exp.open(self.tmpdir, "Chat")
@@ -86,18 +86,18 @@ class TestJsonExporter:
             raw = f.read(3)
         assert raw != b"\xef\xbb\xbf"
 
-    def should_preserve_unicode(self):
+    def test_preserve_unicode(self):
         """Unicode-символы сохраняются без искажений."""
         data = self._run([_msg(text="Тест: 日本語 🎉")])
         assert data["messages"][0]["text"] == "Тест: 日本語 🎉"
 
-    def should_serialize_reactions(self):
+    def test_serialize_reactions(self):
         """Реакции сериализуются в JSON."""
         msg = _msg(id=1, reactions=(ReactionItem(emoji="👍", count=3),))
         data = self._run([msg])
         assert data["messages"][0]["reactions"][0]["emoji"] == "👍"
 
-    def should_return_registered_path_on_finalize(self):
+    def test_return_registered_path_on_finalize(self):
         """finalize() возвращает путь к созданному файлу."""
         exp = JsonExporter()
         exp.open(self.tmpdir, "C")
@@ -105,14 +105,14 @@ class TestJsonExporter:
         files = exp.finalize()
         assert os.path.isfile(files[0])
 
-    def should_not_crash_on_close_without_finalize(self):
+    def test_not_crash_on_close_without_finalize(self):
         """close() без finalize() не падает."""
         exp = JsonExporter()
         exp.open(self.tmpdir, "C")
         exp.write(_msg())
         exp.close()
 
-    def should_produce_valid_json_on_cancellation(self):
+    def test_produce_valid_json_on_cancellation(self):
         """close() дописывает закрывающие скобки — JSON остаётся валидным."""
         exp = JsonExporter()
         exp.open(self.tmpdir, "Chat")
@@ -124,7 +124,7 @@ class TestJsonExporter:
         assert data["name"] == "Chat"
         assert len(data["messages"]) == 1
 
-    def should_finalize_on_successful_context_exit(self):
+    def test_finalize_on_successful_context_exit(self):
         """Контекстный менеджер вызывает finalize при успехе."""
         exp = JsonExporter()
         with exp:
@@ -133,7 +133,7 @@ class TestJsonExporter:
         assert len(exp.output_files) == 1
         assert os.path.isfile(exp.output_files[0])
 
-    def should_close_on_error_in_context_manager(self):
+    def test_close_on_error_in_context_manager(self):
         """При исключении __exit__ вызывает close(), не finalize()."""
         exp = JsonExporter()
         try:

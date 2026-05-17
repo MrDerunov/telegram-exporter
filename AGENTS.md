@@ -81,36 +81,36 @@ tests/
     └── fakes/
 ```
 
-- **Имя файла тестов**: `{class_name}_tests.py`
+- **Имя файла тестов**: `test_{class_name}.py` (стандартная конвенция Python/pytest)
 - **Имя файла fake-реализации**: `fake_{interface_name}.py` (в `common/fakes/`)
-- **Имя базового класса тестов**: `{class_name}_tests_base.py` (в папке `func/` или `integration/`)
+- **Имя базового класса тестов**: `test_{class_name}_base.py` (в папке `func/` или `integration/`)
 
 ### Описания тестов
 
 Для Func-тестов и Integration-тестов **обязательно** добавлять docstring на русском языке, поясняющий что проверяет тест:
 
 ```python
-def should_return_initial_delay_on_first_attempt(self):
+def test_return_initial_delay_on_first_attempt(self):
     """Возвращает начальную задержку при первой попытке."""
     ...
 ```
 
 ### Конвенция наименования тестов
 
-**Паттерн**: `should_{expected_behavior}[_when_{condition}][_then_{condition}]`
+**Паттерн**: `test_{expected_behavior}[_when_{condition}][_then_{condition}]`
 
 **Примеры хороших названий**:
 
 ```python
-should_return_initial_delay_on_first_attempt
-should_grow_delay_exponentially_with_default_multiplier
-should_clamp_delay_when_exceeds_max
-should_throw_when_multiplier_is_not_positive
-should_not_throw_on_reset
-should_execute_successful_operation_once
-should_handle_exceptions_as_failure
-should_respect_cancellation_token
-should_return_correct_IsExecuting_status
+test_return_initial_delay_on_first_attempt
+test_grow_delay_exponentially_with_default_multiplier
+test_clamp_delay_when_exceeds_max
+test_throw_when_multiplier_is_not_positive
+test_not_throw_on_reset
+test_execute_successful_operation_once
+test_handle_exceptions_as_failure
+test_respect_cancellation_token
+test_return_correct_IsExecuting_status
 ```
 
 **Плохие названия (избегать)**:

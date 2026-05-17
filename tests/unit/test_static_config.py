@@ -7,25 +7,25 @@ from tg_exporter.services.export.exporters.markdown_settings import MarkdownSett
 
 class TestStaticConfig:
 
-    def should_have_valid_defaults(self):
+    def test_have_valid_defaults(self):
         cfg = StaticConfig()
         cfg.markdown.validate()
 
-    def should_strip_non_digits_from_api_id(self):
+    def test_strip_non_digits_from_api_id(self):
         cfg = StaticConfig.from_raw({"api_id": " 12 34 "})
         assert cfg.api_id == " 12 34 "
         assert cfg.api_id_int == 1234
 
-    def should_return_none_for_api_id_int_when_empty(self):
+    def test_return_none_for_api_id_int_when_empty(self):
         cfg = StaticConfig()
         assert cfg.api_id_int is None
 
-    def should_throw_on_invalid_words_per_file(self):
+    def test_throw_on_invalid_words_per_file(self):
         cfg = StaticConfig(markdown=MarkdownSettings(words_per_file=100))
         with pytest.raises(ConfigValidationError):
             cfg.markdown.validate()
 
-    def should_load_nested_fields_from_raw(self):
+    def test_load_nested_fields_from_raw(self):
         cfg = StaticConfig.from_raw({
             "api_id": "123",
             "api_hash": "my_hash",
@@ -59,11 +59,11 @@ class TestStaticConfig:
         assert cfg.log_level == "DEBUG"
         assert cfg.retry_max_attempts == 5
 
-    def should_default_secrets_source_to_file(self):
+    def test_default_secrets_source_to_file(self):
         cfg = StaticConfig()
         assert cfg.secrets_source == "file"
 
-    def should_roundtrip_markdown_settings(self):
+    def test_roundtrip_markdown_settings(self):
         s = MarkdownSettings(words_per_file=30_000, date_format="YYYY-MM-DD", plain_text=False)
         s2 = MarkdownSettings.from_dict(s.to_dict())
         assert s2.words_per_file == 30_000

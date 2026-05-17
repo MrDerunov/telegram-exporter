@@ -13,14 +13,14 @@ def cli_runner():
     return CliRunner()
 
 
-def should_output_status_without_stack_trace(cli_runner):
+def test_output_status_without_stack_trace(cli_runner):
     """auth status выводит статус (без реального Telegram)."""
     result = cli_runner.invoke(cli, ["auth", "status"])
     # Команда может упасть или вывести статус — главное что не stack trace
     assert result.exit_code in (0, 1)  # OK или ошибка авторизации
 
 
-def should_return_exit_code_on_verify(cli_runner):
+def test_return_exit_code_on_verify(cli_runner):
     """auth verify возвращает exit code."""
     result = cli_runner.invoke(cli, ["auth", "verify"])
     assert result.exit_code in (0, 1, 2)

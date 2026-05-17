@@ -22,7 +22,7 @@ class TestRenderTopAuthors:
                 c.add(msg, text)
         return c.result()
 
-    def should_return_list_of_strings(self):
+    def test_return_list_of_strings(self):
         """Результат — список строк."""
         result = self._result({1: ("Alice", ["msg1", "msg2"])})
         parts = render_top_authors(result)
@@ -30,26 +30,26 @@ class TestRenderTopAuthors:
         assert len(parts) > 0
         assert isinstance(parts[0], str)
 
-    def should_contain_author_name(self):
+    def test_contain_author_name(self):
         """Вывод содержит имя автора."""
         result = self._result({1: ("Alice", ["hi"])})
         parts = render_top_authors(result)
         combined = "".join(parts)
         assert "Alice" in combined
 
-    def should_contain_message_count(self):
+    def test_contain_message_count(self):
         """Вывод содержит количество сообщений."""
         result = self._result({1: ("Alice", ["a", "b", "c"])})
         parts = render_top_authors(result)
         combined = "".join(parts)
         assert "3" in combined
 
-    def should_return_empty_list_for_empty_result(self):
+    def test_return_empty_list_for_empty_result(self):
         """Пустой результат — пустой список."""
         parts = render_top_authors(AnalyticsResult())
         assert parts == []
 
-    def should_split_into_multiple_parts_when_exceeding_word_limit(self):
+    def test_split_into_multiple_parts_when_exceeding_word_limit(self):
         """При превышении лимита слов вывод разбивается на части."""
         result = self._result({
             1: ("Alice", ["word " * 20] * 5),
@@ -61,30 +61,30 @@ class TestRenderTopAuthors:
 
 class TestRenderActivity:
 
-    def should_return_empty_string_for_empty_result(self):
+    def test_return_empty_string_for_empty_result(self):
         """Пустой результат — пустая строка."""
         assert render_activity(AnalyticsResult()) == ""
 
-    def should_contain_date_and_count(self):
+    def test_contain_date_and_count(self):
         """Вывод содержит дату и количество."""
         result = AnalyticsResult(activity={"2024-06-15": 5})
         out = render_activity(result)
         assert "2024-06-15" in out
         assert "5" in out
 
-    def should_sort_dates(self):
+    def test_sort_dates(self):
         """Даты сортируются по возрастанию."""
         result = AnalyticsResult(activity={"2024-06-20": 2, "2024-06-10": 7})
         out = render_activity(result)
         assert out.index("2024-06-10") < out.index("2024-06-20")
 
-    def should_contain_weekday_name(self):
+    def test_contain_weekday_name(self):
         """Вывод содержит день недели на русском."""
         result = AnalyticsResult(activity={"2024-06-17": 3})
         out = render_activity(result)
         assert "Понедельник" in out
 
-    def should_contain_hot_days_section(self):
+    def test_contain_hot_days_section(self):
         """Вывод содержит раздел с горячими днями."""
         result = AnalyticsResult(activity={"2024-06-15": 100, "2024-06-16": 5})
         out = render_activity(result)
