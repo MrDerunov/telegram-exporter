@@ -69,9 +69,11 @@ class ExportOrchestrator:
         try:
             await self._do_run_async(dialog, task, token, progress, send)
         except CancelledError:
+            # TODO: вызывать self._history.mark_interrupted() для --resume
             progress.cancel()
             send("export_cancelled", None)
         except Exception as exc:
+            # TODO: вызывать self._history.mark_interrupted() для --resume
             msg = _friendly_error(str(exc))
             progress.fail(msg)
             logger.error("Export failed", exc=exc)
@@ -186,6 +188,8 @@ class ExportOrchestrator:
         transcribe_warned = False
         video_note_saved_ids: set[int] = set()
 
+        # TODO: task.message_limit не передаётся в iter_messages — флаг --last игнорируется.
+        # Нужно добавить limit=task.message_limit если task.message_limit > 0.
         async for msg in client.iter_messages(
             dialog.id,
             min_id=iter_min_id,
