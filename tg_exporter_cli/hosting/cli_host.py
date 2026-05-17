@@ -1,4 +1,6 @@
-"""CliHost — хост CLI-приложения. Владеет DI-контейнером и управляет жизненным циклом."""
+"""
+CliHost — хост CLI-приложения. Владеет DI-контейнером и управляет жизненным циклом.
+"""
 from __future__ import annotations
 from typing import Any
 from collections.abc import Callable
@@ -16,6 +18,7 @@ from tg_exporter.configs.json_settings_store import JsonSettingsStore
 from tg_exporter.secrets.secret_store import ISecretStore
 from tg_exporter.secrets.keyring_secret_store import KeyringSecretStore
 from tg_exporter.secrets.json_secret_store import JsonSecretStore
+from tg_exporter.secrets.env_fallback_secret_store import EnvFallbackSecretStore
 from tg_exporter.services.profiles import ProfileManager
 from tg_exporter.services.telegram.telegram_client_manager import TelethonClientManager
 from tg_exporter.services.telegram import ITelegramClientManager
@@ -55,7 +58,9 @@ class CliHost:
 
         # SecretStore — тип выбирается на основе настройки из static_config
         if static_config.secrets_source == "file":
-            secret_store: ISecretStore = JsonSecretStore(result.config_dir)
+            secret_store: ISecretStore = EnvFallbackSecretStore(
+                JsonSecretStore(result.config_dir)
+            )
         else:
             secret_store = KeyringSecretStore()
         c.register_instance(ISecretStore, secret_store)
