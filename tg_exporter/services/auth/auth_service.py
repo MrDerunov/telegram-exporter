@@ -6,13 +6,11 @@ AuthService — stateless сервис аутентификации в Telegram.
 """
 from __future__ import annotations
 
-from pathlib import Path
-
 from tg_exporter.services.telegram.telegram_client_manager_interface import ITelegramClientManager
 from tg_exporter.utils.file_utils import secure_permissions
-from .auth_session import AuthSession
-from .auth_result import AuthResult, SendCodeResult
-from .auth_models import SendCodeParams, VerifyCodeParams, ExportSessionParams
+from .models.auth_session import AuthSession
+from .models.auth_result import AuthResult, SendCodeResult
+from .models.auth_models import SendCodeParams, VerifyCodeParams, ExportSessionParams
 
 
 class AuthService:
