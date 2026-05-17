@@ -35,7 +35,11 @@ class Container:
         actual_type = self._interface_map.get(service_type, service_type)
 
         if actual_type not in self._instances:
-            factory = self._factories[actual_type]
-            self._instances[actual_type] = factory(self)
+            if actual_type in self._factories:
+                self._instances[actual_type] = self._factories[actual_type](self)
+            elif actual_type in self._interface_map.values() or service_type in self._interface_map:
+                self._instances[actual_type] = actual_type()
+            else:
+                raise KeyError(service_type)
 
         return self._instances[actual_type]
