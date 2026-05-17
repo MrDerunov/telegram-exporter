@@ -12,9 +12,9 @@ from tg_exporter.services.telegram.auth.auth_step import AuthStep
 from tg_exporter.services.telegram import AuthService
 from tg_exporter.services.telegram import ITelegramClientManager
 from tg_exporter.services.export.export_orchestrator import ExportOrchestrator
-from tests.fakes.fake_telegram_client import FakeTelegramClient
-from tests.fakes.fake_telegram_client_manager import FakeTelegramClientManager
-from tests.fakes.factories import generate_messages
+from tests.common.fakes.fake_telegram_client import FakeTelegramClient
+from tests.common.fakes import FakeTelegramClientManager
+from tests.common.fakes.factories import generate_messages
 from tg_exporter.services.export.models.export_task import ExportTask
 from tg_exporter.services.export.models.export_format import ExportFormat
 from tg_exporter.services.export.models.export_progress import ExportProgress

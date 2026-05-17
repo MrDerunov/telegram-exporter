@@ -16,7 +16,7 @@ from tg_exporter.services.telegram import (
 )
 from tg_exporter.services.export.models.export_message import ExportMessage
 from tg_exporter.services.export.models.media_type import MediaType
-from tests.fakes.factories import generate_messages
+from tests.common.fakes.factories import generate_messages
 
 
 # ---------------------------------------------------------------------------
