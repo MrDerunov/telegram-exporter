@@ -3,9 +3,8 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-import pytest
 
-from tg_exporter.services.export_history import ExportHistory, ExportHistoryRecord, _HISTORY_FILENAME
+from tg_exporter.services.export.export_history import ExportHistory, ExportHistoryRecord, _HISTORY_FILENAME
 
 
 class TestExportHistoryRecord:

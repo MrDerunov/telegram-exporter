@@ -8,7 +8,7 @@ from tg_exporter.services.export.models.export_task import ExportTask
 from tg_exporter.services.export.models.export_format import ExportFormat
 from tg_exporter.services.export.models.export_progress import ExportProgress
 from tg_exporter.services.export.export_orchestrator import ExportOrchestrator
-from tg_exporter.services.export_history import ExportHistory
+from tg_exporter.services.export.export_history import ExportHistory
 from tg_exporter.services.telegram import ITelegramClientManager
 from tg_exporter.utils.cancellation import CancellationToken
 from tg_exporter.configs.state_model import StateModel

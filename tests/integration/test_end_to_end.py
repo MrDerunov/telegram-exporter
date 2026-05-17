@@ -8,7 +8,7 @@ from pathlib import Path
 
 from tg_exporter_cli.hosting import CliHost
 from tg_exporter_cli.utils.async_runner import run_async
-from tg_exporter.services.telegram.auth.auth_step import AuthStep
+from tg_exporter.services.auth import AuthStep
 from tg_exporter.services.telegram import AuthService
 from tg_exporter.services.telegram import ITelegramClientManager
 from tg_exporter.services.export.export_orchestrator import ExportOrchestrator

@@ -16,11 +16,11 @@ from tg_exporter.configs.json_settings_store import JsonSettingsStore
 from tg_exporter.secrets.secret_store import ISecretStore
 from tg_exporter.secrets.keyring_secret_store import KeyringSecretStore
 from tg_exporter.secrets.json_secret_store import JsonSecretStore
-from tg_exporter.services.telegram.profiles.profile_manager import ProfileManager
+from tg_exporter.services.profiles import ProfileManager
 from tg_exporter.services.telegram.telegram_client_manager import TelethonClientManager
 from tg_exporter.services.telegram import ITelegramClientManager
 from tg_exporter.services.telegram import AuthService
-from tg_exporter.services.export_history import ExportHistory
+from tg_exporter.services.export.export_history import ExportHistory
 from tg_exporter.services.export.export_orchestrator import ExportOrchestrator
 
 

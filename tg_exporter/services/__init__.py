@@ -21,6 +21,6 @@ def __getattr__(name: str):
         from .media_downloader import MediaDownloader
         return MediaDownloader
     if name == "ExportHistory":
-        from .export_history import ExportHistory
+        from tg_exporter.services.export.export_history import ExportHistory
         return ExportHistory
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
