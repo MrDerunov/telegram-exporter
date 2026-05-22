@@ -25,8 +25,8 @@ def test_complete_full_flow_auth_and_export(tmp_path: Path) -> None:
     """Полный цикл: проверка авторизации → экспорт через фейкового клиента."""
     # ---- Setup: фейковый клиент с авторизацией и сообщениями ----
     fake_client = FakeTelegramClient()
-    fake_client.set_authorized(True)
-    fake_client.add_messages(-1001234567890, generate_messages(100, peer_id=-1001234567890))
+    fake_client.server.auth.set_authorized(True)
+    fake_client.server.messages.add_messages(-1001234567890, generate_messages(100, peer_id=-1001234567890))
 
     fake_manager = FakeTelegramClientManager(fake_client)
 

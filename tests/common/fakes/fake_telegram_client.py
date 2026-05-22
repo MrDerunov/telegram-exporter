@@ -1,6 +1,8 @@
 """FakeTelegramClient — реализация TelegramClientInterface для тестов.
-Позволяет предзагружать диалоги и сообщения, симулировать авторизацию.
+
+Делегирует все запросы FakeTelegramServer. Не хранит данные сам.
 """
+
 from __future__ import annotations
 from pathlib import Path
 from datetime import datetime
@@ -11,43 +13,29 @@ from tg_exporter.services.telegram import TelegramClientInterface
 
 
 class FakeTelegramClient(TelegramClientInterface):
-    """Фейковый клиент для unit-тестов.
+    """Фейковый клиент, делегирующий все запросы FakeTelegramServer.
 
-    Позволяет:
-    - Предзагружать диалоги и сообщения
-    - Симулировать авторизацию/неавторизацию
-    - Проверять что методы были вызваны с правильными параметрами
-    - Тестировать экспорт на разных объёмах данных без реального API
+    Использование:
+        server = FakeTelegramServer()
+        server.auth.set_authorized(True)
+        server.dialogs.add_dialog(dialog)
+        server.messages.add_messages(peer_id, messages)
+
+        client = FakeTelegramClient(server)
     """
 
-    def __init__(self):
-        self._dialogs: list[Any] = []
-        self._messages: dict[int, list[Any]] = {}  # peer_id → messages
-        self._authorized = False
-        self._session_str: str = ""
+    def __init__(self, server: Any = None):
+        from .fake_telegram_server import FakeTelegramServer
+        self._server: FakeTelegramServer = server or FakeTelegramServer()
         self._connected = False
-        # Для тестов: отслеживание вызовов
         self.call_log: list[str] = []
 
-    # ---- Предзагрузка данных ----
+    @property
+    def server(self):
+        """Доступ к серверу для настройки данных из тестов."""
+        return self._server
 
-    def add_dialog(self, dialog: Any) -> None:
-        """Добавить диалог в список."""
-        self._dialogs.append(dialog)
-
-    def add_messages(self, peer_id: int, messages: list[Any]) -> None:
-        """Добавить сообщения для чата."""
-        self._messages[peer_id] = messages
-
-    def set_authorized(self, authorized: bool) -> None:
-        """Установить статус авторизации."""
-        self._authorized = authorized
-
-    def set_session(self, session_str: str) -> None:
-        """Установить session string."""
-        self._session_str = session_str
-
-    # ---- Реализация интерфейса ----
+    # ---- TelegramClientInterface ----
 
     async def connect(self) -> None:
         self.call_log.append("connect")
@@ -59,25 +47,31 @@ class FakeTelegramClient(TelegramClientInterface):
 
     async def is_authorized(self) -> bool:
         self.call_log.append("is_authorized")
-        return self._authorized
+        return self._server.auth.is_authorized()
 
     async def send_code_request(self, phone: str) -> Any:
         self.call_log.append(f"send_code_request({phone})")
-        return type("SentCode", (), {"phone_code_hash": "fake_hash"})()
+        code_hash = f"hash_{phone}"
+        self._server.auth.add_code_request(phone, code_hash)
+        return type("SentCode", (), {"phone_code_hash": code_hash})()
 
     async def sign_in(self, phone: str, code: str) -> Any:
         self.call_log.append(f"sign_in({phone}, {code})")
-        self._authorized = True
+        if code:
+            self._server.auth.set_authorized(True)
+            self._server.auth.set_user_id(12345)
         return type("User", (), {"id": 12345, "username": "test_user"})()
 
     async def sign_in_password(self, password: str) -> Any:
         self.call_log.append(f"sign_in_password({password})")
-        self._authorized = True
+        if password:
+            self._server.auth.set_authorized(True)
+            self._server.auth.set_user_id(12345)
         return type("User", (), {"id": 12345, "username": "test_user"})()
 
     async def get_dialogs(self, limit: int | None = None) -> list[Any]:
         self.call_log.append(f"get_dialogs(limit={limit})")
-        dialogs = self._dialogs
+        dialogs = self._server.dialogs.all_dialogs()
         if limit is not None:
             dialogs = dialogs[:limit]
         return dialogs
@@ -90,36 +84,32 @@ class FakeTelegramClient(TelegramClientInterface):
         limit: int | None = None,
         reply_to: int | None = None,
     ) -> AsyncIterator[Any]:
-        self.call_log.append(f"iter_messages(peer={peer_id}, min_id={min_id}, limit={limit})")
-        messages = self._messages.get(peer_id, [])
-        # Фильтр по min_id
-        filtered = [m for m in messages if getattr(m, 'id', 0) > min_id]
-        # Фильтр по offset_date
-        if offset_date is not None:
-            filtered = [m for m in filtered if getattr(m, 'date', datetime.min) > offset_date]
-        # Лимит
-        if limit is not None and limit > 0:
-            filtered = filtered[:limit]
-        for msg in filtered:
+        self.call_log.append(
+            f"iter_messages(peer={peer_id}, min_id={min_id}, limit={limit})"
+        )
+        messages = self._server.messages.query(
+            peer_id=peer_id,
+            min_id=min_id,
+            offset_date=offset_date,
+            limit=limit,
+            reply_to=reply_to,
+        )
+        for msg in messages:
             yield msg
 
     async def download_media(self, message: Any, path: Path) -> Path | None:
         self.call_log.append(f"download_media({getattr(message, 'id', '?')}, {path})")
-        # Создаём пустой файл как заглушку
         path.parent.mkdir(parents=True, exist_ok=True)
         path.touch()
         return path
-
-    async def save_session(self) -> str:
-        self.call_log.append("save_session")
-        return self._session_str
 
     async def destroy(self) -> None:
         self._connected = False
 
     async def log_out(self) -> None:
         self.call_log.append("log_out")
-        self._authorized = False
+        self._server.auth.set_authorized(False)
+        self._server.auth.set_user_id(None)
 
     async def count_messages(
         self,
@@ -129,4 +119,9 @@ class FakeTelegramClient(TelegramClientInterface):
         reply_to: int | None = None,
     ) -> int | None:
         self.call_log.append(f"count_messages(peer={peer_id})")
-        return len(self._messages.get(peer_id, []))
+        return self._server.messages.count(
+            peer_id=peer_id,
+            min_id=min_id,
+            offset_date=offset_date,
+            reply_to=reply_to,
+        )

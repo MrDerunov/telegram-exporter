@@ -28,7 +28,7 @@ class TestCliCommandBase:
     ) -> CliHost:
         """Создаёт CliHost с фейковым клиентом."""
         client = fake_client or FakeTelegramClient()
-        client.set_authorized(authorized)
+        client.server.auth.set_authorized(authorized)
         manager = FakeTelegramClientManager(client)
 
         return (

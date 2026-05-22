@@ -1,5 +1,48 @@
 """Test doubles for tg-exporter."""
 from .fake_telegram_client import FakeTelegramClient
 from .fake_telegram_client_manager import FakeTelegramClientManager
+from .fake_telegram_server import FakeTelegramServer
+from .fake_data_objects import (
+    FakeUser,
+    FakeChat,
+    FakeFolder,
+    FakeDialog,
+    FakeMessage,
+    FakeAction,
+    FakeReplyTo,
+    FakeFwdFrom,
+    FakeReaction,
+    FakeReactionResult,
+    FakeReactions,
+    FakePollAnswer,
+    FakePoll,
+    FakePollResultEntry,
+    FakePollResults,
+    FakePollMedia,
+    FakeMessageEntityTextUrl,
+    FakeMessageEntityUrl,
+)
 
-__all__ = ["FakeTelegramClient", "FakeTelegramClientManager"]
+__all__ = [
+    "FakeTelegramClient",
+    "FakeTelegramClientManager",
+    "FakeTelegramServer",
+    "FakeUser",
+    "FakeChat",
+    "FakeFolder",
+    "FakeDialog",
+    "FakeMessage",
+    "FakeAction",
+    "FakeReplyTo",
+    "FakeFwdFrom",
+    "FakeReaction",
+    "FakeReactionResult",
+    "FakeReactions",
+    "FakePollAnswer",
+    "FakePoll",
+    "FakePollResultEntry",
+    "FakePollResults",
+    "FakePollMedia",
+    "FakeMessageEntityTextUrl",
+    "FakeMessageEntityUrl",
+]

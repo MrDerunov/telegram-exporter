@@ -56,7 +56,7 @@ class TestAuthCommand(TestCliCommandBase):
         monkeypatch.setenv("TG_EXPORTER_API_ID", "42")
 
         fake_client = FakeTelegramClient()
-        fake_client.set_authorized(True)
+        fake_client.server.auth.set_authorized(True)
         host = self._build_host(fake_client, authorized=True)
 
         # Записываем сессию и api_hash в secret_store

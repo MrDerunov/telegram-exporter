@@ -26,14 +26,14 @@ class TestAuthService:
     @pytest.mark.asyncio
     async def test_check_session_returns_success_when_authorized(self):
         """Авторизованный клиент — SUCCESS."""
-        self._fake_client.set_authorized(True)
+        self._fake_client.server.auth.set_authorized(True)
         result = await self.auth.check_session()
         assert result.step == AuthStep.SUCCESS
 
     @pytest.mark.asyncio
     async def test_check_session_returns_error_when_not_authorized(self):
         """Неавторизованный клиент — ошибка."""
-        self._fake_client.set_authorized(False)
+        self._fake_client.server.auth.set_authorized(False)
         result = await self.auth.check_session()
         assert result.step == AuthStep.ERROR
 
@@ -51,7 +51,7 @@ class TestAuthService:
     @pytest.mark.asyncio
     async def test_send_code_returns_success_when_already_authorized(self):
         """Уже авторизован — SUCCESS."""
-        self._fake_client.set_authorized(True)
+        self._fake_client.server.auth.set_authorized(True)
         result = await self.auth.send_code(SendCodeParams(phone="+7999"))
         assert result.step == AuthStep.SUCCESS
 
