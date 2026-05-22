@@ -4,14 +4,14 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from .fake_data_objects import (
+from common.fakes.server.data_objects import (
     FakeUser,
     FakeChat,
     FakeFolder,
     FakeDialog,
     FakeMessage,
 )
-from .fake_telegram_server import FakeTelegramServer
+from .server import FakeTelegramServer
 
 
 # ---------------------------------------------------------------------------

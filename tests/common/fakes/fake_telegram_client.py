@@ -25,7 +25,7 @@ class FakeTelegramClient(TelegramClientInterface):
     """
 
     def __init__(self, server: Any = None):
-        from .fake_telegram_server import FakeTelegramServer
+        from .server.fake_telegram_server import FakeTelegramServer
         self._server: FakeTelegramServer = server or FakeTelegramServer()
         self._connected = False
         self.call_log: list[str] = []

@@ -1,8 +1,8 @@
 """Test doubles for tg-exporter."""
 from .fake_telegram_client import FakeTelegramClient
 from .fake_telegram_client_manager import FakeTelegramClientManager
-from .fake_telegram_server import FakeTelegramServer
-from .fake_data_objects import (
+from .server import FakeTelegramServer
+from common.fakes.server.data_objects import (
     FakeUser,
     FakeChat,
     FakeFolder,
