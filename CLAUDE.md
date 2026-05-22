@@ -91,3 +91,4 @@ tests/
 - Test naming: `test_{expected_behavior}[_when_{condition}]`
 - `asyncio_mode = "strict"` in pytest config — all async tests get automatic event loop
 - Docstrings on func and integration tests in Russian
+- Тестами покрываются основные сценарии команд: happy path, ключевые флаги, типичные ошибки
