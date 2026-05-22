@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from common.fakes.server.data_objects.fake_message import FakeMessage
+from ..data_objects.fake_message import FakeMessage
 
 
 class MessageStore:

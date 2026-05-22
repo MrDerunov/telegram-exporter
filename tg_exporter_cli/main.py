@@ -17,9 +17,9 @@ from tg_exporter_cli.commands.doctor import doctor_command
 @click.pass_context
 def cli(ctx: click.Context) -> None:
     """tg-exporter — экспорт чатов Telegram в JSON и Markdown."""
-    from tg_exporter_cli.hosting import CliHost
-
-    ctx.obj = CliHost().build()
+    if ctx.obj is None:
+        from tg_exporter_cli.hosting import CliHost
+        ctx.obj = CliHost().build()
     ctx.obj.run()
 
 

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from common.fakes.server.data_objects.fake_dialog import FakeDialog
+from ..data_objects.fake_dialog import FakeDialog
 
 
 class DialogStore:

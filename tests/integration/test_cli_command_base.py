@@ -11,32 +11,42 @@ from click.testing import CliRunner
 from tg_exporter_cli.main import cli
 from tg_exporter_cli.hosting import CliHost
 from tg_exporter.services.telegram import ITelegramClientManager
-from tests.common.fakes import FakeTelegramClient, FakeTelegramClientManager
+from tests.common.fakes import (
+    FakeTelegramClient,
+    FakeTelegramClientManager,
+    FakeTelegramServer,
+    FakeUser,
+)
 
 
 class TestCliCommandBase:
-    """Базовый класс для тестов CLI-команд."""
+    """Базовый класс для тестов CLI-команд.
+
+    Создаёт host с фейковым клиентом перед каждым тестом.
+    Доступны как self.host, self.server, self.client, self.test_user.
+    По умолчанию сервер авторизован.
+    """
 
     @pytest.fixture(autouse=True)
-    def _setup_cli(self):
+    def _setup(self):
         self.runner = CliRunner()
-
-    @staticmethod
-    def _build_host(
-        fake_client: FakeTelegramClient | None = None,
-        authorized: bool = True,
-    ) -> CliHost:
-        """Создаёт CliHost с фейковым клиентом."""
-        client = fake_client or FakeTelegramClient()
-        client.server.auth.set_authorized(authorized)
-        manager = FakeTelegramClientManager(client)
-
-        return (
+        self.server = FakeTelegramServer()
+        self.server.auth.set_authorized(True)
+        self.test_user = FakeUser(
+            id=12345,
+            first_name="Test",
+            last_name="User",
+            username="test_user",
+        )
+        self.server.users.add_user(self.test_user)
+        self.client = FakeTelegramClient(self.server)
+        manager = FakeTelegramClientManager(self.client)
+        self.host = (
             CliHost()
             .build()
             .rebind_services(lambda c, result: c.register_instance(ITelegramClientManager, manager))
         )
 
-    def invoke(self, *args: str) -> object:
-        """Запускает CLI-команду и возвращает результат."""
-        return self.runner.invoke(cli, list(args))
+    def _invoke(self, *args: str, **kwargs):
+        """Вызвать CLI-команду, передав host как Click context obj."""
+        return self.runner.invoke(cli, list(args), obj=self.host, **kwargs)

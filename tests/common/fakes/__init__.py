@@ -2,7 +2,7 @@
 from .fake_telegram_client import FakeTelegramClient
 from .fake_telegram_client_manager import FakeTelegramClientManager
 from .server import FakeTelegramServer
-from common.fakes.server.data_objects import (
+from .server.data_objects import (
     FakeUser,
     FakeChat,
     FakeFolder,

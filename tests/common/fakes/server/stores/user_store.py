@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from common.fakes.server.data_objects.fake_user import FakeUser
+from ..data_objects.fake_user import FakeUser
 
 
 class UserStore:

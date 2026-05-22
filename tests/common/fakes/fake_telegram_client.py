@@ -59,15 +59,26 @@ class FakeTelegramClient(TelegramClientInterface):
         self.call_log.append(f"sign_in({phone}, {code})")
         if code:
             self._server.auth.set_authorized(True)
-            self._server.auth.set_user_id(12345)
-        return type("User", (), {"id": 12345, "username": "test_user"})()
+            self._server.auth.set_user_id(self._default_user_id)
+        return self._make_user()
 
     async def sign_in_password(self, password: str) -> Any:
         self.call_log.append(f"sign_in_password({password})")
         if password:
             self._server.auth.set_authorized(True)
-            self._server.auth.set_user_id(12345)
-        return type("User", (), {"id": 12345, "username": "test_user"})()
+            self._server.auth.set_user_id(self._default_user_id)
+        return self._make_user()
+
+    @property
+    def _default_user_id(self) -> int:
+        users = self._server.users.all_users()
+        return users[0].id if users else 12345
+
+    def _make_user(self) -> Any:
+        uid = self._default_user_id
+        user = self._server.users.get_user(uid)
+        username = user.username if user else "test_user"
+        return type("User", (), {"id": uid, "username": username})()
 
     async def get_dialogs(self, limit: int | None = None) -> list[Any]:
         self.call_log.append(f"get_dialogs(limit={limit})")

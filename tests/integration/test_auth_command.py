@@ -4,79 +4,112 @@ from __future__ import annotations
 
 from tg_exporter.settings.secrets.secret_store import ISecretStore
 from tg_exporter.settings.secrets import SESSION, API_HASH
-from tests.common.fakes import FakeTelegramClient
 from tests.integration.test_cli_command_base import TestCliCommandBase
 
 
-# todo   тесты нужно переделать: пройти с фейковым клиентом и конкретным юзером флоу аутентификации
-class TestAuthCommand(TestCliCommandBase):
+# ---------------------------------------------------------------------------
+# auth login
+# ---------------------------------------------------------------------------
 
-    # ------------------------------------------------------------------
-    # auth status
-    # ------------------------------------------------------------------
+class TestAuthLogin(TestCliCommandBase):
+    """Флоу авторизации: send_code → verify_code → save_session."""
 
-    def test_status_returns_exit_code_0_or_1(self):
-        """auth status возвращает 0 или 1 без stack trace."""
-        result = self.invoke("auth", "status")
-        assert result.exit_code in (0, 1)
+    def test_full_login_flow(self):
+        """Успешный вход: отправка кода, ввод кода, авторизация."""
+        self.server.auth.set_authorized(False)
 
-    # ------------------------------------------------------------------
-    # auth verify
-    # ------------------------------------------------------------------
+        result = self._invoke("auth", "login", "--phone", "+7999",
+                              "--api-id", "42", "--api-hash", "abc",
+                              input="12345\n")
 
-    def test_verify_returns_exit_code(self):
-        """auth verify возвращает exit code."""
-        result = self.invoke("auth", "verify")
-        assert result.exit_code in (0, 1, 2)
+        assert result.exit_code == 0
+        assert self.server.auth.is_authorized()
+        assert "send_code_request(+7999)" in self.client.call_log
+        assert any("sign_in" in entry for entry in self.client.call_log)
 
-    # ------------------------------------------------------------------
-    # auth logout
-    # ------------------------------------------------------------------
 
-    def test_logout_returns_exit_code_0(self):
-        """auth logout завершается без ошибок."""
-        result = self.invoke("auth", "logout")
+# ---------------------------------------------------------------------------
+# auth status
+# ---------------------------------------------------------------------------
+
+class TestAuthStatus(TestCliCommandBase):
+    """Проверка статуса авторизации."""
+
+    def test_exit_0_when_authorized(self):
+        self.server.auth.set_authorized(True)
+        result = self._invoke("auth", "status")
         assert result.exit_code == 0
 
-    # ------------------------------------------------------------------
-    # auth export-session
-    # ------------------------------------------------------------------
+    def test_exit_0_when_not_authorized(self):
+        self.server.auth.set_authorized(False)
+        result = self._invoke("auth", "status")
+        assert result.exit_code == 0
 
-    def test_export_session_fails_when_no_session(self):
-        """export-session без сессии — ошибка."""
-        result = self.invoke("auth", "export-session")
-        assert result.exit_code != 0
-        assert "нет активной сессии" in result.output.lower() or "Нет активной сессии" in result.output
 
-    def test_export_session_succeeds_when_session_exists(self, tmp_path, monkeypatch):
-        """export-session с сессией создаёт .env файл."""
-        output_path = tmp_path / "test_secrets.env"
+# ---------------------------------------------------------------------------
+# auth verify
+# ---------------------------------------------------------------------------
 
-        # api_id попадает в StaticConfig через env var
+class TestAuthVerify(TestCliCommandBase):
+    """Проверка сессии для CI/CD."""
+
+    def test_exit_0_when_session_valid(self):
+        self.server.auth.set_authorized(True)
+        result = self._invoke("auth", "verify")
+        assert result.exit_code == 0
+
+    def test_exit_1_when_session_invalid(self):
+        self.server.auth.set_authorized(False)
+        result = self._invoke("auth", "verify")
+        assert result.exit_code == 1
+
+
+# ---------------------------------------------------------------------------
+# auth logout
+# ---------------------------------------------------------------------------
+
+class TestAuthLogout(TestCliCommandBase):
+    """Выход из аккаунта."""
+
+    def test_clears_auth_state(self):
+        result = self._invoke("auth", "logout")
+
+        assert result.exit_code == 0
+        assert "log_out" in self.client.call_log
+        assert not self.server.auth.is_authorized()
+
+    def test_exit_0_when_not_authorized(self):
+        self.server.auth.set_authorized(False)
+        result = self._invoke("auth", "logout")
+        assert result.exit_code == 0
+
+
+# ---------------------------------------------------------------------------
+# auth export-session
+# ---------------------------------------------------------------------------
+
+class TestAuthExportSession(TestCliCommandBase):
+    """Экспорт сессии в .env файл."""
+
+    def test_creates_env_file(self, tmp_path, monkeypatch):
         monkeypatch.setenv("TG_EXPORTER_API_ID", "42")
-
-        fake_client = FakeTelegramClient()
-        fake_client.server.auth.set_authorized(True)
-        host = self._build_host(fake_client, authorized=True)
-
-        # Записываем сессию и api_hash в secret_store
-        secret_store = host.get(ISecretStore)
+        secret_store = self.host.get(ISecretStore)
         secret_store.set(SESSION, "test_session_string")
         secret_store.set(API_HASH, "test_hash")
+        output = tmp_path / "secrets.env"
 
-        # Подменяем get_host перед вызовом команды
-        import tg_exporter_cli.commands.auth as auth_mod
-        original_host = auth_mod.get_host
-        auth_mod.get_host = lambda: host
-        try:
-            result = self.runner.invoke(auth_mod.auth_group, [
-                "export-session", "--output", str(output_path)
-            ], catch_exceptions=False)
-            assert result.exit_code == 0
-            assert output_path.exists()
-            content = output_path.read_text()
-            assert "TG_EXPORTER_API_ID=42" in content
-            assert "TG_EXPORTER_API_HASH=test_hash" in content
-            assert "TG_EXPORTER_SESSION=test_session_string" in content
-        finally:
-            auth_mod.get_host = original_host
+        result = self._invoke("auth", "export-session", "--output", str(output))
+
+        assert result.exit_code == 0
+        assert output.exists()
+        content = output.read_text()
+        assert "TG_EXPORTER_SESSION=test_session_string" in content
+        assert "TG_EXPORTER_API_HASH=test_hash" in content
+
+    def test_fails_when_no_session(self):
+        secret_store = self.host.get(ISecretStore)
+        secret_store.delete(SESSION)
+
+        result = self._invoke("auth", "export-session")
+
+        assert result.exit_code != 0

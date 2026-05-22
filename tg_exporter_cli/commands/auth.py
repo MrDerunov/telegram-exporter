@@ -37,7 +37,7 @@ def auth_login(phone, api_id, api_hash, profile):
         secret_store.set(API_ID, api_id)
     if api_hash:
         secret_store.set(API_HASH, api_hash)
-    if not config.api_id:
+    if not config.api_id and not secret_store.get(API_ID):
         api_id = click.prompt("API ID")
         secret_store.set(API_ID, api_id)
     if not config.api_hash and not secret_store.get(API_HASH):
