@@ -86,6 +86,6 @@ TelegramClientInterface  →  converter  →  ExportMessage
 
 ## Детальные описания
 
-- **[Core Layer](tg_exporter/services/telegram/ARCHITECTURE.md)** — аутентификация, клиент, профили
-- **[Export Pipeline](tg_exporter/services/export/EXPORT_PIPELINE.md)** — оркестратор, конвертер, экспортёры
-- **[Transcription](tg_exporter/services/transcription/ARCHITECTURE.md)** — Whisper, Deepgram
+- **[Core Layer](../tg_exporter/services/telegram/ARCHITECTURE.md)** — аутентификация, клиент, профили
+- **[Export Pipeline](../tg_exporter/services/export/EXPORT_PIPELINE.md)** — оркестратор, конвертер, экспортёры
+- **[Transcription](../tg_exporter/services/transcription/ARCHITECTURE.md)** — Whisper, Deepgram
