@@ -112,7 +112,7 @@ def auth_export_session(output):
         click.echo("❌ Нет активной сессии. Сначала выполните auth login.", err=True)
         raise SystemExit(1)
 
-    api_id = config.api_id
+    api_id = config.api_id or secret_store.get(API_ID) or ""
     api_hash = secret_store.get(API_HASH) or ""
 
     auth_service.export_session(ExportSessionParams(

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from tg_exporter.settings.secrets.secret_store import ISecretStore
-from tg_exporter.settings.secrets import SESSION, API_HASH
+from tg_exporter.settings.secrets import SESSION, API_HASH, API_ID
 from tests.integration.test_cli_command_base import TestCliCommandBase
 
 
@@ -91,10 +91,10 @@ class TestAuthLogout(TestCliCommandBase):
 class TestAuthExportSession(TestCliCommandBase):
     """Экспорт сессии в .env файл."""
 
-    def test_creates_env_file(self, tmp_path, monkeypatch):
-        monkeypatch.setenv("TG_EXPORTER_API_ID", "42")
+    def test_creates_env_file(self, tmp_path):
         secret_store = self.host.get(ISecretStore)
         secret_store.set(SESSION, "test_session_string")
+        secret_store.set(API_ID, "42")
         secret_store.set(API_HASH, "test_hash")
         output = tmp_path / "secrets.env"
 
@@ -103,8 +103,9 @@ class TestAuthExportSession(TestCliCommandBase):
         assert result.exit_code == 0
         assert output.exists()
         content = output.read_text()
-        assert "TG_EXPORTER_SESSION=test_session_string" in content
+        assert "TG_EXPORTER_API_ID=42" in content
         assert "TG_EXPORTER_API_HASH=test_hash" in content
+        assert "TG_EXPORTER_SESSION=test_session_string" in content
 
     def test_fails_when_no_session(self):
         secret_store = self.host.get(ISecretStore)
