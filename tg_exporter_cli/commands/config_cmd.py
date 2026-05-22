@@ -5,8 +5,8 @@ import json
 
 import click
 
-from tg_exporter.configs.configuration_provider import ConfigurationResult, resolve_config_dir
-from tg_exporter.configs.static_config import StaticConfig
+from tg_exporter.settings.configs import ConfigurationResult, resolve_config_dir
+from tg_exporter.settings.configs import StaticConfig
 
 from ..hosting import get_host
 

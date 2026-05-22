@@ -8,7 +8,7 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
-from tg_exporter.secrets.secret_keys import _ENV_PREFIX
+from tg_exporter.settings.secrets import _ENV_PREFIX
 
 # Имя переменной окружения для определения директории конфигов
 _CONFIG_DIR_ENV = "TELEGRAM_EXPORTER_CONFIG_DIR"

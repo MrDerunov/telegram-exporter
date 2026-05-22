@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import pytest
 
-from tg_exporter.secrets.env_fallback_secret_store import EnvFallbackSecretStore
-from tg_exporter.secrets.secret_store import ISecretStore
+from tg_exporter.settings.secrets.env_fallback_secret_store import EnvFallbackSecretStore
+from tg_exporter.settings.secrets.secret_store import ISecretStore
 
 
 class _FakeInnerStore(ISecretStore):

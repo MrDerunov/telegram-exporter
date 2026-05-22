@@ -16,7 +16,7 @@ DATE_FORMATS = ("DD.MM.YYYY", "YYYY-MM-DD", "MM/DD/YYYY")
 
 
 @dataclass(frozen=True)
-class MarkdownSettings:
+class MarkdownConfig:
     words_per_file: int = 50_000
     date_format: str = "DD.MM.YYYY"
     include_timestamps: bool = True
@@ -39,6 +39,6 @@ class MarkdownSettings:
         return asdict(self)
 
     @classmethod
-    def from_dict(cls, data: dict) -> MarkdownSettings:
+    def from_dict(cls, data: dict) -> MarkdownConfig:
         known = set(cls.__dataclass_fields__)
         return cls(**{k: v for k, v in data.items() if k in known})

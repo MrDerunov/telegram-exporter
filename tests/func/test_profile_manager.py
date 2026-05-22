@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import pytest
 
-from tg_exporter.secrets.secret_store import ISecretStore
-from tg_exporter.configs.settings_store import ISettingsStore
-from tg_exporter.configs.state_model import StateModel
+from tg_exporter.settings.secrets.secret_store import ISecretStore
+from tg_exporter.settings.configs import ISettingsStore
+from tg_exporter.settings.configs import StateModel
 
 
 class _FakeSecretStore(ISecretStore):
@@ -196,7 +196,7 @@ class TestProfileManager:
 
     def test_preserve_chats_when_adding_profile(self):
         """Добавление профиля не затрагивает существующие чаты в StateModel."""
-        from tg_exporter.configs.state_model import ChatEntry
+        from tg_exporter.settings.configs import ChatEntry
         self._settings.save(StateModel(
             chats=(ChatEntry(name="Test", id=123),),
         ))

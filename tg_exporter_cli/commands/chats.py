@@ -4,8 +4,8 @@ import click
 import dataclasses
 
 from tg_exporter.services.telegram import ITelegramClientManager
-from tg_exporter.configs.state_model import StateModel, ChatEntry
-from tg_exporter.configs.settings_store import ISettingsStore
+from tg_exporter.settings.configs import StateModel, ChatEntry
+from tg_exporter.settings.configs import ISettingsStore
 from tg_exporter_cli.utils.async_runner import run_async
 from ..hosting import get_host
 

@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from tg_exporter.services.export.exporters.markdown_settings import MarkdownSettings
+from tg_exporter.settings.configs.markdown_config import MarkdownConfig
 
 
 @dataclass(frozen=True)
@@ -31,7 +31,7 @@ class StaticConfig:
     default_profile: str = "default"
 
     # Markdown
-    markdown: MarkdownSettings = field(default_factory=MarkdownSettings)
+    markdown: MarkdownConfig = field(default_factory=MarkdownConfig)
 
     # Источник секретов: "keyring" или "file"
     secrets_source: str = "file"
@@ -47,12 +47,6 @@ class StaticConfig:
     # Rate limit
     rate_limit_media_download_delay_ms: int = 500
     rate_limit_message_fetch_delay_ms: int = 100
-
-    @property
-    def api_id_int(self) -> int | None:
-        """Возвращает api_id как int, или None если не задан / невалиден."""
-        digits = "".join(c for c in self.api_id if c.isdigit())
-        return int(digits) if digits else None
 
     def to_dict(self) -> dict:
         """Сериализует в словарь того же формата, что читает from_raw().
@@ -103,7 +97,7 @@ class StaticConfig:
         defaults = data.get("defaults", {}) or {}
         markdown_data = data.get("markdown", {}) or {}
 
-        md = MarkdownSettings.from_dict(markdown_data) if markdown_data else MarkdownSettings()
+        md = MarkdownConfig.from_dict(markdown_data) if markdown_data else MarkdownConfig()
 
         return cls(
             version=int(data.get("version", 1)),

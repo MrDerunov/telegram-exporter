@@ -5,7 +5,7 @@
 from __future__ import annotations
 
 from .base import BaseTranscriber, TranscriptionError
-from ...configs.static_config import StaticConfig
+from tg_exporter.settings.configs.static_config import StaticConfig
 
 
 def create_transcriber(config: StaticConfig) -> BaseTranscriber:

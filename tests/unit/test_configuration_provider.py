@@ -3,11 +3,9 @@
 from __future__ import annotations
 
 import json
-import os
 from pathlib import Path
-import pytest
 
-from tg_exporter.configs.configuration_provider import (
+from tg_exporter.settings.configuration_provider import (
     resolve_config_dir,
     _merge_dicts,
     _load_json,

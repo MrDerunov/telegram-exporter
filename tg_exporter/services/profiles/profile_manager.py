@@ -18,12 +18,10 @@ ProfileManager — управление несколькими Telegram-акка
 from __future__ import annotations
 
 import threading
-from typing import Optional
 
-from tg_exporter.secrets.secret_store import ISecretStore
-from tg_exporter.configs.settings_store import ISettingsStore
-from tg_exporter.configs.state_model import StateModel, ProfileEntry
-from tg_exporter.utils.logger import logger
+from tg_exporter.settings.secrets.secret_store import ISecretStore
+from tg_exporter.settings.configs import ISettingsStore
+from tg_exporter.settings.configs import StateModel, ProfileEntry
 from .profile import Profile, _session_key, _normalize_phone
 
 

@@ -2,13 +2,9 @@
 
 from __future__ import annotations
 
-import pytest
-
-from tg_exporter.services.telegram import ITelegramClientManager
-from tg_exporter.secrets.secret_store import ISecretStore
-from tg_exporter.secrets.secret_keys import SESSION, API_HASH
-from tg_exporter.configs.static_config import StaticConfig
-from tests.common.fakes import FakeTelegramClient, FakeTelegramClientManager
+from tg_exporter.settings.secrets.secret_store import ISecretStore
+from tg_exporter.settings.secrets import SESSION, API_HASH
+from tests.common.fakes import FakeTelegramClient
 from tests.integration.test_cli_command_base import TestCliCommandBase
 
 

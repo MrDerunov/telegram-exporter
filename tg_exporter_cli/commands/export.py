@@ -11,7 +11,7 @@ from tg_exporter.services.export.export_orchestrator import ExportOrchestrator
 from tg_exporter.services.export.export_history import ExportHistory
 from tg_exporter.services.telegram import ITelegramClientManager
 from tg_exporter.utils.cancellation import CancellationToken
-from tg_exporter.configs.state_model import StateModel
+from tg_exporter.settings.configs import StateModel
 from tg_exporter_cli.utils.async_runner import run_async
 from ..hosting import get_host
 

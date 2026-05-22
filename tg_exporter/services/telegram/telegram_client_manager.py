@@ -3,14 +3,13 @@
 """
 from __future__ import annotations
 import threading
-from typing import Optional
 
 from .telegram_client_manager_interface import ITelegramClientManager
 from .telegram_client_interface import TelegramClientInterface
 from .telethon_client_adapter import TelethonClientAdapter
-from tg_exporter.secrets.secret_store import ISecretStore
-from tg_exporter.secrets.secret_keys import SESSION, API_HASH, API_ID
-from tg_exporter.configs.static_config import StaticConfig
+from tg_exporter.settings.secrets.secret_store import ISecretStore
+from tg_exporter.settings.secrets import SESSION, API_HASH, API_ID
+from tg_exporter.settings.configs import StaticConfig
 
 
 class ClientNotConfiguredError(RuntimeError):

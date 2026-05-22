@@ -16,7 +16,7 @@ import datetime
 from .base_exporter import BaseExporter
 from .sanitize import sanitize_filename
 from tg_exporter.services.export.models.export_message import ExportMessage
-from tg_exporter.services.export.exporters.markdown_settings import MarkdownSettings
+from tg_exporter.settings.configs.markdown_config import MarkdownConfig
 
 
 class MarkdownExporter(BaseExporter):
@@ -29,11 +29,11 @@ class MarkdownExporter(BaseExporter):
 
     def __init__(
         self,
-        settings: MarkdownSettings | None = None,
+        settings: MarkdownConfig | None = None,
         popular_min_reactions: int = 0,  # 0 = отключено
     ) -> None:
         super().__init__()
-        self._settings = settings or MarkdownSettings()
+        self._settings = settings or MarkdownConfig()
         self._popular_min = popular_min_reactions
 
         # Буферы
@@ -175,7 +175,7 @@ class MarkdownExporter(BaseExporter):
 
 # ---- Форматирование сообщений ----
 
-def _format_message(msg: ExportMessage, s: MarkdownSettings) -> str:
+def _format_message(msg: ExportMessage, s: MarkdownConfig) -> str:
     parts = []
 
     if s.include_timestamps and msg.date:

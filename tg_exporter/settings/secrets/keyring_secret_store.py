@@ -2,9 +2,8 @@
 from __future__ import annotations
 
 import logging
-from typing import Optional
 
-from tg_exporter.secrets.secret_store import ISecretStore
+from tg_exporter.settings.secrets.secret_store import ISecretStore
 
 logger = logging.getLogger(__name__)
 

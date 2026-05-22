@@ -5,8 +5,8 @@ import json
 import os
 from pathlib import Path
 
-from tg_exporter.configs.settings_store import ISettingsStore
-from tg_exporter.configs.state_model import StateModel
+from tg_exporter.settings.store.settings_store import ISettingsStore
+from tg_exporter.settings.store.state_model import StateModel
 from tg_exporter.utils.file_utils import secure_permissions
 from tg_exporter.utils.logger import logger
 

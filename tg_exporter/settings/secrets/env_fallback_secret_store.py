@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import os
 
-from tg_exporter.secrets.secret_store import ISecretStore
-from tg_exporter.secrets.secret_keys import (
+from tg_exporter.settings.secrets.secret_store import ISecretStore
+from tg_exporter.settings.secrets.secret_keys import (
     API_ID, API_HASH, SESSION, DEEPGRAM_API_KEY,
     API_ID_ENV, API_HASH_ENV, SESSION_ENV, DEEPGRAM_API_KEY_ENV,
 )

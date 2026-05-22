@@ -5,9 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import pytest
-
-from tg_exporter.secrets.json_secret_store import JsonSecretStore
+from tg_exporter.settings.secrets import JsonSecretStore
 
 
 class TestJsonSecretStore:

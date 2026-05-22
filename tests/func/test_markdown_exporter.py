@@ -9,7 +9,7 @@ import pytest
 from tg_exporter.services.export.models.export_message import ExportMessage
 from tg_exporter.services.export.models.reaction_item import ReactionItem
 from tg_exporter.services.export.models.poll_data import PollData, PollAnswer
-from tg_exporter.services.export.exporters.markdown_settings import MarkdownSettings
+from tg_exporter.settings.configs.markdown_config import MarkdownConfig
 from tg_exporter.services.export.exporters.markdown_exporter import MarkdownExporter, _format_message
 
 
@@ -74,15 +74,15 @@ class TestMarkdownExporter:
 
     def test_include_timestamp(self):
         """Временная метка появляется в выводе."""
-        settings = MarkdownSettings(include_timestamps=True, include_author=False,
-                                     date_format="YYYY-MM-DD")
+        settings = MarkdownConfig(include_timestamps=True, include_author=False,
+                                  date_format="YYYY-MM-DD")
         files = self._run([_msg(date="2024-06-15T10:00:00+00:00", text="Hi")], settings=settings)
         content = self._read(files[0])
         assert "2024-06-15" in content
 
     def test_strip_markdown_in_plain_text_mode(self):
         """В plain_text режиме markdown-разметка удаляется."""
-        settings = MarkdownSettings(plain_text=True, include_timestamps=False, include_author=False)
+        settings = MarkdownConfig(plain_text=True, include_timestamps=False, include_author=False)
         files = self._run([_msg(text="**Bold** and `code`")], settings=settings)
         content = self._read(files[0])
         assert "**" not in content
@@ -97,7 +97,7 @@ class TestMarkdownExporter:
 
     def test_create_multiple_files_when_exceeding_word_limit(self):
         """При превышении лимита слов создаются несколько файлов."""
-        settings = MarkdownSettings(words_per_file=5, include_timestamps=False, include_author=False)
+        settings = MarkdownConfig(words_per_file=5, include_timestamps=False, include_author=False)
         msgs = [_msg(id=i, text="one two three four") for i in range(1, 4)]
         files = self._run(msgs, settings=settings)
         assert len(files) > 1
@@ -131,37 +131,37 @@ class TestFormatMessage:
     """Unit-тесты хелпера _format_message (из Phase 1)."""
 
     def test_return_text_only(self):
-        s = MarkdownSettings(include_timestamps=False, include_author=False)
+        s = MarkdownConfig(include_timestamps=False, include_author=False)
         result = _format_message(_msg(text="Hello"), s)
         assert result == "Hello"
 
     def test_include_author(self):
-        s = MarkdownSettings(include_timestamps=False, include_author=True)
+        s = MarkdownConfig(include_timestamps=False, include_author=True)
         result = _format_message(_msg(text="Hi", from_name="Alice"), s)
         assert "Alice" in result
         assert "Hi" in result
 
     def test_strip_markdown_in_plain_text(self):
-        s = MarkdownSettings(plain_text=True, include_timestamps=False, include_author=False)
+        s = MarkdownConfig(plain_text=True, include_timestamps=False, include_author=False)
         result = _format_message(_msg(text="**Bold** and `code`"), s)
         assert "**" not in result
         assert "`" not in result
         assert "Bold" in result
 
     def test_format_timestamp(self):
-        s = MarkdownSettings(include_timestamps=True, include_author=False, date_format="YYYY-MM-DD")
+        s = MarkdownConfig(include_timestamps=True, include_author=False, date_format="YYYY-MM-DD")
         result = _format_message(_msg(date="2024-06-15T10:00:00+00:00", text="Hi"), s)
         assert "2024-06-15" in result
 
     def test_format_reactions(self):
-        s = MarkdownSettings(include_reactions=True, include_timestamps=False, include_author=False)
+        s = MarkdownConfig(include_reactions=True, include_timestamps=False, include_author=False)
         msg = _msg(text="Hi", reactions=(ReactionItem(emoji="👍", count=5),))
         result = _format_message(msg, s)
         assert "👍" in result
         assert "5" in result
 
     def test_format_poll(self):
-        s = MarkdownSettings(include_polls=True, include_timestamps=False, include_author=False)
+        s = MarkdownConfig(include_polls=True, include_timestamps=False, include_author=False)
         poll = PollData(
             question="Что выбрать?",
             answers=(PollAnswer(text="A", voters=2), PollAnswer(text="B", voters=3)),
@@ -172,13 +172,13 @@ class TestFormatMessage:
         assert "5" in result
 
     def test_format_forwarded_from(self):
-        s = MarkdownSettings(include_forwarded=True, include_timestamps=False, include_author=False)
+        s = MarkdownConfig(include_forwarded=True, include_timestamps=False, include_author=False)
         msg = _msg(text="Hi", forwarded_from="Bob")
         result = _format_message(msg, s)
         assert "Bob" in result
 
     def test_format_transcription(self):
-        s = MarkdownSettings(include_timestamps=False, include_author=False)
+        s = MarkdownConfig(include_timestamps=False, include_author=False)
         msg = _msg(text="", transcription="Привет мир")
         result = _format_message(msg, s)
         assert "Транскрипция" in result

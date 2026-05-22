@@ -4,9 +4,8 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
-from typing import Optional
 
-from tg_exporter.secrets.secret_store import ISecretStore
+from tg_exporter.settings.secrets.secret_store import ISecretStore
 from tg_exporter.utils.file_utils import secure_permissions
 
 
