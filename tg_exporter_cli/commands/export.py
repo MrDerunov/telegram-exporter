@@ -30,7 +30,10 @@ def _parse_date(value: str | None) -> datetime.datetime | None:
     if not value:
         return None
     try:
-        return datetime.datetime.fromisoformat(value)
+        dt = datetime.datetime.fromisoformat(value)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=datetime.UTC)
+        return dt
     except ValueError as e:
         raise click.BadParameter(f"Неверный формат даты: {value}. Используйте YYYY-MM-DD.") from e
 
@@ -65,6 +68,7 @@ def export_group() -> None:
 @click.option("--analytics", is_flag=True, help="Собирать аналитику (top_authors.md, activity.md)")
 @click.option("--words-per-file", type=int, default=None, help="Слов на Markdown-файл")
 @click.option("--resume", is_flag=True, help="Продолжить прерванный экспорт")
+@click.option("--deduplicate", is_flag=True, help="Пропускать уже экспортированные сообщения")
 @click.option("--all", "export_all", is_flag=True, help="Экспортировать все чаты из конфига")
 @click.option("--skip-unavailable", is_flag=True, help="Пропускать недоступные чаты (с --all)")
 def export_run(
@@ -82,6 +86,7 @@ def export_run(
     analytics: bool,
     words_per_file: int | None,
     resume: bool,
+    deduplicate: bool,
     export_all: bool,
     skip_unavailable: bool,
 ) -> None:
@@ -98,7 +103,7 @@ def export_run(
     _validate_flags(date_from_dt, date_to_dt, days, last)
 
     if days and not date_from_dt:
-        date_from_dt = datetime.datetime.now() - datetime.timedelta(days=days)
+        date_from_dt = datetime.datetime.now(datetime.UTC) - datetime.timedelta(days=days)
 
     if transcribe and not download_media:
         click.echo("⚠ --transcribe без --download-media: транскрипция требует скачивания аудио.", err=True)
@@ -132,6 +137,7 @@ def export_run(
                     analytics=analytics,
                     words_per_file=words_per_file,
                     resume=resume,
+                    deduplicate=deduplicate,
                 )
             except SystemExit as e:
                 if e.code != 0 and skip_unavailable:
@@ -162,6 +168,7 @@ def export_run(
         analytics=analytics,
         words_per_file=words_per_file,
         resume=resume,
+        deduplicate=deduplicate,
     )
 
 
@@ -184,11 +191,12 @@ def _run_export(
     analytics: bool,
     words_per_file: int | None,
     resume: bool,
+    deduplicate: bool,
 ) -> None:
     """Выполняет экспорт одного чата."""
     output_dir = Path(output) if output else Path.cwd() / "export" / _chat_name(chat)
 
-    # Инкрементальный режим (--resume)
+    # Инкрементальный режим (--resume) или дедупликация (--deduplicate)
     incremental = False
     last_exported_id: int | None = None
     if resume and output_dir.exists():
@@ -197,6 +205,11 @@ def _run_export(
             incremental = True
             last_exported_id = hist_data.last_message_id
             click.echo(f"📋 Продолжение экспорта с сообщения #{last_exported_id}")
+    elif deduplicate:
+        hist_data = history.load(output_dir)
+        if hist_data and hist_data.last_message_id:
+            last_exported_id = hist_data.last_message_id
+            click.echo(f"🔍 Дедупликация: пропуск сообщений до #{last_exported_id}")
 
     try:
         # Определяем chat_id: int для peer_id, str для username
@@ -211,7 +224,7 @@ def _run_export(
             chat_name=chat,
             output_path=str(output_dir),
             format=export_format,
-            message_limit=last or 0,
+            message_limit=last,
             date_from=date_from_dt,
             date_to=date_to_dt,
             topic_id=topic_id,
@@ -221,6 +234,7 @@ def _run_export(
             transcription_provider=transcriber,
             incremental=incremental,
             last_exported_id=last_exported_id,
+            deduplicate=deduplicate,
             words_per_file=words_per_file or 50000,
         )
 

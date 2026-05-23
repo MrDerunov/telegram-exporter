@@ -62,8 +62,11 @@ class ExportTask:
     incremental: bool = False
     last_exported_id: int | None = None  # для инкрементального
 
-    # Лимит сообщений (0 = без лимита)
-    message_limit: int = 0
+    # Дедупликация (пропускать уже экспортированные сообщения)
+    deduplicate: bool = False
+
+    # Лимит сообщений (None = без лимита)
+    message_limit: int | None = None
 
     # Настройки Markdown
     words_per_file: int = 50_000
@@ -74,3 +77,10 @@ class ExportTask:
     @property
     def is_incremental_with_offset(self) -> bool:
         return self.incremental and self.last_exported_id is not None
+
+    @property
+    def skip_before_id(self) -> int | None:
+        """ID для пропуска уже обработанных сообщений (--resume или --deduplicate)."""
+        if self.last_exported_id is not None and (self.incremental or self.deduplicate):
+            return self.last_exported_id
+        return None

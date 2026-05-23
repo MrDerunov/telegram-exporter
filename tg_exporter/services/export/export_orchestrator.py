@@ -13,6 +13,7 @@ import datetime
 import os
 import shutil
 from collections.abc import Callable
+from pathlib import Path
 
 from tg_exporter.services.telegram.telegram_client_manager_interface import ITelegramClientManager
 from tg_exporter.services.telegram.converter import message_to_export
@@ -52,6 +53,9 @@ class ExportOrchestrator:
         self._config = config
         self._history = history
         self._media = MediaDownloader()
+        self._export_dir: str | None = None
+        self._export_count: int = 0
+        self._export_max_id: int = 0
 
     async def run(
         self,
@@ -69,11 +73,23 @@ class ExportOrchestrator:
         try:
             await self._do_run_async(dialog, task, token, progress, send)
         except CancelledError:
-            # TODO: вызывать self._history.mark_interrupted() для --resume
+            if self._export_dir and task.incremental:
+                try:
+                    self._history.mark_interrupted(
+                        Path(self._export_dir), self._export_max_id, self._export_count
+                    )
+                except Exception:
+                    pass
             progress.cancel()
             send("export_cancelled", None)
         except Exception as exc:
-            # TODO: вызывать self._history.mark_interrupted() для --resume
+            if self._export_dir and task.incremental:
+                try:
+                    self._history.mark_interrupted(
+                        Path(self._export_dir), self._export_max_id, self._export_count
+                    )
+                except Exception:
+                    pass
             msg = _friendly_error(str(exc))
             progress.fail(msg)
             logger.error("Export failed", exc=exc)
@@ -97,11 +113,14 @@ class ExportOrchestrator:
         chat_title = _safe_name(dialog.name or "chat", 60)
         if task.topic_title:
             chat_title = f"{chat_title}_topic_{_safe_name(task.topic_title, 40)}"
-        export_dir = os.path.join(task.output_path, f"{chat_title}_{timestamp}")
-        os.makedirs(export_dir, exist_ok=True)
+        self._export_dir = os.path.join(task.output_path, f"{chat_title}_{timestamp}")
+        os.makedirs(self._export_dir, exist_ok=True)
+        export_dir = Path(self._export_dir)
 
         # --- Подсчёт сообщений ---
         total = await self._count_messages(client, dialog.id, task)
+        if total is not None and task.message_limit is not None:
+            total = min(total, task.message_limit)
         export_label = dialog.name or "Чат"
         if task.topic_title:
             export_label = f"{export_label} → {task.topic_title}"
@@ -174,13 +193,13 @@ class ExportOrchestrator:
         analytics = AnalyticsCollector() if task.collect_analytics else None
 
         # --- Параметры итерации ---
-        iter_min_id = task.last_exported_id if task.is_incremental_with_offset else 0
-        iter_offset_date = task.date_from or None
-        iter_reply_to = task.topic_id if task.topic_id is not None else None
-
-        date_to_end = (
+        iter_min_id = task.skip_before_id or 0
+        # offset_date в Telethon: только сообщения СТАРШЕ этой даты (date < offset_date).
+        # Используем date_to как верхнюю границу (исключаем сообщения новее date_to).
+        iter_offset_date = (
             (task.date_to + datetime.timedelta(days=1)) if task.date_to else None
         )
+        iter_reply_to = task.topic_id if task.topic_id is not None else None
 
         # --- Основной цикл ---
         count = 0
@@ -188,17 +207,25 @@ class ExportOrchestrator:
         transcribe_warned = False
         video_note_saved_ids: set[int] = set()
 
-        # TODO: task.message_limit не передаётся в iter_messages — флаг --last игнорируется.
-        # Нужно добавить limit=task.message_limit если task.message_limit > 0.
+        iter_limit = task.message_limit
+
         async for msg in client.iter_messages(
             dialog.id,
             min_id=iter_min_id,
             offset_date=iter_offset_date,
             reply_to=iter_reply_to,
+            limit=iter_limit,
         ):
             token.raise_if_cancelled()
 
-            if date_to_end and hasattr(msg, "date") and msg.date and msg.date >= date_to_end:
+            # date_from: сообщения идут от новых к старым — когда дошли до date_from,
+            # все оставшиеся будут ещё старше → выходим.
+            # Сравниваем по дате (без времени) для совместимости tz-aware/tz-naive.
+            if (
+                task.date_from is not None
+                and hasattr(msg, "date") and msg.date is not None
+                and msg.date.date() < task.date_from.date()
+            ):
                 break
 
             msg_id = getattr(msg, "id", 0) or 0
@@ -285,6 +312,9 @@ class ExportOrchestrator:
                 self._media.download(msg, media_dirs, token, video_note_saved_ids)
 
             count += 1
+            self._export_count = count
+            if msg_id > self._export_max_id:
+                self._export_max_id = msg_id
             _maybe_send_progress(send, count, total)
 
         # --- Финализация ---
@@ -338,8 +368,8 @@ class ExportOrchestrator:
             count_kwargs: dict = {}
             if task.topic_id is not None:
                 count_kwargs["reply_to"] = task.topic_id
-            if task.is_incremental_with_offset:
-                count_kwargs["min_id"] = task.last_exported_id
+            if task.skip_before_id is not None:
+                count_kwargs["min_id"] = task.skip_before_id
 
             total_all = await client.count_messages(peer_id, **count_kwargs)
             if total_all is None:
