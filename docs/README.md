@@ -16,7 +16,6 @@
 | **[auth](commands/auth.md)** | Аутентификация в Telegram: вход, выход, проверка сессии, экспорт сессии |
 | **[export](commands/export.md)** | Экспорт сообщений из чатов в JSON и Markdown |
 | **[chats](commands/chats.md)** | Просмотр и управление списком чатов для экспорта |
-| **[profile](commands/profile.md)** | Управление аккаунтами Telegram (профилями) |
 | **[config](commands/config.md)** | Управление конфигурацией CLI |
 | **[doctor](commands/doctor.md)** | Диагностика окружения |
 | **[version](commands/version.md)** | Информация о версии утилиты |

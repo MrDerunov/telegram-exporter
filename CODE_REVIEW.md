@@ -110,7 +110,7 @@
 
 ## LOW (выборочно)
 
-- Неиспользуемые импорты: `get_peer_id` в converter.py, `TYPE_CHECKING` в converter.py, `ConfigurationResult` в auth.py, `logger` в profile_manager.py
+- Неиспользуемые импорты: `get_peer_id` в converter.py, `TYPE_CHECKING` в converter.py, `ConfigurationResult` в auth.py
 - Неиспользуемые константы: `DEFAULT_ENV_FILENAME` в cli_constants.py
 - Неиспользуемый код: `CancellationToken.reset()`, `CancellationToken.wait_for_cancel()`, `retry_async`, `TelethonClientAdapter.load_session`, `base_exporter.sanitize_filename` (re-export)
 - Windows-специфичные: нет проверки MAX_PATH при формировании путей экспорта; `_safe_name()` regex удаляет легальные символы; `\r`-прогресс без flush
