@@ -33,15 +33,30 @@ class MessageStore:
         limit: int | None = None,
         reply_to: int | None = None,
     ) -> list[FakeMessage]:
-        """Выбрать сообщения с фильтрацией (как iter_messages)."""
+        """Выбрать сообщения с фильтрацией (как iter_messages).
+
+        Возвращает сообщения от новых к старым (как Telethon iter_messages).
+        """
         messages = self._messages.get(peer_id, [])
+        # Сначала от новых к старым (как Telethon) — сортируем по дате (убывание)
+        messages = sorted(
+            messages,
+            key=lambda m: m.date if m.date is not None else datetime.min,
+            reverse=True,
+        )
         filtered = [m for m in messages if m.id > min_id]
         if offset_date is not None:
+            # Telethon: offset_date — сообщения СТАРШЕ этой даты (date < offset_date)
             filtered = [
                 m for m in filtered
-                if m.date is not None and m.date > offset_date
+                if m.date is not None and m.date < offset_date
             ]
-        if limit is not None and limit > 0:
+        if reply_to is not None:
+            filtered = [
+                m for m in filtered
+                if getattr(m, "reply_to_msg_id", None) == reply_to
+            ]
+        if limit is not None:
             filtered = filtered[:limit]
         return filtered
 
@@ -56,9 +71,15 @@ class MessageStore:
         messages = self._messages.get(peer_id, [])
         filtered = [m for m in messages if m.id > min_id]
         if offset_date is not None:
+            # Telethon: offset_date — сообщения СТАРШЕ этой даты (date < offset_date)
             filtered = [
                 m for m in filtered
-                if m.date is not None and m.date > offset_date
+                if m.date is not None and m.date < offset_date
+            ]
+        if reply_to is not None:
+            filtered = [
+                m for m in filtered
+                if getattr(m, "reply_to_msg_id", None) == reply_to
             ]
         return len(filtered)
 
