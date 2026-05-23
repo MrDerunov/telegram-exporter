@@ -27,3 +27,9 @@ class ITelegramClientManager(ABC):
     async def destroy(self) -> None:
         """Уничтожить клиент."""
         ...
+
+    @abstractmethod
+    def use_session(self, session_string: str | None) -> None:
+        """Указать конкретную сессию (для переключения профилей).
+        После вызова следующий create_connected_client() использует эту сессию."""
+        ...

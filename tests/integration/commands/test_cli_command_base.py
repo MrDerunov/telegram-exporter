@@ -45,7 +45,7 @@ class TestCliCommandBase:
         )
         self.server.users.add_user(self.test_user)
         self.client = FakeTelegramClient(self.server)
-        manager = FakeTelegramClientManager(self.client)
+        self.client_manager = FakeTelegramClientManager(self.client)
 
         self.fake_secrets = FakeSecretStore()
         self.fake_settings = FakeSettingsStore()
@@ -54,7 +54,7 @@ class TestCliCommandBase:
         self.host = (
             CliHost()
             .build()
-            .rebind_services(lambda c, r: c.register_instance(ITelegramClientManager, manager))
+            .rebind_services(lambda c, r: c.register_instance(ITelegramClientManager, self.client_manager))
             .rebind_services(lambda c, r: c.register_instance(ProfileManager, self.pm))
             .rebind_services(lambda c, r: c.register_instance(ISecretStore, self.fake_secrets))
             .rebind_services(lambda c, r: c.register_instance(ISettingsStore, self.fake_settings))

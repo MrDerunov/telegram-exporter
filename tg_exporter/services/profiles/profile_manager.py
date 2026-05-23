@@ -166,9 +166,13 @@ class ProfileManager:
         return self._secrets.get(_session_key(profile.api_id, profile.phone))
 
     def save_session(self, profile: Profile, session_string: str) -> None:
-        if not session_string or not profile.api_id or not profile.phone:
+        if not profile.api_id or not profile.phone:
             return
-        self._secrets.set(_session_key(profile.api_id, profile.phone), session_string)
+        key = _session_key(profile.api_id, profile.phone)
+        if session_string:
+            self._secrets.set(key, session_string)
+        else:
+            self._secrets.delete(key)
 
     def _delete_session(self, api_id: str, phone: str) -> None:
         if not api_id or not phone:

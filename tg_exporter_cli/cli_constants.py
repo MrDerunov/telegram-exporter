@@ -11,3 +11,4 @@ except ImportError:
 
 DEFAULT_ENV_FILENAME = ".env"
 DEFAULT_SECRETS_EXPORTED_ENV_FILENAME = "secrets.exported.env"
+DEFAULT_PROFILE_NAME = "Default"
