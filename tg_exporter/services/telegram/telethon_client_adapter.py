@@ -99,7 +99,7 @@ class TelethonClientAdapter(TelegramClientInterface):
             await self.connect()
         async for msg in self._client.iter_messages(
             peer_id, min_id=min_id, offset_date=offset_date, limit=limit,
-            reverse=True, reply_to=reply_to,
+            reply_to=reply_to,
         ):
             yield msg
 

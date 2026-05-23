@@ -355,7 +355,7 @@ class ExportOrchestrator:
             transcriber.unload()
 
         if total:
-            send("export_progress", (total, total))
+            send("export_progress", (count, total))
 
         progress.finish()
         progress.output_files = output_files
@@ -364,32 +364,17 @@ class ExportOrchestrator:
     # ---- Helpers ----
 
     async def _count_messages(self, client, peer_id: int, task: ExportTask) -> int | None:
+        """Оценка числа сообщений для прогресс-бара.
+        offset_date не используется — get_messages(limit=0, offset_date=...)
+        в Telethon возвращает .total без учёта фильтра.
+        """
         try:
             count_kwargs: dict = {}
             if task.topic_id is not None:
                 count_kwargs["reply_to"] = task.topic_id
             if task.skip_before_id is not None:
                 count_kwargs["min_id"] = task.skip_before_id
-
-            total_all = await client.count_messages(peer_id, **count_kwargs)
-            if total_all is None:
-                return None
-
-            if task.date_from is not None:
-                before_from = await client.count_messages(peer_id, offset_date=task.date_from, **count_kwargs) or 0
-                total = max(0, total_all - before_from)
-            else:
-                total = total_all
-
-            if task.date_to is not None:
-                after_to = task.date_to + datetime.timedelta(days=1)
-                before_to = await client.count_messages(peer_id, offset_date=after_to, **count_kwargs) or 0
-                if task.date_from is not None:
-                    total = max(0, total - (total_all - before_to))
-                else:
-                    total = before_to
-
-            return total
+            return await client.count_messages(peer_id, **count_kwargs)
         except Exception:
             return None
 
