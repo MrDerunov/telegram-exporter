@@ -1,4 +1,4 @@
-"""Команды управления конфигурацией: show, set, path, init."""
+"""Команды управления конфигурацией: show, path, init."""
 from __future__ import annotations
 
 import json
@@ -60,55 +60,6 @@ def config_show():
         f"Rate limit:  media {config.rate_limit_media_download_delay_ms}ms, "
         f"msg {config.rate_limit_message_fetch_delay_ms}ms"
     )
-
-
-_SIMPLE_FIELDS = {
-    "api_id": str,
-    "default_format": str,
-    "default_words_per_file": int,
-    "default_download_media": bool,
-    "default_transcribe": bool,
-    "default_analytics": bool,
-    "secrets_source": str,
-    "log_level": str,
-    "transcription_provider": str,
-    "transcription_model": str,
-    "transcription_language": str,
-    "retry_max_attempts": int,
-    "retry_delay_seconds": int,
-    "retry_max_delay_seconds": int,
-    "rate_limit_media_download_delay_ms": int,
-    "rate_limit_message_fetch_delay_ms": int,
-}
-
-
-@config_group.command("set")
-@click.argument("key")
-@click.argument("value")
-def config_set(key: str, value: str):
-    """Установить значение в конфиге. Пример: config set api_id 12345"""
-    host = get_host()
-    host.get(StaticConfig)
-
-    if key not in _SIMPLE_FIELDS:
-        valid = ", ".join(sorted(_SIMPLE_FIELDS.keys()))
-        click.echo(f"❌ Неизвестный ключ: {key}\nДопустимые: {valid}", err=True)
-        raise SystemExit(1)
-
-    target_type = _SIMPLE_FIELDS[key]
-    try:
-        if target_type is bool:
-            parsed = value.lower() in ("true", "1", "yes", "да")
-        elif target_type is int:
-            parsed = int(value)
-        else:
-            parsed = value
-    except ValueError as e:
-        click.echo(f"❌ Неверное значение для {key}: {value}", err=True)
-        raise SystemExit(1) from e
-
-    click.echo(f"✅ {key} = {parsed}")
-    click.echo("⚠ Установка через config set временно не сохраняется в файл. Отредактируйте config.json вручную.")
 
 
 @config_group.command("path")
