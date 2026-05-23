@@ -51,10 +51,10 @@ class TestCliCommandBase:
 
         self.host = (
             CliHost()
-            .build()
             .rebind_services(lambda c, r: c.register_instance(ITelegramClientManager, self.client_manager))
             .rebind_services(lambda c, r: c.register_instance(ISecretStore, self.fake_secrets))
             .rebind_services(lambda c, r: c.register_instance(ISettingsStore, self.fake_settings))
+            .build()
         )
 
     def _invoke(self, *args: str, **kwargs):

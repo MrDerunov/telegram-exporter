@@ -31,14 +31,18 @@ class CliHost:
 
     def __init__(self) -> None:
         self._container = Container()
+        self._rebind_callbacks: list[Callable[[Container, ConfigurationResult], None]] = []
 
     def build(self) -> CliHost:
         """Собрать конфигурацию и зарегистрировать все сервисы в контейнере.
-        Только чтение конфигов и DI-регистрация — без создания файлов/папок."""
+        Только чтение конфигов и DI-регистрация — без создания файлов/папок.
+        Последним шагом применяет колбэки rebind_services."""
         config_dir = resolve_config_dir()
         provider = ConfigurationProvider(config_dir)
         result = provider.build()
         self._bind_services(result)
+        for callback in self._rebind_callbacks:
+            callback(self._container, result)
         return self
 
     def _bind_services(self, result: ConfigurationResult) -> None:
@@ -97,10 +101,10 @@ class CliHost:
         )
 
     def rebind_services(self, callback: Callable[[Container, ConfigurationResult], None]) -> CliHost:
-        """Позволяет переопределить регистрации сервисов (для тестов).
+        """Зарегистрировать колбэк переопределения сервисов (для тестов).
+        Колбэк будет вызван в конце build() — после _bind_services.
         callback получает (container, ConfigurationResult)."""
-        result = self._container.get(ConfigurationResult)
-        callback(self._container, result)
+        self._rebind_callbacks.append(callback)
         return self
 
     def run(self) -> None:
