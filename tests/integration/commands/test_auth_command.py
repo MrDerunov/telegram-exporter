@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from tg_exporter.settings.secrets.secret_store import ISecretStore
 from tg_exporter.settings.secrets import SESSION, API_HASH, API_ID
-from integration.commands.test_cli_command_base import TestCliCommandBase
+from .test_cli_command_base import TestCliCommandBase
 
 
 # ---------------------------------------------------------------------------

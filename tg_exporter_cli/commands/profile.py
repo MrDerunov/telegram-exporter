@@ -3,6 +3,8 @@ from __future__ import annotations
 import click
 
 from tg_exporter.services.profiles import ProfileManager
+from tg_exporter.settings.secrets.secret_store import ISecretStore
+from tg_exporter.settings.secrets import API_HASH
 from ..hosting import get_host
 
 
@@ -48,8 +50,8 @@ def profile_add(phone: str, api_id: str, api_hash: str, name: str | None):
     profile_manager = host.get(ProfileManager)
 
     try:
-        # api_hash сохраняется через ISecretStore (уже при auth login),
-        # здесь только регистрируем профиль без сессии
+        secret_store = host.get(ISecretStore)
+        secret_store.set(API_HASH, api_hash)
         profile_manager.add_or_update(phone, api_id, "", display_name=name or phone, set_active=True)
         click.echo(f"✅ Профиль {phone} добавлен. Выполните auth login для входа.")
 
