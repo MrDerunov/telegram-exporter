@@ -5,7 +5,7 @@ from pathlib import Path
 
 from ..hosting import get_host
 from tg_exporter_cli.utils.async_runner import run_async
-from tg_exporter_cli.cli_constants import DEFAULT_SECRETS_EXPORTED_ENV_FILENAME, DEFAULT_PROFILE_NAME
+from tg_exporter_cli.cli_constants import DEFAULT_SECRETS_EXPORTED_ENV_FILENAME
 from tg_exporter.services.telegram import AuthService, SendCodeParams, VerifyCodeParams, ExportSessionParams
 from tg_exporter.services.telegram import ITelegramClientManager
 from tg_exporter.services.profiles import ProfileManager
@@ -73,14 +73,6 @@ def auth_login(phone, api_id, api_hash, profile):
 
     # Save session
     run_async(client_manager.save_session())
-
-    # Create or update profile for this phone
-    profile_manager = host.get(ProfileManager)
-    session_str = secret_store.get(SESSION) or ""
-    existing = profile_manager.get(phone)
-    display_name = "" if existing else DEFAULT_PROFILE_NAME
-    profile_manager.add_or_update(phone, api_id, session_str, display_name=display_name, set_active=True)
-
     click.echo("✅ Авторизован успешно")
 
 
@@ -105,14 +97,7 @@ def auth_logout(profile):
     """Выйти из аккаунта."""
     host = get_host()
     auth_service = host.get(AuthService)
-    profile_manager = host.get(ProfileManager)
-
-    # Clear active profile session
-    active = profile_manager.active()
     run_async(auth_service.logout())
-    if active is not None:
-        profile_manager.save_session(active, "")
-
     click.echo("✅ Выполнен выход из аккаунта")
 
 
