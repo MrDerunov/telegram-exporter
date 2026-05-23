@@ -36,32 +36,20 @@ class TestAuthStatus(TestCliCommandBase):
     """Проверка статуса авторизации."""
 
     def test_exit_0_when_authorized(self):
+        self.fake_secrets.set(SESSION, "fake_session")
         self.server.auth.set_authorized(True)
         result = self._invoke("auth", "status")
-        assert result.exit_code == 0
-
-    def test_exit_0_when_not_authorized(self):
-        self.server.auth.set_authorized(False)
-        result = self._invoke("auth", "status")
-        assert result.exit_code == 0
-
-
-# ---------------------------------------------------------------------------
-# auth verify
-# ---------------------------------------------------------------------------
-
-class TestAuthVerify(TestCliCommandBase):
-    """Проверка сессии для CI/CD."""
-
-    def test_exit_0_when_session_valid(self):
-        self.server.auth.set_authorized(True)
-        result = self._invoke("auth", "verify")
         assert result.exit_code == 0
 
     def test_exit_1_when_session_invalid(self):
+        self.fake_secrets.set(SESSION, "fake_session")
         self.server.auth.set_authorized(False)
-        result = self._invoke("auth", "verify")
+        result = self._invoke("auth", "status")
         assert result.exit_code == 1
+
+    def test_exit_2_when_no_session(self):
+        result = self._invoke("auth", "status")
+        assert result.exit_code == 2
 
 
 # ---------------------------------------------------------------------------

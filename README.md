@@ -23,7 +23,7 @@
 - **Транскрипция голосовых и видео-кружков:** локально (Faster-Whisper) или через Deepgram
 - **Аналитика:** топ авторов, активность по датам
 - **Управление чатами:** просмотр по папкам Telegram, поиск, добавление в конфиг (`chat`)
-- **CI/CD-режим:** auth export-session → secrets.env, auth verify для проверки сессии
+- **CI/CD-режим:** auth export-session → secrets.env, auth status для проверки сессии
 - **Диагностика:** `doctor` — Python, конфиг, сессия, ffmpeg, место на диске
 
 ## Установка
@@ -110,7 +110,7 @@ tg-exporter chat add --chat -1001234567890
 
 # CI/CD: экспорт сессии
 tg-exporter auth export-session
-tg-exporter auth verify
+tg-exporter auth status
 ```
 
 ## Лицензия

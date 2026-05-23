@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from tg_exporter.settings.secrets import SESSION
 from tests.common.fakes.factories import (
     make_fake_user,
     make_fake_chat,
@@ -31,6 +32,8 @@ class TestExportEndToEnd(TestCliCommandBase):
             make_fake_message(msg_id=i, text=f"Msg {i}", sender=user)
             for i in range(1, 101)
         ])
+
+        self.fake_secrets.set(SESSION, "fake_session")
 
         # Шаг 1: проверка авторизации
         result = self._invoke("auth", "status")

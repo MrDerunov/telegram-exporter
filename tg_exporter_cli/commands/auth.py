@@ -1,4 +1,4 @@
-"""Команды аутентификации: login, status, logout, export-session, verify."""
+"""Команды аутентификации: login, status, logout, export-session."""
 from __future__ import annotations
 import click
 from pathlib import Path
@@ -76,14 +76,22 @@ def auth_login(phone, api_id, api_hash):
 
 @auth_group.command("status")
 def auth_status():
-    """Проверить статус авторизации."""
+    """Проверить статус авторизации. Exit codes: 0=валидна, 1=невалидна, 2=нет сессии."""
     host = get_host()
     auth_service = host.get(AuthService)
+    secret_store = host.get(ISecretStore)
+
+    session_str = secret_store.get(SESSION) or ""
+    if not session_str:
+        click.echo("❌ Нет сессии. Выполните: tg-exporter auth login")
+        raise SystemExit(2)
+
     result = run_async(auth_service.check_session())
     if result.step.name == "SUCCESS":
         click.echo("✅ Авторизован")
     else:
         click.echo(f"❌ Не авторизован. {result.error or 'Выполните: tg-exporter auth login'}")
+        raise SystemExit(1)
 
 
 @auth_group.command("logout")
@@ -122,18 +130,5 @@ def auth_export_session(output):
     click.echo(f"✅ Сессия экспортирована в {output}")
     click.echo("⚠️  Файл содержит полный доступ к вашему аккаунту Telegram. Храните его в безопасном месте.")
 
-
-@auth_group.command("verify")
-def auth_verify():
-    """Проверить валидность сессии (для CI/CD). Exit codes: 0=валидна, 1=невалидна, 2=нет сессии."""
-    host = get_host()
-    auth_service = host.get(AuthService)
-    result = run_async(auth_service.check_session())
-    if result.step.name == "SUCCESS":
-        click.echo("✅ Сессия валидна")
-        raise SystemExit(0)
-    else:
-        click.echo(f"❌ Сессия невалидна: {result.error or 'нет сессии'}")
-        raise SystemExit(1)
 
 
