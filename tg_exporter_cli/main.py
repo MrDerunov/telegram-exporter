@@ -5,7 +5,7 @@ import click
 from tg_exporter_cli.cli_constants import VERSION
 from tg_exporter_cli.commands.auth import auth_group
 from tg_exporter_cli.commands.export import export_command
-from tg_exporter_cli.commands.chats import chats_group
+from tg_exporter_cli.commands.chat import chat_group
 from tg_exporter_cli.commands.config_cmd import config_group
 from tg_exporter_cli.commands.version import version_command
 from tg_exporter_cli.commands.doctor import doctor_command
@@ -25,7 +25,7 @@ def cli(ctx: click.Context) -> None:
 # Все команды
 cli.add_command(auth_group)
 cli.add_command(export_command)
-cli.add_command(chats_group)
+cli.add_command(chat_group)
 cli.add_command(config_group)
 cli.add_command(version_command)
 cli.add_command(doctor_command)

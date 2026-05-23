@@ -108,7 +108,7 @@ def export_command(
     if export_all:
         chats = state.chats
         if not chats:
-            click.echo("❌ Нет чатов в конфиге. Добавьте через: tg-exporter chats add --chat ID", err=True)
+            click.echo("❌ Нет чатов в конфиге. Добавьте через: tg-exporter chat add --chat ID", err=True)
             raise SystemExit(1)
         for entry in chats:
             click.echo(f"\n📦 Экспорт: {entry.name} (ID: {entry.id})")

@@ -15,7 +15,7 @@
 |--------|-----------|
 | **[auth](commands/auth.md)** | Аутентификация в Telegram: вход, выход, проверка сессии, экспорт сессии |
 | **[export](commands/export.md)** | Экспорт сообщений из чатов в JSON и Markdown |
-| **[chats](commands/chats.md)** | Просмотр и управление списком чатов для экспорта |
+| **[chat](commands/chat.md)** | Просмотр и управление списком чатов для экспорта |
 | **[config](commands/config.md)** | Управление конфигурацией CLI |
 | **[doctor](commands/doctor.md)** | Диагностика окружения |
 | **[version](commands/version.md)** | Информация о версии утилиты |
@@ -33,7 +33,7 @@ tg-exporter config init
 tg-exporter auth login
 
 # Просмотр доступных чатов
-tg-exporter chats list
+tg-exporter chat list
 
 # Экспорт одного чата
 tg-exporter export --chat username_or_id --format both

@@ -10,13 +10,13 @@ from tg_exporter_cli.utils.async_runner import run_async
 from ..hosting import get_host
 
 
-@click.group("chats")
-def chats_group():
+@click.group("chat")
+def chat_group():
     """Просмотр и управление чатами для экспорта."""
     pass
 
 
-@chats_group.command("list")
+@chat_group.command("list")
 @click.option("--folder", default=None, help="Показать чаты только в этой папке")
 @click.option("--folders", "folders_only", is_flag=True, help="Показать только список папок")
 @click.option("--search", default=None, help="Поиск по названию чата")
@@ -81,7 +81,7 @@ def chats_list(
         raise SystemExit(1) from e
 
 
-@chats_group.command("show")
+@chat_group.command("show")
 @click.option("--chat", "chat_id", required=True, help="ID чата")
 def chats_show(chat_id: str):
     """Информация о конкретном чате."""
@@ -115,7 +115,7 @@ def chats_show(chat_id: str):
         raise SystemExit(1) from e
 
 
-@chats_group.command("add")
+@chat_group.command("add")
 @click.option("--chat", "chat_id", default=None, help="ID чата для добавления")
 @click.option("--folder", default=None, help="Добавить все чаты из папки Telegram")
 def chats_add(chat_id: str | None, folder: str | None):
@@ -179,7 +179,7 @@ def chats_add(chat_id: str | None, folder: str | None):
         raise SystemExit(1) from e
 
 
-@chats_group.command("remove")
+@chat_group.command("remove")
 @click.option("--chat", "chat_id", required=True, help="ID чата для удаления из конфига")
 def chats_remove(chat_id: str):
     """Убрать чат из конфига."""

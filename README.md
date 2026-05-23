@@ -22,7 +22,7 @@
 - **Скачивание медиа** — фото, видео, голосовые, документы раскладываются по папкам
 - **Транскрипция голосовых и видео-кружков:** локально (Faster-Whisper) или через Deepgram
 - **Аналитика:** топ авторов, активность по датам
-- **Управление чатами:** просмотр по папкам Telegram, поиск, добавление в конфиг (`chats`)
+- **Управление чатами:** просмотр по папкам Telegram, поиск, добавление в конфиг (`chat`)
 - **CI/CD-режим:** auth export-session → secrets.env, auth verify для проверки сессии
 - **Диагностика:** `doctor` — Python, конфиг, сессия, ffmpeg, место на диске
 
@@ -101,12 +101,12 @@ tg-exporter export --chat -1001234567890 --resume
 tg-exporter export --all --skip-unavailable --format both
 
 # Просмотр чатов по папкам Telegram
-tg-exporter chats list
-tg-exporter chats list --folder "Работа"
-tg-exporter chats list --search "кот"
+tg-exporter chat list
+tg-exporter chat list --folder "Работа"
+tg-exporter chat list --search "кот"
 
 # Добавить чат в конфиг
-tg-exporter chats add --chat -1001234567890
+tg-exporter chat add --chat -1001234567890
 
 # CI/CD: экспорт сессии
 tg-exporter auth export-session
