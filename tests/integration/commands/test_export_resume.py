@@ -73,13 +73,6 @@ class TestExportResume(TestCliCommandBase):
         assert len(data1["messages"]) == 5
         first_export_ids = {m["id"] for m in data1["messages"]}
 
-        # Копируем export_history.json в output_dir для --resume
-        import shutil
-        shutil.copy(
-            export_dirs1[0] / "export_history.json",
-            output / "export_history.json",
-        )
-
         # Пауза для гарантии разных timestamp в именах директорий
         time.sleep(1.1)
 

@@ -76,7 +76,7 @@ class ExportOrchestrator:
             if self._export_dir and task.incremental:
                 try:
                     self._history.mark_interrupted(
-                        Path(self._export_dir), self._export_max_id, self._export_count
+                        Path(task.output_path), self._export_max_id, self._export_count
                     )
                 except Exception:
                     pass
@@ -86,7 +86,7 @@ class ExportOrchestrator:
             if self._export_dir and task.incremental:
                 try:
                     self._history.mark_interrupted(
-                        Path(self._export_dir), self._export_max_id, self._export_count
+                        Path(task.output_path), self._export_max_id, self._export_count
                     )
                 except Exception:
                     pass
@@ -346,7 +346,7 @@ class ExportOrchestrator:
         # Инкрементальная история (в папке чата)
         if max_msg_id > 0:
             try:
-                self._history.mark_completed(export_dir, max_msg_id, count)
+                self._history.mark_completed(Path(task.output_path), max_msg_id, count)
             except Exception:
                 pass
 

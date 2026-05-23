@@ -36,4 +36,3 @@ app.log
 tg_exporter_cli/_version.py
 
 tg_exporter.egg-info/
-export/

@@ -58,13 +58,6 @@ class TestExportDeduplicate(TestCliCommandBase):
         first_ids = {m["id"] for m in data1["messages"]}
         assert len(first_ids) == 5
 
-        # Копируем export_history.json в output_dir для --deduplicate
-        import shutil
-        shutil.copy(
-            export_dirs1[0] / "export_history.json",
-            output / "export_history.json",
-        )
-
         # Пауза чтобы гарантировать разные timestamp в именах директорий
         time.sleep(1.1)
 
@@ -113,11 +106,6 @@ class TestExportDeduplicate(TestCliCommandBase):
 
         export_dirs1 = sorted(tmp_path.glob("Dedup_Chat_*"))
         assert len(export_dirs1) == 1
-
-        # Копируем историю в output_dir для --deduplicate
-        import shutil
-        history_src = export_dirs1[0] / "export_history.json"
-        shutil.copy(history_src, tmp_path / "export_history.json")
 
         # Пауза для гарантии разных имён директорий
         time.sleep(1.1)
