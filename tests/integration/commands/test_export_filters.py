@@ -55,8 +55,8 @@ class TestExportLast(TestCliCommandBase):
         msg_ids = [m["id"] for m in data["messages"]]
         assert msg_ids == [50, 49, 48, 47, 46]
 
-    def test_last_zero_exports_nothing(self, tmp_path: Path):
-        """--last 0 экспортирует 0 сообщений."""
+    def test_last_zero_exports_all(self, tmp_path: Path):
+        """--last 0 = без ограничений (экспортирует все сообщения)."""
         self._setup_chat_with_messages(10)
 
         result = self._invoke(
@@ -67,7 +67,7 @@ class TestExportLast(TestCliCommandBase):
 
         export_dirs = list(tmp_path.glob("Last_Chat_*"))
         data = json.loads((export_dirs[0] / "result.json").read_text(encoding="utf-8"))
-        assert len(data["messages"]) == 0
+        assert len(data["messages"]) == 10
 
     def test_last_conflicts_with_date_from(self, tmp_path: Path):
         """--last нельзя комбинировать с --date-from."""

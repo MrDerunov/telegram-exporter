@@ -96,6 +96,10 @@ def export_command(
     date_to_dt = _parse_date(date_to)
     _validate_flags(date_from_dt, date_to_dt, days, last)
 
+    # --last 0 = без ограничений
+    if last is not None and last <= 0:
+        last = None
+
     if days and not date_from_dt:
         date_from_dt = datetime.datetime.now(datetime.UTC) - datetime.timedelta(days=days)
 
