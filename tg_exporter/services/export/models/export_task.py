@@ -24,10 +24,6 @@ class ExportTask:
     Прогресс хранится отдельно в ExportProgress.
     """
 
-    # Идентификатор чата
-    chat_id: int
-    chat_name: str
-
     # Куда писать результат
     output_path: str
 

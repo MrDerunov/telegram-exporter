@@ -218,8 +218,6 @@ def _run_export(
             chat_id = None  # username — потребует резолвинга
 
         task = ExportTask(
-            chat_id=chat_id if chat_id is not None else 0,
-            chat_name=chat,
             output_path=str(output_dir),
             format=export_format,
             message_limit=last,

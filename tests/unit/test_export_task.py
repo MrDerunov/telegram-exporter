@@ -74,13 +74,13 @@ class TestExportTask:
         assert eta > 0
 
     def test_return_new_instance_with_last_id(self):
-        task = ExportTask(chat_id=1, chat_name="Test", output_path="/tmp")
+        task = ExportTask(output_path="/tmp")
         task2 = task.with_last_id(500)
         assert task.last_exported_id is None
         assert task2.last_exported_id == 500
 
     def test_detect_incremental_with_offset(self):
-        t1 = ExportTask(chat_id=1, chat_name="C", output_path="/tmp", incremental=True)
+        t1 = ExportTask(output_path="/tmp", incremental=True)
         assert not t1.is_incremental_with_offset
 
         t2 = t1.with_last_id(100)
