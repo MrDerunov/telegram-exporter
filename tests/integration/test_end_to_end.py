@@ -1,101 +1,59 @@
-"""Сквозной сценарий: авторизация → экспорт на фейковом клиенте."""
+"""Сквозной сценарий: авторизация → экспорт через CLI-команды."""
 
 from __future__ import annotations
 
 import json
-import os
 from pathlib import Path
 
-from tg_exporter_cli.hosting import CliHost
-from tg_exporter_cli.utils.async_runner import run_async
-from tg_exporter.services.auth import AuthStep
-from tg_exporter.services.telegram import AuthService
-from tg_exporter.services.telegram import ITelegramClientManager
-from tg_exporter.services.export.export_orchestrator import ExportOrchestrator
-from tests.common.fakes.fake_telegram_client import FakeTelegramClient
-from tests.common.fakes import FakeTelegramClientManager
-from tests.common.fakes.factories import generate_messages
-from tg_exporter.services.export.models.export_task import ExportTask
-from tg_exporter.services.export.models.export_format import ExportFormat
-from tg_exporter.services.export.models.export_progress import ExportProgress
-from tg_exporter.utils.cancellation import CancellationToken
+from tests.common.fakes.factories import (
+    make_fake_user,
+    make_fake_chat,
+    make_fake_dialog,
+    make_fake_message,
+)
+from tests.integration.commands.test_cli_command_base import TestCliCommandBase
 
 
-def test_complete_full_flow_auth_and_export(tmp_path: Path) -> None:
-    """Полный цикл: проверка авторизации → экспорт через фейкового клиента."""
-    # ---- Setup: фейковый клиент с авторизацией и сообщениями ----
-    fake_client = FakeTelegramClient()
-    fake_client.server.auth.set_authorized(True)
-    fake_client.server.messages.add_messages(-1001234567890, generate_messages(100, peer_id=-1001234567890))
+class TestExportEndToEnd(TestCliCommandBase):
+    """Сквозные тесты: CLI-команды auth → export."""
 
-    fake_manager = FakeTelegramClientManager(fake_client)
+    def test_full_flow_auth_and_export(self, tmp_path: Path):
+        """Полный цикл: проверка авторизации → экспорт через CLI-команды."""
+        chat_id = -1001234567890
 
-    host = (
-        CliHost()
-        .rebind_services(lambda c, result: c.register_instance(ITelegramClientManager, fake_manager))
-        .build()
-    )
+        user = make_fake_user(id=1, username="sender")
+        chat = make_fake_chat(id=chat_id, title="Test Chat", broadcast=True)
+        dialog = make_fake_dialog(dialog_id=chat_id, name="Test Chat", entity=chat, is_channel=True)
 
-    # ---- Шаг 1: проверка авторизации через сервис ----
-    auth = host.get(AuthService)
-    result = run_async(auth.check_session())
-    assert result.step == AuthStep.SUCCESS, f"Expected SUCCESS, got {result.step}"
+        self.server.users.add_user(user)
+        self.server.dialogs.add_dialog(dialog)
+        self.server.messages.add_messages(chat_id, [
+            make_fake_message(msg_id=i, text=f"Msg {i}", sender=user)
+            for i in range(1, 101)
+        ])
 
-    # ---- Шаг 2: создание задачи экспорта ----
-    chat_id = -1001234567890
-    output_dir = tmp_path / "export" / "test_chat"
-    task = ExportTask(
-        chat_id=chat_id,
-        chat_name="Test Chat",
-        output_path=str(output_dir),
-        format=ExportFormat.JSON,
-        message_limit=20,
-    )
+        # Шаг 1: проверка авторизации
+        result = self._invoke("auth", "status")
+        assert result.exit_code == 0, f"STDERR: {result.stderr}"
 
-    # ---- Шаг 3: создание диалога для оркестратора ----
-    entity = type("Entity", (), {
-        "id": chat_id,
-        "title": "Test Chat",
-        "broadcast": True,
-        "username": "",
-    })()
-    dialog = type("Dialog", (), {
-        "id": chat_id,
-        "name": "Test Chat",
-        "entity": entity,
-        "title": "Test Chat",
-    })()
+        # Шаг 2: экспорт
+        output_dir = tmp_path / "export" / "test_chat"
+        result = self._invoke(
+            "export", "--chat", str(chat_id),
+            "--output", str(output_dir),
+            "--format", "json",
+            "--last", "20",
+        )
+        assert result.exit_code == 0, f"STDERR: {result.stderr}"
 
-    # ---- Шаг 4: запуск экспорта ----
-    orchestrator = host.get(ExportOrchestrator)
-    token = CancellationToken()
-    progress = ExportProgress()
+        # Проверка результата
+        export_dirs = list(output_dir.glob("Test_Chat_*"))
+        assert len(export_dirs) == 1, f"Expected 1 export dir, got {len(export_dirs)}"
 
-    events: list[tuple[str, object]] = []
+        result_file = export_dirs[0] / "result.json"
+        assert result_file.exists(), f"result.json not found in {export_dirs[0]}"
 
-    def collect_events(event_type: str, data: object) -> None:
-        events.append((event_type, data))
-
-    import asyncio
-    asyncio.run(orchestrator.run(dialog, task, token, progress, collect_events))
-
-    # ---- Проверка результата ----
-    error_events = [e for e in events if e[0] == "export_error"]
-    error_msg = error_events[0][1] if error_events else progress.error
-    assert progress.status.name == "DONE", (
-        f"Expected DONE, got {progress.status.name}. "
-        f"Error: {error_msg}. Events: {[e[0] for e in events]}"
-    )
-    assert len(progress.output_files) > 0
-
-    json_files = [f for f in progress.output_files if f.endswith("result.json")]
-    assert len(json_files) > 0, f"No result.json in {progress.output_files}"
-
-    result_file = json_files[0]
-    assert os.path.isfile(result_file)
-    data = json.loads(Path(result_file).read_text())
-    assert "messages" in data
-    assert len(data["messages"]) > 0
-
-    done_events = [e for e in events if e[0] == "export_done"]
-    assert len(done_events) == 1
+        data = json.loads(result_file.read_text(encoding="utf-8"))
+        assert "messages" in data
+        assert len(data["messages"]) > 0
+        assert len(data["messages"]) <= 20
