@@ -36,7 +36,7 @@ class TestExportWordsPerFile(TestCliCommandBase):
         )
 
         result = self._invoke(
-            "export", "run", "--chat", "-1001234", "--output", str(tmp_path),
+            "export", "--chat", "-1001234", "--output", str(tmp_path),
             "--format", "markdown", "--words-per-file", "200",
         )
         assert result.exit_code == 0, f"STDERR: {result.stderr}"
@@ -54,7 +54,7 @@ class TestExportWordsPerFile(TestCliCommandBase):
         self._setup_chat_with_messages(num_messages=5, text="short ")
 
         result = self._invoke(
-            "export", "run", "--chat", "-1001234", "--output", str(tmp_path),
+            "export", "--chat", "-1001234", "--output", str(tmp_path),
             "--format", "markdown",
         )
         assert result.exit_code == 0, f"STDERR: {result.stderr}"

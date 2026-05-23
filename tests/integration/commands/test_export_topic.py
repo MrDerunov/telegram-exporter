@@ -36,7 +36,7 @@ class TestExportTopic(TestCliCommandBase):
         self.server.messages.add_messages(-1001234, msgs)
 
         result = self._invoke(
-            "export", "run", "--chat", "-1001234", "--output", str(tmp_path),
+            "export", "--chat", "-1001234", "--output", str(tmp_path),
             "--format", "json", "--topic-id", "5",
         )
         assert result.exit_code == 0, f"STDERR: {result.stderr}"

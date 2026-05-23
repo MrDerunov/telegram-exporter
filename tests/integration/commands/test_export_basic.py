@@ -19,12 +19,12 @@ class TestExportBasic(TestCliCommandBase):
     """Тесты базовых атрибутов: --chat, --output, --format."""
 
     def test_fail_when_chat_is_missing(self):
-        """export run без --chat должен упасть с ошибкой."""
-        result = self._invoke("export", "run")
+        """export без --chat должен упасть с ошибкой."""
+        result = self._invoke("export")
         assert result.exit_code != 0
 
     def test_export_with_chat_and_output_creates_directory(self, tmp_path: Path):
-        """export run --chat --output создаёт директорию с файлами."""
+        """export --chat --output создаёт директорию с файлами."""
         user = make_fake_user(id=1, username="test_user")
         chat = make_fake_chat(id=-1001234, title="Test Chat")
         dialog = make_fake_dialog(dialog_id=-1001234, name="Test Chat", entity=chat)
@@ -35,7 +35,7 @@ class TestExportBasic(TestCliCommandBase):
         self.server.messages.add_messages(-1001234, msgs)
 
         result = self._invoke(
-            "export", "run", "--chat", "-1001234", "--output", str(tmp_path),
+            "export", "--chat", "-1001234", "--output", str(tmp_path),
         )
         assert result.exit_code == 0, f"STDERR: {result.stderr}"
 
@@ -52,7 +52,7 @@ class TestExportBasic(TestCliCommandBase):
         assert len(md_files) > 0, f"No .md files in {export_dir}"
 
     def test_export_format_json_creates_only_json(self, tmp_path: Path):
-        """export run --format json создаёт только result.json."""
+        """export --format json создаёт только result.json."""
         user = make_fake_user(id=1, username="test_user")
         chat = make_fake_chat(id=-1001234, title="JSON Chat")
         dialog = make_fake_dialog(dialog_id=-1001234, name="JSON Chat", entity=chat)
@@ -63,7 +63,7 @@ class TestExportBasic(TestCliCommandBase):
         self.server.messages.add_messages(-1001234, msgs)
 
         result = self._invoke(
-            "export", "run", "--chat", "-1001234", "--output", str(tmp_path),
+            "export", "--chat", "-1001234", "--output", str(tmp_path),
             "--format", "json",
         )
         assert result.exit_code == 0, f"STDERR: {result.stderr}"
@@ -79,7 +79,7 @@ class TestExportBasic(TestCliCommandBase):
         assert data["messages"][0]["text"] == "Hello JSON"
 
     def test_export_format_markdown_creates_only_md(self, tmp_path: Path):
-        """export run --format markdown создаёт только .md файлы."""
+        """export --format markdown создаёт только .md файлы."""
         user = make_fake_user(id=1, username="test_user")
         chat = make_fake_chat(id=-1001234, title="MD Chat")
         dialog = make_fake_dialog(dialog_id=-1001234, name="MD Chat", entity=chat)
@@ -90,7 +90,7 @@ class TestExportBasic(TestCliCommandBase):
         self.server.messages.add_messages(-1001234, msgs)
 
         result = self._invoke(
-            "export", "run", "--chat", "-1001234", "--output", str(tmp_path),
+            "export", "--chat", "-1001234", "--output", str(tmp_path),
             "--format", "markdown",
         )
         assert result.exit_code == 0, f"STDERR: {result.stderr}"
@@ -104,7 +104,7 @@ class TestExportBasic(TestCliCommandBase):
         assert len(md_files) > 0
 
     def test_export_format_both_creates_both(self, tmp_path: Path):
-        """export run --format both создаёт и result.json и .md."""
+        """export --format both создаёт и result.json и .md."""
         user = make_fake_user(id=1, username="test_user")
         chat = make_fake_chat(id=-1001234, title="Both Chat")
         dialog = make_fake_dialog(dialog_id=-1001234, name="Both Chat", entity=chat)
@@ -115,7 +115,7 @@ class TestExportBasic(TestCliCommandBase):
         self.server.messages.add_messages(-1001234, msgs)
 
         result = self._invoke(
-            "export", "run", "--chat", "-1001234", "--output", str(tmp_path),
+            "export", "--chat", "-1001234", "--output", str(tmp_path),
             "--format", "both",
         )
         assert result.exit_code == 0, f"STDERR: {result.stderr}"
@@ -126,7 +126,7 @@ class TestExportBasic(TestCliCommandBase):
         assert len(list(export_dirs[0].glob("*.md"))) > 0
 
     def test_export_with_username_chat(self, tmp_path: Path):
-        """export run с username вместо числового ID."""
+        """export с username вместо числового ID."""
         user = make_fake_user(id=1, username="test_user")
         chat = make_fake_chat(id=-1005678, title="Username Chat")
         # username-based search: entity.username должен совпадать
@@ -139,7 +139,7 @@ class TestExportBasic(TestCliCommandBase):
         self.server.messages.add_messages(-1005678, msgs)
 
         result = self._invoke(
-            "export", "run", "--chat", "test_channel", "--output", str(tmp_path),
+            "export", "--chat", "test_channel", "--output", str(tmp_path),
         )
         assert result.exit_code == 0, f"STDERR: {result.stderr}"
 
@@ -147,14 +147,14 @@ class TestExportBasic(TestCliCommandBase):
         assert len(export_dirs) == 1
 
     def test_export_chat_not_found(self, tmp_path: Path):
-        """export run с несуществующим чатом падает с ошибкой."""
+        """export с несуществующим чатом падает с ошибкой."""
         result = self._invoke(
-            "export", "run", "--chat", "-9999999", "--output", str(tmp_path),
+            "export", "--chat", "-9999999", "--output", str(tmp_path),
         )
         assert result.exit_code != 0
 
     def test_export_with_default_output_dir(self, tmp_path: Path):
-        """export run без --output использует директорию по умолчанию."""
+        """export без --output использует директорию по умолчанию."""
         import os
         user = make_fake_user(id=1, username="test_user")
         chat = make_fake_chat(id=-1001234, title="Default Dir")
@@ -169,7 +169,7 @@ class TestExportBasic(TestCliCommandBase):
         old_cwd = os.getcwd()
         try:
             os.chdir(tmp_path)
-            result = self._invoke("export", "run", "--chat", "-1001234")
+            result = self._invoke("export", "--chat", "-1001234")
             assert result.exit_code == 0, f"STDERR: {result.stderr}"
 
             export_root = tmp_path / "export" / "-1001234"
@@ -198,7 +198,7 @@ class TestExportBasic(TestCliCommandBase):
         self.server.messages.add_messages(-1001234, [msg])
 
         result = self._invoke(
-            "export", "run", "--chat", "-1001234", "--output", str(tmp_path),
+            "export", "--chat", "-1001234", "--output", str(tmp_path),
             "--format", "json",
         )
         assert result.exit_code == 0, f"STDERR: {result.stderr}"
@@ -223,7 +223,7 @@ class TestExportBasic(TestCliCommandBase):
         # Нет сообщений
 
         result = self._invoke(
-            "export", "run", "--chat", "-1001234", "--output", str(tmp_path),
+            "export", "--chat", "-1001234", "--output", str(tmp_path),
             "--format", "json",
         )
         assert result.exit_code == 0, f"STDERR: {result.stderr}"

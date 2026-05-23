@@ -44,7 +44,7 @@ class TestExportResume(TestCliCommandBase):
         self._setup_chat_with_messages(10)
 
         result = self._invoke(
-            "export", "run", "--chat", "-1001234", "--output", str(tmp_path),
+            "export", "--chat", "-1001234", "--output", str(tmp_path),
             "--format", "json", "--resume",
         )
         assert result.exit_code == 0, f"STDERR: {result.stderr}"
@@ -62,7 +62,7 @@ class TestExportResume(TestCliCommandBase):
 
         # Первый экспорт 5 сообщений (без --resume)
         result1 = self._invoke(
-            "export", "run", "--chat", "-1001234", "--output", str(output),
+            "export", "--chat", "-1001234", "--output", str(output),
             "--format", "json", "--last", "5",
         )
         assert result1.exit_code == 0, f"STDERR: {result1.stderr}"
@@ -85,7 +85,7 @@ class TestExportResume(TestCliCommandBase):
 
         # Второй экспорт: с --resume из той же директории, --last 10
         result2 = self._invoke(
-            "export", "run", "--chat", "-1001234", "--output", str(output),
+            "export", "--chat", "-1001234", "--output", str(output),
             "--format", "json", "--last", "10", "--resume",
         )
         assert result2.exit_code == 0, f"STDERR: {result2.stderr}"

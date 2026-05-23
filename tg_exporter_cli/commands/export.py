@@ -47,13 +47,7 @@ def _validate_flags(date_from, date_to, days, last):
         raise click.UsageError("--last нельзя комбинировать с фильтрами по дате (--date-from, --date-to, --days)")
 
 
-@click.group("export")
-def export_group() -> None:
-    """Экспорт сообщений из чатов."""
-    pass
-
-
-@export_group.command("run")
+@click.command("export")
 @click.option("--chat", default=None, help="ID или username чата/канала")
 @click.option("--output", default=None, help="Директория для выгрузки")
 @click.option("--format", "fmt", default="both", type=click.Choice(["json", "markdown", "both"]))
@@ -71,7 +65,7 @@ def export_group() -> None:
 @click.option("--deduplicate", is_flag=True, help="Пропускать уже экспортированные сообщения")
 @click.option("--all", "export_all", is_flag=True, help="Экспортировать все чаты из конфига")
 @click.option("--skip-unavailable", is_flag=True, help="Пропускать недоступные чаты (с --all)")
-def export_run(
+def export_command(
     chat: str | None,
     output: str | None,
     fmt: str,
@@ -90,7 +84,7 @@ def export_run(
     export_all: bool,
     skip_unavailable: bool,
 ) -> None:
-    """Экспорт сообщений из чата (или всех чатов с --all)."""
+    """Экспорт сообщений из чатов."""
     host = get_host()
     orchestrator = host.get(ExportOrchestrator)
     client_manager = host.get(ITelegramClientManager)

@@ -53,7 +53,7 @@ class TestExportAll(TestCliCommandBase):
         self._setup_dialogs_and_messages()
 
         result = self._invoke(
-            "export", "run", "--all", "--output", str(tmp_path),
+            "export", "--all", "--output", str(tmp_path),
             "--format", "json",
         )
         assert result.exit_code == 0, f"STDERR: {result.stderr}"
@@ -71,7 +71,7 @@ class TestExportAll(TestCliCommandBase):
         self.host._container.register_instance(StateModel, state)
 
         result = self._invoke(
-            "export", "run", "--all", "--output", str(tmp_path),
+            "export", "--all", "--output", str(tmp_path),
         )
         assert result.exit_code != 0
 
@@ -105,7 +105,7 @@ class TestExportAll(TestCliCommandBase):
         ])
 
         result = self._invoke(
-            "export", "run", "--all", "--output", str(tmp_path),
+            "export", "--all", "--output", str(tmp_path),
             "--format", "json", "--skip-unavailable",
         )
         # Должен успешно завершиться, пропустив Missing Chat
@@ -139,7 +139,7 @@ class TestExportAll(TestCliCommandBase):
         ])
 
         result = self._invoke(
-            "export", "run", "--all", "--output", str(tmp_path),
+            "export", "--all", "--output", str(tmp_path),
             "--format", "json",
         )
         # Должен упасть, так как --skip-unavailable не указан

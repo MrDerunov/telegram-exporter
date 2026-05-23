@@ -36,8 +36,8 @@ tg-exporter auth login
 tg-exporter chats list
 
 # Экспорт одного чата
-tg-exporter export run --chat username_or_id --format both
+tg-exporter export --chat username_or_id --format both
 
 # Экспорт всех чатов из конфига
-tg-exporter export run --all
+tg-exporter export --all
 ```

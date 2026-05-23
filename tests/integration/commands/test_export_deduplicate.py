@@ -47,7 +47,7 @@ class TestExportDeduplicate(TestCliCommandBase):
 
         # Первый экспорт 5 сообщений (без --deduplicate)
         result1 = self._invoke(
-            "export", "run", "--chat", "-1001234", "--output", str(output),
+            "export", "--chat", "-1001234", "--output", str(output),
             "--format", "json", "--last", "5",
         )
         assert result1.exit_code == 0, f"STDERR: {result1.stderr}"
@@ -70,7 +70,7 @@ class TestExportDeduplicate(TestCliCommandBase):
 
         # Второй экспорт: с --deduplicate, --last 10
         result2 = self._invoke(
-            "export", "run", "--chat", "-1001234", "--output", str(output),
+            "export", "--chat", "-1001234", "--output", str(output),
             "--format", "json", "--last", "10", "--deduplicate",
         )
         assert result2.exit_code == 0, f"STDERR: {result2.stderr}"
@@ -91,7 +91,7 @@ class TestExportDeduplicate(TestCliCommandBase):
         self._setup_chat_with_messages(10)
 
         result = self._invoke(
-            "export", "run", "--chat", "-1001234", "--output", str(tmp_path),
+            "export", "--chat", "-1001234", "--output", str(tmp_path),
             "--format", "json", "--deduplicate",
         )
         assert result.exit_code == 0, f"STDERR: {result.stderr}"
@@ -106,7 +106,7 @@ class TestExportDeduplicate(TestCliCommandBase):
 
         # Первый экспорт
         result1 = self._invoke(
-            "export", "run", "--chat", "-1001234", "--output", str(tmp_path),
+            "export", "--chat", "-1001234", "--output", str(tmp_path),
             "--format", "json", "--last", "3",
         )
         assert result1.exit_code == 0, f"STDERR: {result1.stderr}"
@@ -124,7 +124,7 @@ class TestExportDeduplicate(TestCliCommandBase):
 
         # Второй экспорт с --deduplicate
         result2 = self._invoke(
-            "export", "run", "--chat", "-1001234", "--output", str(tmp_path),
+            "export", "--chat", "-1001234", "--output", str(tmp_path),
             "--format", "json", "--last", "7", "--deduplicate",
         )
         assert result2.exit_code == 0, f"STDERR: {result2.stderr}"
@@ -151,7 +151,7 @@ class TestExportDeduplicate(TestCliCommandBase):
         self.server.messages.add_messages(-1001234, msgs)
 
         result = self._invoke(
-            "export", "run", "--chat", "-1001234", "--output", str(tmp_path),
+            "export", "--chat", "-1001234", "--output", str(tmp_path),
             "--format", "json", "--topic-id", "5", "--deduplicate",
         )
         assert result.exit_code == 0, f"STDERR: {result.stderr}"

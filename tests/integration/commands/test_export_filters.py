@@ -42,7 +42,7 @@ class TestExportLast(TestCliCommandBase):
         self._setup_chat_with_messages(50)
 
         result = self._invoke(
-            "export", "run", "--chat", "-1001234", "--output", str(tmp_path),
+            "export", "--chat", "-1001234", "--output", str(tmp_path),
             "--format", "json", "--last", "5",
         )
         assert result.exit_code == 0, f"STDERR: {result.stderr}"
@@ -60,7 +60,7 @@ class TestExportLast(TestCliCommandBase):
         self._setup_chat_with_messages(10)
 
         result = self._invoke(
-            "export", "run", "--chat", "-1001234", "--output", str(tmp_path),
+            "export", "--chat", "-1001234", "--output", str(tmp_path),
             "--format", "json", "--last", "0",
         )
         assert result.exit_code == 0, f"STDERR: {result.stderr}"
@@ -72,7 +72,7 @@ class TestExportLast(TestCliCommandBase):
     def test_last_conflicts_with_date_from(self, tmp_path: Path):
         """--last нельзя комбинировать с --date-from."""
         result = self._invoke(
-            "export", "run", "--chat", "-1001234", "--output", str(tmp_path),
+            "export", "--chat", "-1001234", "--output", str(tmp_path),
             "--last", "10", "--date-from", "2025-01-01",
         )
         assert result.exit_code != 0
@@ -80,7 +80,7 @@ class TestExportLast(TestCliCommandBase):
     def test_last_conflicts_with_date_to(self, tmp_path: Path):
         """--last нельзя комбинировать с --date-to."""
         result = self._invoke(
-            "export", "run", "--chat", "-1001234", "--output", str(tmp_path),
+            "export", "--chat", "-1001234", "--output", str(tmp_path),
             "--last", "10", "--date-to", "2025-01-01",
         )
         assert result.exit_code != 0
@@ -88,7 +88,7 @@ class TestExportLast(TestCliCommandBase):
     def test_last_conflicts_with_days(self, tmp_path: Path):
         """--last нельзя комбинировать с --days."""
         result = self._invoke(
-            "export", "run", "--chat", "-1001234", "--output", str(tmp_path),
+            "export", "--chat", "-1001234", "--output", str(tmp_path),
             "--last", "10", "--days", "7",
         )
         assert result.exit_code != 0
@@ -118,7 +118,7 @@ class TestExportDateFrom(TestCliCommandBase):
         self._setup_chat_with_dated_messages()
 
         result = self._invoke(
-            "export", "run", "--chat", "-1001234", "--output", str(tmp_path),
+            "export", "--chat", "-1001234", "--output", str(tmp_path),
             "--format", "json", "--date-from", "2025-01-01",
         )
         assert result.exit_code == 0, f"STDERR: {result.stderr}"
@@ -156,7 +156,7 @@ class TestExportDateTo(TestCliCommandBase):
         self._setup_chat_with_dated_messages()
 
         result = self._invoke(
-            "export", "run", "--chat", "-1001234", "--output", str(tmp_path),
+            "export", "--chat", "-1001234", "--output", str(tmp_path),
             "--format", "json", "--date-to", "2025-06-01",
         )
         assert result.exit_code == 0, f"STDERR: {result.stderr}"
@@ -196,7 +196,7 @@ class TestExportDateRange(TestCliCommandBase):
         self._setup_chat_with_dated_messages()
 
         result = self._invoke(
-            "export", "run", "--chat", "-1001234", "--output", str(tmp_path),
+            "export", "--chat", "-1001234", "--output", str(tmp_path),
             "--format", "json", "--date-from", "2025-02-01", "--date-to", "2025-08-01",
         )
         assert result.exit_code == 0, f"STDERR: {result.stderr}"
@@ -239,7 +239,7 @@ class TestExportDays(TestCliCommandBase):
         self._setup_chat_with_dated_messages()
 
         result = self._invoke(
-            "export", "run", "--chat", "-1001234", "--output", str(tmp_path),
+            "export", "--chat", "-1001234", "--output", str(tmp_path),
             "--format", "json", "--days", "2",
         )
         assert result.exit_code == 0, f"STDERR: {result.stderr}"
@@ -257,7 +257,7 @@ class TestExportDays(TestCliCommandBase):
     def test_days_conflicts_with_date_from(self, tmp_path: Path):
         """--days нельзя комбинировать с --date-from."""
         result = self._invoke(
-            "export", "run", "--chat", "-1001234", "--output", str(tmp_path),
+            "export", "--chat", "-1001234", "--output", str(tmp_path),
             "--days", "7", "--date-from", "2025-01-01",
         )
         assert result.exit_code != 0
@@ -265,7 +265,7 @@ class TestExportDays(TestCliCommandBase):
     def test_days_conflicts_with_date_to(self, tmp_path: Path):
         """--days нельзя комбинировать с --date-to."""
         result = self._invoke(
-            "export", "run", "--chat", "-1001234", "--output", str(tmp_path),
+            "export", "--chat", "-1001234", "--output", str(tmp_path),
             "--days", "7", "--date-to", "2025-01-15",
         )
         assert result.exit_code != 0
@@ -277,7 +277,7 @@ class TestExportInvalidDate(TestCliCommandBase):
     def test_invalid_date_format_returns_error(self, tmp_path: Path):
         """Неверный формат даты вызывает ошибку."""
         result = self._invoke(
-            "export", "run", "--chat", "-1001234", "--output", str(tmp_path),
+            "export", "--chat", "-1001234", "--output", str(tmp_path),
             "--date-from", "01-01-2025",
         )
         assert result.exit_code != 0

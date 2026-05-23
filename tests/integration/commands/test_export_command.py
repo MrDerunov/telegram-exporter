@@ -15,14 +15,14 @@ def cli_runner():
 
 def test_fail_when_chat_is_missing(cli_runner):
     """export без --chat должен упасть."""
-    result = cli_runner.invoke(cli, ["export", "run"])
+    result = cli_runner.invoke(cli, ["export"])
     assert result.exit_code != 0
 
 
 def test_run_without_stack_trace_when_chat_and_last_specified(cli_runner, tmp_path):
     """export с --chat и --last запускается без stack trace."""
     result = cli_runner.invoke(cli, [
-        "export", "run", "--chat", "-1001234", "--last", "10",
+        "export", "--chat", "-1001234", "--last", "10",
         "--output", str(tmp_path), "--format", "json"
     ])
     # Может упасть при отсутствии сессии, но не stack trace
