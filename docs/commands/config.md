@@ -9,7 +9,7 @@
 ### `config show`
 
 Показывает текущие значения всех полей конфига:
-- API ID, профиль по умолчанию
+- API ID
 - Формат экспорта, размер Markdown-файлов
 - Флаги медиа, транскрипции, аналитики
 - Источник секретов, уровень логирования
@@ -19,7 +19,7 @@
 
 Устанавливает значение поля конфига.
 
-Поддерживаемые ключи: `api_id`, `default_profile`, `default_format`, `default_words_per_file`, `default_download_media`, `default_transcribe`, `default_analytics`, `secrets_source`, `log_level`, `transcription_provider`, `transcription_model`, `transcription_language`, `retry_max_attempts`, `retry_delay_seconds`, `retry_max_delay_seconds`, `rate_limit_media_download_delay_ms`, `rate_limit_message_fetch_delay_ms`.
+Поддерживаемые ключи: `api_id`, `default_format`, `default_words_per_file`, `default_download_media`, `default_transcribe`, `default_analytics`, `secrets_source`, `log_level`, `transcription_provider`, `transcription_model`, `transcription_language`, `retry_max_attempts`, `retry_delay_seconds`, `retry_max_delay_seconds`, `rate_limit_media_download_delay_ms`, `rate_limit_message_fetch_delay_ms`.
 
 ```bash
 tg-exporter config set default_format json

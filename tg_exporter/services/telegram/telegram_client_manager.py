@@ -22,16 +22,8 @@ class TelethonClientManager(ITelegramClientManager):
     def __init__(self, config: StaticConfig, secrets: ISecretStore) -> None:
         self._config = config
         self._secrets = secrets
-        self._session_override: str | None = None
         self._current_client: TelethonClientAdapter | None = None
         self._lock = threading.Lock()
-
-    def use_session(self, session_string: str | None) -> None:
-        """Указать конкретную сессию (для профилей)."""
-        with self._lock:
-            self._session_override = session_string
-            if self._current_client is not None:
-                self._current_client = None
 
     async def create_connected_client(self) -> TelegramClientInterface:
         """Создать, подключить и вернуть TelethonClientAdapter."""
@@ -54,11 +46,7 @@ class TelethonClientManager(ITelegramClientManager):
                     "api_hash не найден. Введите API Hash."
                 )
 
-            session_str = (
-                self._session_override
-                or self._secrets.get(SESSION)
-                or ""
-            )
+            session_str = self._secrets.get(SESSION) or ""
 
             self._current_client = TelethonClientAdapter(
                 api_id=api_id,

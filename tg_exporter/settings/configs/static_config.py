@@ -28,7 +28,6 @@ class StaticConfig:
     default_transcribe: bool = False
     default_analytics: bool = False
     include_private_chats: bool = False
-    default_profile: str = "default"
 
     # Markdown
     markdown: MarkdownConfig = field(default_factory=MarkdownConfig)
@@ -70,7 +69,6 @@ class StaticConfig:
                 "analytics": self.default_analytics,
             },
             "include_private_chats": self.include_private_chats,
-            "default_profile": self.default_profile,
             "markdown": self.markdown.to_dict(),
             "secrets_source": self.secrets_source,
             "logging": {
@@ -113,7 +111,6 @@ class StaticConfig:
             default_transcribe=bool(defaults.get("transcribe", False)),
             default_analytics=bool(defaults.get("analytics", False)),
             include_private_chats=bool(data.get("include_private_chats", False)),
-            default_profile=str(data.get("default_profile", "default")),
             markdown=md,
             secrets_source=str(data.get("secrets_source", "file")),
             log_level=str(logging_data.get("level", "INFO")),

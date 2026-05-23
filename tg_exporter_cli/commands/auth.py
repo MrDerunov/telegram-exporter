@@ -8,7 +8,6 @@ from tg_exporter_cli.utils.async_runner import run_async
 from tg_exporter_cli.cli_constants import DEFAULT_SECRETS_EXPORTED_ENV_FILENAME
 from tg_exporter.services.telegram import AuthService, SendCodeParams, VerifyCodeParams, ExportSessionParams
 from tg_exporter.services.telegram import ITelegramClientManager
-from tg_exporter.services.profiles import ProfileManager
 from tg_exporter.settings.secrets.secret_store import ISecretStore
 from tg_exporter.settings.secrets import API_HASH, API_ID, SESSION
 from tg_exporter.settings.configs import StaticConfig
@@ -24,8 +23,7 @@ def auth_group():
 @click.option("--phone", help="Номер телефона (+7999...)")
 @click.option("--api-id", help="Telegram API ID")
 @click.option("--api-hash", help="Telegram API Hash")
-@click.option("--profile", default="default", help="Имя профиля")
-def auth_login(phone, api_id, api_hash, profile):
+def auth_login(phone, api_id, api_hash):
     """Интерактивный вход в аккаунт Telegram."""
     host = get_host()
     config = host.get(StaticConfig)
@@ -77,13 +75,10 @@ def auth_login(phone, api_id, api_hash, profile):
 
 
 @auth_group.command("status")
-@click.option("--profile", default="default", help="Имя профиля")
-def auth_status(profile):
+def auth_status():
     """Проверить статус авторизации."""
     host = get_host()
     auth_service = host.get(AuthService)
-    client_manager = host.get(ITelegramClientManager)
-    _use_active_profile_session(host, client_manager)
     result = run_async(auth_service.check_session())
     if result.step.name == "SUCCESS":
         click.echo("✅ Авторизован")
@@ -92,8 +87,7 @@ def auth_status(profile):
 
 
 @auth_group.command("logout")
-@click.option("--profile", default="default", help="Имя профиля")
-def auth_logout(profile):
+def auth_logout():
     """Выйти из аккаунта."""
     host = get_host()
     auth_service = host.get(AuthService)
@@ -130,13 +124,10 @@ def auth_export_session(output):
 
 
 @auth_group.command("verify")
-@click.option("--profile", default="default", help="Имя профиля")
-def auth_verify(profile):
+def auth_verify():
     """Проверить валидность сессии (для CI/CD). Exit codes: 0=валидна, 1=невалидна, 2=нет сессии."""
     host = get_host()
     auth_service = host.get(AuthService)
-    client_manager = host.get(ITelegramClientManager)
-    _use_active_profile_session(host, client_manager)
     result = run_async(auth_service.check_session())
     if result.step.name == "SUCCESS":
         click.echo("✅ Сессия валидна")
@@ -146,11 +137,3 @@ def auth_verify(profile):
         raise SystemExit(1)
 
 
-def _use_active_profile_session(host, client_manager: ITelegramClientManager) -> None:
-    """Загружает сессию активного профиля в клиентский менеджер."""
-    profile_manager = host.get(ProfileManager)
-    active = profile_manager.active()
-    if active is None:
-        return
-    session_str = profile_manager.load_session(active)
-    client_manager.use_session(session_str)

@@ -23,12 +23,7 @@
 
 ## HIGH (13 проблем)
 
-### 1. `--profile` опция не работает нигде
-- **Файлы:** `tg_exporter_cli/commands/auth.py:28,83,96,132`, `tg_exporter_cli/commands/export.py:67`
-- **Описание:** Задекларирована в auth и export, но **не передаётся** в сервисы. Пользователь ожидает смены аккаунта — этого не происходит.
-- **Исправление:** реализовать передачу профиля в сервисы или убрать опцию.
-
-### 2. `config set` — заглушка, изменения не сохраняются
+### 1. `config set` — заглушка, изменения не сохраняются
 - **Файл:** `tg_exporter_cli/commands/config_cmd.py:106-107`
 - **Описание:** Команда парсит значение, но не записывает в config.json. Пользователь получает сообщение «отредактируйте вручную».
 - **Исправление:** реализовать запись в config.json или скрыть команду.
@@ -98,7 +93,7 @@
 4. **Конвертер не обрабатывает 7+ типов медиа** — `tg_exporter/telegram/converter.py:199-215` — contact, geo, dice, game, web_page, invoice теряются
 5. **Сервисные сообщения теряют данные** — `tg_exporter/telegram/converter.py:27,57-58` — кроме названия топика, всё теряется
 6. **Нет обработки `FloodWaitError` в экспорте** — `tg_exporter/telegram/telethon_client_adapter.py:91-101` — длительный экспорт может прерваться
-7. **Не-frozen dataclasses** — `AuthResult`, `AudioPrepResult`, `MediaDirs`, `Profile`, `AnalyticsResult`, `AuthorStats`
+7. **Не-frozen dataclasses** — `AuthResult`, `AudioPrepResult`, `MediaDirs`, `AnalyticsResult`, `AuthorStats`
 8. **Несколько классов в одном файле** — `configuration_provider.py`, `state_model.py`, `export_format.py`, `poll_data.py`, `telegram_client_manager.py`, `cancellation.py`
 9. **Дублирование логики event loop** — 4 места: `export_orchestrator.py`, `async_runner.py`, `telethon_client_adapter.py`, `media_downloader.py`
 10. **Дублирование `_run_download` в media_downloader.py** — строки 79-84 и 238-245

@@ -11,7 +11,6 @@ from click.testing import CliRunner
 from tg_exporter_cli.main import cli
 from tg_exporter_cli.hosting import CliHost
 from tg_exporter.services.telegram import ITelegramClientManager
-from tg_exporter.services.profiles import ProfileManager
 from tg_exporter.settings.secrets.secret_store import ISecretStore
 from tg_exporter.settings.configs import ISettingsStore
 from tests.common.fakes import (
@@ -49,13 +48,11 @@ class TestCliCommandBase:
 
         self.fake_secrets = FakeSecretStore()
         self.fake_settings = FakeSettingsStore()
-        self.pm = ProfileManager(self.fake_secrets, self.fake_settings)
 
         self.host = (
             CliHost()
             .build()
             .rebind_services(lambda c, r: c.register_instance(ITelegramClientManager, self.client_manager))
-            .rebind_services(lambda c, r: c.register_instance(ProfileManager, self.pm))
             .rebind_services(lambda c, r: c.register_instance(ISecretStore, self.fake_secrets))
             .rebind_services(lambda c, r: c.register_instance(ISettingsStore, self.fake_settings))
         )

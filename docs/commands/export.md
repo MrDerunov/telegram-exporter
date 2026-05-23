@@ -50,6 +50,5 @@
 | `--transcriber` | choice | `local` (faster-whisper) или `deepgram` |
 | `--analytics` | flag | Собирать аналитику |
 | `--words-per-file` | int | Слов на Markdown-файл |
-| `--profile` | string | Имя профиля |
 | `--resume` | flag | Продолжить прерванный экспорт |
 | `--skip-unavailable` | flag | Пропускать недоступные чаты (с `--all`) |

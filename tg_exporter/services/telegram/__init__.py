@@ -3,7 +3,6 @@ from .telegram_client_manager import TelethonClientManager, ClientNotConfiguredE
 from .telegram_client_interface import TelegramClientInterface
 from .telethon_client_adapter import TelethonClientAdapter
 from .converter import message_to_export, _normalize, _build_forwarded_from, _build_reactions, _build_poll, _extract_links, _detect_media_type
-from tg_exporter.services.profiles import ProfileManager, Profile, _session_key, _normalize_phone
 import importlib
 
 
@@ -45,8 +44,4 @@ __all__ = [
     "_build_poll",
     "_extract_links",
     "_detect_media_type",
-    "ProfileManager",
-    "Profile",
-    "_session_key",
-    "_normalize_phone",
 ]

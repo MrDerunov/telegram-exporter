@@ -19,7 +19,6 @@ from tg_exporter.settings.secrets.secret_store import ISecretStore
 from tg_exporter.settings.secrets import KeyringSecretStore
 from tg_exporter.settings.secrets import JsonSecretStore
 from tg_exporter.settings.secrets.env_fallback_secret_store import EnvFallbackSecretStore
-from tg_exporter.services.profiles import ProfileManager
 from tg_exporter.services.telegram.telegram_client_manager import TelethonClientManager
 from tg_exporter.services.telegram import ITelegramClientManager
 from tg_exporter.services.telegram import AuthService
@@ -68,15 +67,6 @@ class CliHost:
         # SettingsStore
         settings_store = JsonSettingsStore(result.config_dir)
         c.register_instance(ISettingsStore, settings_store)
-
-        # Профили
-        c.register(
-            ProfileManager,
-            lambda ctr: ProfileManager(
-                secrets=ctr.get(ISecretStore),
-                settings=ctr.get(ISettingsStore),
-            ),
-        )
 
         # Telegram-клиент + интерфейс
         c.register(

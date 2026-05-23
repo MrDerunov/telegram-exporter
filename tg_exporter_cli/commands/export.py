@@ -64,7 +64,6 @@ def export_group() -> None:
 @click.option("--transcriber", type=click.Choice(["local", "deepgram"]), default="local", help="Провайдер транскрипции")
 @click.option("--analytics", is_flag=True, help="Собирать аналитику (top_authors.md, activity.md)")
 @click.option("--words-per-file", type=int, default=None, help="Слов на Markdown-файл")
-@click.option("--profile", default="default", help="Имя профиля")
 @click.option("--resume", is_flag=True, help="Продолжить прерванный экспорт")
 @click.option("--all", "export_all", is_flag=True, help="Экспортировать все чаты из конфига")
 @click.option("--skip-unavailable", is_flag=True, help="Пропускать недоступные чаты (с --all)")
@@ -82,7 +81,6 @@ def export_run(
     transcriber: str,
     analytics: bool,
     words_per_file: int | None,
-    profile: str,
     resume: bool,
     export_all: bool,
     skip_unavailable: bool,
@@ -133,7 +131,6 @@ def export_run(
                     transcriber=transcriber,
                     analytics=analytics,
                     words_per_file=words_per_file,
-                    profile=profile,
                     resume=resume,
                 )
             except SystemExit as e:
@@ -164,7 +161,6 @@ def export_run(
         transcriber=transcriber,
         analytics=analytics,
         words_per_file=words_per_file,
-        profile=profile,
         resume=resume,
     )
 
@@ -187,7 +183,6 @@ def _run_export(
     transcriber: str,
     analytics: bool,
     words_per_file: int | None,
-    profile: str,
     resume: bool,
 ) -> None:
     """Выполняет экспорт одного чата."""

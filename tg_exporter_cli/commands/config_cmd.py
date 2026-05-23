@@ -45,7 +45,6 @@ def config_show():
 
     click.echo(f"Файл:        {result.config_dir / 'config.json'}")
     click.echo(f"API ID:      {config.api_id or '(не задан)'}")
-    click.echo(f"Профиль:     {config.default_profile}")
     click.echo(f"Формат:      {config.default_format}")
     click.echo(f"Слов/файл:   {config.default_words_per_file}")
     click.echo(f"Медиа:       {'да' if config.default_download_media else 'нет'}")
@@ -65,7 +64,6 @@ def config_show():
 
 _SIMPLE_FIELDS = {
     "api_id": str,
-    "default_profile": str,
     "default_format": str,
     "default_words_per_file": int,
     "default_download_media": bool,
