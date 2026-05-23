@@ -33,6 +33,7 @@
 - `--transcribe` — транскрипция голосовых сообщений (требует `--download-media`)
 - `--analytics` — генерация отчётов: `top_authors.md`, `activity.md`
 - `--words-per-file` — размер разбивки Markdown (по умолчанию 50000 слов)
+- `--deduplicate` — пропуск уже экспортированных сообщений (по `export_history.json`)
 
 | Опция | Тип | Назначение |
 |-------|-----|-----------|
@@ -47,8 +48,9 @@
 | `--topic-id` | int | ID топика форума |
 | `--download-media` | flag | Скачивать медиафайлы |
 | `--transcribe` | flag | Транскрибировать голосовые |
-| `--transcriber` | choice | `local` (faster-whisper) или `deepgram` |
+| `--transcriber` | choice | `local` (faster-whisper) или `deepgram` (default: `local`) |
 | `--analytics` | flag | Собирать аналитику |
 | `--words-per-file` | int | Слов на Markdown-файл |
 | `--resume` | flag | Продолжить прерванный экспорт |
+| `--deduplicate` | flag | Пропускать уже экспортированные сообщения |
 | `--skip-unavailable` | flag | Пропускать недоступные чаты (с `--all`) |

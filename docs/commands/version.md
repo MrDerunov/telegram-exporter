@@ -7,5 +7,5 @@
 ## Пример вывода
 
 ```
-tg-exporter 0.1.0 (python 3.11.9, Windows 11 AMD64)
+tg-exporter 0.0.0 (python 3.13.9, Windows AMD64)
 ```
