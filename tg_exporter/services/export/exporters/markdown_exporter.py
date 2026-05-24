@@ -5,7 +5,7 @@ MarkdownExporter — запись сообщений в Markdown с разбив
   - Разбивает на файлы по words_per_file слов
   - Поддерживает топики форумов (индекс + комментарии)
   - Собирает «популярные» сообщения по реакциям
-  - НЕТ UTF-8 BOM (был в оригинале — убираем, он не нужен для UTF-8)
+  - UTF-8 BOM добавляется для совместимости с редакторами Windows (Notepad++ и др.)
 """
 
 from __future__ import annotations
@@ -145,7 +145,7 @@ class MarkdownExporter(BaseExporter):
             return
         path = self._path(f"{self._md_prefix}_part_{index}.md")
         normalized = content.replace("\r\n", "\n").replace("\r", "\n")
-        with open(path, "w", encoding="utf-8") as f:
+        with open(path, "w", encoding="utf-8-sig") as f:
             f.write(normalized)
         self._register(path)
 
@@ -157,7 +157,7 @@ class MarkdownExporter(BaseExporter):
         ]
         content = header + "\n\n" + "\n\n---\n\n".join(blocks) if blocks else header
         path = self._path(f"{self._md_prefix}_popular.md")
-        with open(path, "w", encoding="utf-8") as f:
+        with open(path, "w", encoding="utf-8-sig") as f:
             f.write(content.replace("\r\n", "\n").replace("\r", "\n"))
         self._register(path)
 

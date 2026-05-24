@@ -339,12 +339,12 @@ class ExportOrchestrator:
                 for i, part in enumerate(parts):
                     suffix = "" if i == 0 else f"_part_{i + 1}"
                     path = os.path.join(export_dir, f"top_authors{suffix}.md")
-                    with open(path, "w", encoding="utf-8") as f:
+                    with open(path, "w", encoding="utf-8-sig") as f:
                         f.write(part)
                     output_files.append(path)
             if result.activity:
                 act_path = os.path.join(export_dir, "activity.md")
-                with open(act_path, "w", encoding="utf-8") as f:
+                with open(act_path, "w", encoding="utf-8-sig") as f:
                     f.write(render_activity(result))
                 output_files.append(act_path)
 

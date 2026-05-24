@@ -88,12 +88,12 @@ class TestMarkdownExporter:
         assert "**" not in content
         assert "Bold" in content
 
-    def test_not_have_utf8_bom(self):
-        """В начале .md файла нет BOM."""
+    def test_have_utf8_bom(self):
+        """В начале .md файла есть UTF-8 BOM для совместимости с редакторами Windows."""
         files = self._run([_msg(text="test")])
         with open(files[0], "rb") as f:
             raw = f.read(3)
-        assert raw != b"\xef\xbb\xbf"
+        assert raw == b"\xef\xbb\xbf", "UTF-8 BOM required for Windows editor compatibility"
 
     def test_create_multiple_files_when_exceeding_word_limit(self):
         """При превышении лимита слов создаются несколько файлов."""
