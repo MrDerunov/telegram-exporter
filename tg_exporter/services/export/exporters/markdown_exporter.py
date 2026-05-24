@@ -105,10 +105,13 @@ class MarkdownExporter(BaseExporter):
         if self._current_chunk.strip():
             self._flush_chunk()
 
-        # Формируем все файлы
+        # Сообщения приходят от новых к старым, поэтому чанки
+        # накоплены в обратном хронологическом порядке.
+        # Разворачиваем: _part_1 = самые старые сообщения.
+        self._chunks.reverse()
+
         topics_index = _build_topics_index(self._topic_map) if self._has_topics else ""
 
-        # Первый файл: индекс топиков + первый чанк
         first_parts = []
         if topics_index:
             first_parts.append(topics_index)
@@ -117,7 +120,6 @@ class MarkdownExporter(BaseExporter):
         if first_parts:
             self._write_md(1, "\n\n".join(first_parts).strip())
 
-        # Остальные чанки
         for i, chunk in enumerate(self._chunks[1:], start=2):
             self._write_md(i, chunk)
 

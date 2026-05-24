@@ -126,6 +126,34 @@ class TestMarkdownExporter:
         files = exp.finalize()
         assert files == []
 
+    def test_part1_contains_oldest_messages_chronological_order(self):
+        """_part_1.md содержит самые старые сообщения, _part_N — самые новые.
+
+        Telegram возвращает сообщения от новых к старым. Проверяем что
+        после finalize() файлы пронумерованы в хронологическом порядке.
+        """
+        settings = MarkdownConfig(words_per_file=6, include_timestamps=False, include_author=False)
+        # Каждое сообщение ~3 слова, words_per_file=6 → 2 сообщения на чанк
+        msgs = [
+            _msg(id=3, text="three three three"),   # самое новое
+            _msg(id=2, text="two two two"),         # среднее
+            _msg(id=1, text="one one one"),         # самое старое
+        ]
+        files = self._run(msgs, settings=settings)
+        assert len(files) >= 2, f"Expected at least 2 part files, got {len(files)}"
+
+        # _part_1.md должен содержать самое старое сообщение
+        part1_content = self._read(files[0])
+        assert "one one one" in part1_content, (
+            f"_part_1 should contain oldest message, got: {part1_content[:200]}"
+        )
+
+        # Последний файл должен содержать самое новое сообщение
+        last_content = self._read(files[-1])
+        assert "three three three" in last_content, (
+            f"Last part should contain newest message, got: {last_content[:200]}"
+        )
+
 
 class TestFormatMessage:
     """Unit-тесты хелпера _format_message (из Phase 1)."""

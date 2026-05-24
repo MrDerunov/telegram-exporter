@@ -9,6 +9,7 @@ ExportOrchestrator — выполняет одну задачу экспорта
 
 from __future__ import annotations
 
+import dataclasses
 import datetime
 import os
 import shutil
@@ -182,9 +183,13 @@ class ExportOrchestrator:
             json_exp = JsonExporter(include_views=True)
             json_exp.open(export_dir, dialog.name or "Chat", task.topic_title)
 
+        md_settings = self._config.markdown
+        if task.words_per_file != md_settings.words_per_file:
+            md_settings = dataclasses.replace(md_settings, words_per_file=task.words_per_file)
+
         if task.format in (ExportFormat.MARKDOWN, ExportFormat.BOTH):
             md_exp = MarkdownExporter(
-                settings=self._config.markdown,
+                settings=md_settings,
                 popular_min_reactions=0,  # популярные пока отключены — TODO в следующей итерации
             )
             md_exp.open(export_dir, dialog.name or "Chat", task.topic_title)
@@ -330,7 +335,7 @@ class ExportOrchestrator:
         if analytics:
             result = analytics.result()
             if result.authors:
-                parts = render_top_authors(result, self._config.markdown.words_per_file)
+                parts = render_top_authors(result, md_settings.words_per_file)
                 for i, part in enumerate(parts):
                     suffix = "" if i == 0 else f"_part_{i + 1}"
                     path = os.path.join(export_dir, f"top_authors{suffix}.md")

@@ -66,3 +66,48 @@ class TestExportWordsPerFile(TestCliCommandBase):
         assert len(part_files) <= 1, (
             f"Expected at most 1 part, got {len(part_files)}"
         )
+
+    def test_custom_words_per_file_respected_in_output(self, tmp_path: Path):
+        """--words-per-file реально применяется: файлы не превышают лимит слов."""
+        word = "w"
+        words_per_msg = 5
+        msgs_count = 12
+        words_per_file = 20  # ~4 сообщения на файл = ~12 файлов ожидается
+
+        user = make_fake_user(id=1, username="u")
+        chat = make_fake_chat(id=-2001234, title="Limit Test")
+        dialog = make_fake_dialog(dialog_id=-2001234, name="Limit Test", entity=chat)
+        msgs = [
+            make_fake_message(msg_id=i, text=" ".join([word] * words_per_msg))
+            for i in range(msgs_count, 0, -1)
+        ]
+        self.server.users.add_user(user)
+        self.server.dialogs.add_dialog(dialog)
+        self.server.messages.add_messages(-2001234, msgs)
+
+        result = self._invoke(
+            "export", "--chat", "-2001234", "--output", str(tmp_path),
+            "--format", "markdown", "--words-per-file", str(words_per_file),
+        )
+        assert result.exit_code == 0, f"STDERR: {result.stderr}"
+
+        export_dirs = list(tmp_path.glob("Limit_Test_*"))
+        part_files = sorted(
+            [f for f in export_dirs[0].glob("*.md") if "_part_" in f.name],
+            key=lambda p: p.name,
+        )
+
+        # При words_per_file=20 и 5 слов на сообщение должно быть > 1 файла
+        assert len(part_files) > 1, (
+            f"Expected multiple part files with words_per_file={words_per_file}, "
+            f"got {len(part_files)}"
+        )
+
+        # Каждый файл не должен превышать words_per_file слов
+        for pf in part_files:
+            content = pf.read_text(encoding="utf-8")
+            wc = len(content.split())
+            assert wc <= words_per_file + words_per_msg, (
+                f"File {pf.name} has {wc} words, limit is {words_per_file}. "
+                f"Content preview: {content[:100]}"
+            )
