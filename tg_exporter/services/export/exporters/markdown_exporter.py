@@ -37,9 +37,9 @@ class MarkdownExporter(BaseExporter):
         self._popular_min = popular_min_reactions
 
         # Буферы
-        self._current_chunk = ""
+        self._current_msgs: list[str] = []     # сообщения текущего чанка (от новых к старым)
         self._current_words = 0
-        self._chunks: list[str] = []           # готовые чанки
+        self._chunks: list[str] = []           # готовые чанки (в хронологическом порядке)
         self._popular: list[tuple[str, int]] = []  # (rendered, total_reactions)
 
         # Форумные топики
@@ -51,7 +51,7 @@ class MarkdownExporter(BaseExporter):
 
     def _open(self) -> None:
         self._md_prefix = _sanitize_md_filename(self._chat_name)
-        self._current_chunk = ""
+        self._current_msgs = []
         self._current_words = 0
         self._chunks = []
         self._popular = []
@@ -87,11 +87,11 @@ class MarkdownExporter(BaseExporter):
         msg_words = len(rendered.split())
         if (
             self._current_words + msg_words > self._settings.words_per_file
-            and self._current_chunk.strip()
+            and self._current_msgs
         ):
             self._flush_chunk()
 
-        self._current_chunk += rendered + "\n\n"
+        self._current_msgs.append(rendered)
         self._current_words += msg_words
 
         # Популярные сообщения
@@ -102,12 +102,11 @@ class MarkdownExporter(BaseExporter):
 
     def finalize(self) -> list[str]:
         # Сброс последнего чанка
-        if self._current_chunk.strip():
+        if self._current_msgs:
             self._flush_chunk()
 
-        # Сообщения приходят от новых к старым, поэтому чанки
-        # накоплены в обратном хронологическом порядке.
-        # Разворачиваем: _part_1 = самые старые сообщения.
+        # Чанки накоплены от новых к старым. Разворачиваем:
+        # _part_1 = самые старые сообщения, _part_N = самые новые.
         self._chunks.reverse()
 
         topics_index = _build_topics_index(self._topic_map) if self._has_topics else ""
@@ -136,8 +135,11 @@ class MarkdownExporter(BaseExporter):
     # ---- Internal ----
 
     def _flush_chunk(self) -> None:
-        self._chunks.append(self._current_chunk.strip())
-        self._current_chunk = ""
+        # Сообщения накоплены от новых к старым — разворачиваем
+        # для хронологического порядка внутри чанка.
+        self._current_msgs.reverse()
+        self._chunks.append("\n\n".join(self._current_msgs).strip())
+        self._current_msgs = []
         self._current_words = 0
 
     def _write_md(self, index: int, content: str) -> None:

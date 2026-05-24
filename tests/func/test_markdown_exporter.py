@@ -154,6 +154,31 @@ class TestMarkdownExporter:
             f"Last part should contain newest message, got: {last_content[:200]}"
         )
 
+    def test_messages_within_file_are_chronological(self):
+        """Сообщения внутри одного файла идут от старых к новым.
+
+        Telegram возвращает от новых к старым — exporter должен развернуть.
+        """
+        settings = MarkdownConfig(words_per_file=100, include_timestamps=False, include_author=False)
+        # Все помещаются в один чанк — проверяем порядок внутри одного файла
+        msgs = [
+            _msg(id=3, text="THIRD"),   # самое новое
+            _msg(id=2, text="SECOND"),  # среднее
+            _msg(id=1, text="FIRST"),   # самое старое
+        ]
+        files = self._run(msgs, settings=settings)
+        assert len(files) == 1, f"Expected 1 file, got {len(files)}"
+        content = self._read(files[0])
+
+        pos_first = content.find("FIRST")
+        pos_second = content.find("SECOND")
+        pos_third = content.find("THIRD")
+
+        assert pos_first < pos_second < pos_third, (
+            f"Expected FIRST before SECOND before THIRD, "
+            f"got positions: FIRST={pos_first}, SECOND={pos_second}, THIRD={pos_third}"
+        )
+
 
 class TestFormatMessage:
     """Unit-тесты хелпера _format_message (из Phase 1)."""
