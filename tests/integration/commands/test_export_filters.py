@@ -50,10 +50,12 @@ class TestExportLast(TestCliCommandBase):
         export_dirs = list(tmp_path.glob("Last_Chat_*"))
         data = json.loads((export_dirs[0] / "result.json").read_text(encoding="utf-8"))
         assert len(data["messages"]) == 5
-        # Сообщения идут от новых к старым. Новые имеют бо́льшие ID (как в Telegram):
-        # ID=50 = 1 час назад, ID=1 = 50 часов назад.
+        # Сообщения в хронологическом порядке (от старых к новым).
+        # ID=46 = 46 часов назад (старое), ID=50 = 50 часов назад... нет,
+        # в FakeTelegramClient ID растут с давностью: ID=1 = старее, ID=50 = новее.
+        # --last 5 берёт 5 самых новых → ID=50,49,48,47,46 → после разворота: 46,47,48,49,50
         msg_ids = [m["id"] for m in data["messages"]]
-        assert msg_ids == [50, 49, 48, 47, 46]
+        assert msg_ids == [46, 47, 48, 49, 50]
 
     def test_last_zero_exports_all(self, tmp_path: Path):
         """--last 0 = без ограничений (экспортирует все сообщения)."""

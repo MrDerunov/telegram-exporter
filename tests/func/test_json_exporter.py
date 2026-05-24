@@ -46,9 +46,10 @@ class TestJsonExporter:
         assert data["messages"][0]["id"] == 42
         assert data["messages"][0]["text"] == "Привет"
 
-    def test_preserve_message_order(self):
-        """Сообщения в JSON сохраняют порядок добавления."""
-        msgs = [_msg(id=i, text=f"msg{i}") for i in range(1, 6)]
+    def test_messages_in_chronological_order(self):
+        """Сообщения в JSON идут от старых к новым (Telegram отдаёт наоборот)."""
+        # Telegram отдаёт от новых к старым: 5 (новое) → 1 (старое)
+        msgs = [_msg(id=i, text=f"msg{i}") for i in range(5, 0, -1)]
         data = self._run(msgs)
         ids = [m["id"] for m in data["messages"]]
         assert ids == [1, 2, 3, 4, 5]
@@ -142,4 +143,5 @@ class TestJsonExporter:
                 raise RuntimeError("boom")
         except RuntimeError:
             pass
-        assert exp._file is None
+        # После close() должен быть зарегистрирован output-файл
+        assert len(exp.output_files) == 1
